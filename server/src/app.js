@@ -26,9 +26,7 @@ app.get('/', ( _ , res) => {
 })
 
 import userRouter from "./routes/user.routes.js"
-import assessmentRouter from "./routes/assessment.routes.js"
 
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/assessments", assessmentRouter);
 
 export {app}
