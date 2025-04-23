@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
-import { getActionPlans, getActionPlanById, createActionPlan, updateActionPlan, updateActionPlans, deleteActionPlan } from "../controllers/actionPlan.controller"
-import { requireAuth } from "../middleware/auth"
+import { getActionPlans, getActionPlanById, createActionPlan, updateActionPlan, updateActionPlans, deleteActionPlan } from "../controllers/actionPlan.controller.js"
+import { requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)

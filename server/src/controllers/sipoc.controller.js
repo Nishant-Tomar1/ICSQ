@@ -1,4 +1,4 @@
-import { findOne, findOneAndUpdate, deleteOne } from "../models/SIPOC"
+import {SIPOC} from "../models/SIPOC.model.js"
 
 // Get SIPOC by department
 export async function getSIPOCByDepartment(req, res) {
@@ -9,7 +9,7 @@ export async function getSIPOCByDepartment(req, res) {
       return res.status(400).json({ message: "Department parameter is required" })
     }
 
-    const sipoc = await findOne({ department })
+    const sipoc = await SIPOC.findOne({ department })
 
     if (!sipoc) {
       return res.status(404).json({ message: "SIPOC not found for this department" })
@@ -32,7 +32,7 @@ export async function createOrUpdateSIPOC(req, res) {
     }
 
     // Find and update if exists, create if not
-    const sipoc = await findOneAndUpdate({ department }, { department, entries }, { new: true, upsert: true })
+    const sipoc = await SIPOC.findOneAndUpdate({ department }, { department, entries }, { new: true, upsert: true })
 
     return res.json(sipoc)
   } catch (error) {
@@ -50,7 +50,7 @@ export async function deleteSIPOC(req, res) {
       return res.status(400).json({ message: "Department parameter is required" })
     }
 
-    const result = await deleteOne({ department })
+    const result = await SIPOC.deleteOne({ department })
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "SIPOC not found for this department" })

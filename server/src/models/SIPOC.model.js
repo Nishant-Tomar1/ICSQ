@@ -22,4 +22,4 @@ const SIPOCSchema = new Schema(
   },
 )
 
-export default model("SIPOC", SIPOCSchema)
+export const SIPOC =  model("SIPOC", SIPOCSchema)

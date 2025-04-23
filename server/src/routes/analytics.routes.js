@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
-import { getDepartmentScores, getCategoryScores, getActionPlanStats } from "../controllers/analytics.controller"
-import { requireAuth } from "../middleware/auth"
+import { getDepartmentScores, getCategoryScores, getActionPlanStats } from "../controllers/analytics.controller.js"
+import { requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)

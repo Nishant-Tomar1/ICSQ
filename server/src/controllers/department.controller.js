@@ -1,9 +1,9 @@
-import Department, { find, findById, findOne } from "../models/Department"
+import {Department} from "../models/Department.model.js"
 
 // Get all departments
 export async function getDepartments(req, res) {
   try {
-    const departments = await find()
+    const departments = await Department.find()
     return res.json(departments)
   } catch (error) {
     console.error("Error fetching departments:", error)
@@ -14,7 +14,7 @@ export async function getDepartments(req, res) {
 // Get department by ID
 export async function getDepartmentById(req, res) {
   try {
-    const department = await findById(req.params.id)
+    const department = await Department.findById(req.params.id)
 
     if (!department) {
       return res.status(404).json({ message: "Department not found" })
@@ -37,7 +37,7 @@ export async function createDepartment(req, res) {
     }
 
     // Check if department already exists
-    const existingDepartment = await findOne({ name })
+    const existingDepartment = await Department.findOne({ name })
     if (existingDepartment) {
       return res.status(409).json({ message: "Department already exists" })
     }
@@ -61,7 +61,7 @@ export async function updateDepartment(req, res) {
   try {
     const { name, description } = req.body
 
-    const department = await findById(req.params.id)
+    const department = await Department.findById(req.params.id)
 
     if (!department) {
       return res.status(404).json({ message: "Department not found" })
@@ -82,7 +82,7 @@ export async function updateDepartment(req, res) {
 // Delete a department
 export async function deleteDepartment(req, res) {
   try {
-    const department = await findById(req.params.id)
+    const department = await Department.findById(req.params.id)
 
     if (!department) {
       return res.status(404).json({ message: "Department not found" })

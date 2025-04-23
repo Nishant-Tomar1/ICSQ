@@ -1,4 +1,4 @@
-import ActionPlan, { find, findById, findByIdAndUpdate } from "../models/ActionPlan"
+import {ActionPlan} from "../models/ActionPlan.model.js"
 
 // Get all action plans with optional filters
 export async function getActionPlans(req, res) {
@@ -9,7 +9,7 @@ export async function getActionPlans(req, res) {
     if (department) filters.department = department
     if (status) filters.status = status
 
-    const plans = await find(filters)
+    const plans = await ActionPlan.find(filters)
     return res.json(plans)
   } catch (error) {
     console.error("Error fetching action plans:", error)
@@ -20,7 +20,7 @@ export async function getActionPlans(req, res) {
 // Get action plan by ID
 export async function getActionPlanById(req, res) {
   try {
-    const plan = await findById(req.params.id)
+    const plan = await ActionPlan.findById(req.params.id)
 
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
@@ -66,7 +66,7 @@ export async function updateActionPlan(req, res) {
   try {
     const { department, category, expectation, action, owner, targetDate, status } = req.body
 
-    const plan = await findById(req.params.id)
+    const plan = await ActionPlan.findById(req.params.id)
 
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
@@ -100,7 +100,7 @@ export async function updateActionPlans(req, res) {
 
     const updatePromises = plans.map(async (plan) => {
       const { _id, ...updateData } = plan
-      return findByIdAndUpdate(_id, updateData, { new: true })
+      return ActionPlan.findByIdAndUpdate(_id, updateData, { new: true })
     })
 
     await Promise.all(updatePromises)

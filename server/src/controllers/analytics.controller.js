@@ -1,10 +1,10 @@
-import { find } from "../models/Survey"
-import { find as _find } from "../models/ActionPlan"
+import {Survey} from "../models/Survey.model.js"
+import {ActionPlan} from "../models/ActionPlan.model.js"
 
 // Get department scores
 export async function getDepartmentScores(req, res) {
   try {
-    const surveys = await find()
+    const surveys = await Survey.find()
 
     // Group surveys by department and calculate average scores
     const departmentScores = {}
@@ -51,7 +51,7 @@ export async function getDepartmentScores(req, res) {
 // Get category scores
 export async function getCategoryScores(req, res) {
   try {
-    const surveys = await find()
+    const surveys = await Survey.find()
 
     // Group surveys by category and calculate average scores
     const categoryScores = {}
@@ -88,7 +88,7 @@ export async function getCategoryScores(req, res) {
 // Get action plan stats
 export async function getActionPlanStats(req, res) {
   try {
-    const actionPlans = await _find()
+    const actionPlans = await ActionPlan.find()
 
     // Group action plans by status
     const statusCounts = {

@@ -1,4 +1,4 @@
-import Survey, { find, findById } from "../models/Survey"
+import {Survey} from "../models/Survey.model.js"
 
 // Get all surveys with optional filters
 export async function getSurveys(req, res) {
@@ -9,7 +9,7 @@ export async function getSurveys(req, res) {
     if (fromDepartment) filters.fromDepartment = fromDepartment
     if (toDepartment) filters.toDepartment = toDepartment
 
-    const surveys = await find(filters)
+    const surveys = await Survey.find(filters)
     return res.json(surveys)
   } catch (error) {
     console.error("Error fetching surveys:", error)
@@ -20,7 +20,7 @@ export async function getSurveys(req, res) {
 // Get survey by ID
 export async function getSurveyById(req, res) {
   try {
-    const survey = await findById(req.params.id)
+    const survey = await Survey.findById(req.params.id)
 
     if (!survey) {
       return res.status(404).json({ message: "Survey not found" })
@@ -63,7 +63,7 @@ export async function updateSurvey(req, res) {
   try {
     const { fromDepartment, toDepartment, responses, date } = req.body
 
-    const survey = await findById(req.params.id)
+    const survey = await Survey.findById(req.params.id)
 
     if (!survey) {
       return res.status(404).json({ message: "Survey not found" })
@@ -86,7 +86,7 @@ export async function updateSurvey(req, res) {
 // Delete a survey
 export async function deleteSurvey(req, res) {
   try {
-    const survey = await findById(req.params.id)
+    const survey = await Survey.findById(req.params.id)
 
     if (!survey) {
       return res.status(404).json({ message: "Survey not found" })

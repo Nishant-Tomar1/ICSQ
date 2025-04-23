@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
-import { getDepartments, getDepartmentById, createDepartment, updateDepartment, deleteDepartment } from "../controllers/department.controller"
-import { requireAuth } from "../middleware/auth"
+import { getDepartments, getDepartmentById, createDepartment, updateDepartment, deleteDepartment } from "../controllers/department.controller.js"
+import { requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)

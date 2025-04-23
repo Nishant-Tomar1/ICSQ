@@ -29,4 +29,4 @@ const SurveySchema = new Schema(
   },
 )
 
-export default model("Survey", SurveySchema)
+export const Survey = model("Survey", SurveySchema)

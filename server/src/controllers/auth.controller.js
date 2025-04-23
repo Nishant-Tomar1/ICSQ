@@ -1,6 +1,6 @@
-import User, { findOne } from "../models/User"
-import { generateToken, setAuthCookie, clearAuthCookie } from "../middleware/auth"
-import { ConfidentialClientApplication } from "msal"
+import {User} from "../models/User.model.js"
+import { generateToken, setAuthCookie, clearAuthCookie } from "../middleware/auth.js"
+import {PublicClientApplication} from "@azure/msal-browser"
 
 // Microsoft Teams SSO Configuration
 const msalConfig = {
@@ -12,7 +12,7 @@ const msalConfig = {
 }
 
 // Create MSAL application
-const msalClient = new ConfidentialClientApplication(msalConfig)
+const msalClient = new PublicClientApplication(msalConfig)
 
 // Register a new user
 export async function register(req, res) {
@@ -24,7 +24,7 @@ export async function register(req, res) {
     }
 
     // Check if user already exists
-    const existingUser = await findOne({ email })
+    const existingUser = await User.findOne({ email })
     if (existingUser) {
       return res.status(409).json({ message: "User already exists" })
     }
@@ -72,7 +72,7 @@ export async function login(req, res) {
     }
 
     // Find user by email
-    const user = await findOne({ email })
+    const user = await User.findOne({ email })
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" })
@@ -191,7 +191,7 @@ export async function handleMicrosoftCallback(req, res) {
     const msUser = await response.json()
 
     // Find or create user in our database
-    let user = await findOne({ email: msUser.mail || msUser.userPrincipalName })
+    let user = await User.findOne({ email: msUser.mail || msUser.userPrincipalName })
 
     if (!user) {
       // Create new user

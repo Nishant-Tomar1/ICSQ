@@ -1,5 +1,5 @@
-import { verify, sign } from "jsonwebtoken"
-import { findById } from "../models/User"
+import jwt from "jsonwebtoken"
+import {User} from "../models/User.model.js"
 
 // Middleware to check if user is authenticated
 export async function requireAuth(req, res, next) {
@@ -13,10 +13,10 @@ export async function requireAuth(req, res, next) {
     }
 
     // Verify token
-    const decoded = verify(token, process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
     // Get user from database
-    const user = await findById(decoded.id).select("-password")
+    const user = await User.findById(decoded.id).select("-password")
 
     if (!user) {
       return res.status(404).json({ message: "User not found" })
@@ -47,7 +47,7 @@ export async function requireAdmin(req, res, next) {
 
 // Generate JWT token
 export function generateToken(user) {
-  return sign(
+  return jwt.sign(
     {
       id: user._id,
       email: user.email,

@@ -29,12 +29,12 @@ app.get('/', ( _ , res) => {
 })
 
 // Import routes
-import authRoutes from "./routes/auth.routes"
-import departmentRoutes from "./routes/department.routes"
-import surveyRoutes from "./routes/survey.routes"
-import sipocRoutes from "./routes/sipoc.routes"
-import actionPlanRoutes from "./routes/actionPlan.routes"
-import analyticsRoutes from "./routes/analytics.routes"
+import authRoutes from "./routes/auth.routes.js"
+import departmentRoutes from "./routes/department.routes.js"
+import surveyRoutes from "./routes/survey.routes.js"
+import sipocRoutes from "./routes/sipoc.routes.js"
+import actionPlanRoutes from "./routes/actionPlan.routes.js"
+import analyticsRoutes from "./routes/analytics.routes.js"
 
 // API Routes
 app.use("/api/v1/auth", authRoutes)

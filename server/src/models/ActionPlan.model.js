@@ -37,4 +37,4 @@ const ActionPlanSchema = new Schema(
   },
 )
 
-export default ActionPlan = model("ActionPlan", ActionPlanSchema)
+export const ActionPlan = model("ActionPlan", ActionPlanSchema)
