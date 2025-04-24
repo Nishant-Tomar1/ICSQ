@@ -3,7 +3,8 @@ import { Schema, model } from "mongoose"
 const SIPOCSchema = new Schema(
   {
     department: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref:'Department',
       required: true,
       unique: true,
     },

@@ -1,33 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from "react-router-dom"
+import { useAuth } from "./contexts/AuthContext"
+import LoginPage from "./pages/LoginPage"
+import DashboardPage from "./pages/DashboardPage"
+import SurveyPage from "./pages/SurveyPage"
+import SIPOCPage from "./pages/SIPOCPage"
+import ActionPlansPage from "./pages/ActionPlansPage"
+import ReportsPage from "./pages/ReportsPage"
+import ProtectedRoute from "./components/ProtectedRoute"
+import Toast from "./components/ui/Toast"
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 mx-auto"></div>
+          <p className="mt-4">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/survey/:departmentId"
+          element={
+            <ProtectedRoute>
+              <SurveyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sipoc"
+          element={
+            <ProtectedRoute>
+              <SIPOCPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/action-plans"
+          element={
+            <ProtectedRoute>
+              <ActionPlansPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+      <Toast />
     </>
   )
 }

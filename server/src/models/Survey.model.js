@@ -3,11 +3,13 @@ import { Schema, model } from "mongoose"
 const SurveySchema = new Schema(
   {
     fromDepartment: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref : 'Department',
       required: true,
     },
     toDepartment: {
-      type: String,
+      type : Schema.Types.ObjectId,
+      ref : 'Department',
       required: true,
     },
     responses: {

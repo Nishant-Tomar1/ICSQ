@@ -3,7 +3,8 @@ import {Schema, model} from 'mongoose'
 const ActionPlanSchema = new Schema(
   {
     department: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref : 'Department',
       required: true,
     },
     category: {
@@ -19,7 +20,8 @@ const ActionPlanSchema = new Schema(
       required: true,
     },
     owner: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref : 'User',
       required: true,
     },
     targetDate: {

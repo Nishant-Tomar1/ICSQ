@@ -17,7 +17,7 @@ const msalClient = new PublicClientApplication(msalConfig)
 // Register a new user
 export async function register(req, res) {
   try {
-    const { name, email, password, department } = req.body
+    const { name, email, password, department, role = "user" } = req.body
 
     if (!name || !email || !password || !department) {
       return res.status(400).json({ message: "All fields are required" })
@@ -35,7 +35,7 @@ export async function register(req, res) {
       email,
       password,
       department,
-      role: "user", // Default role
+      role, 
     })
 
     await user.save()
@@ -46,7 +46,7 @@ export async function register(req, res) {
     // Set auth cookie
     setAuthCookie(res, token)
 
-    return res.status(201).json({
+    return res.status(201).json({ 
       message: "Registration successful",
       user: {
         id: user._id,
