@@ -1,13 +1,15 @@
+import mongoose from "mongoose"
 import {ActionPlan} from "../models/ActionPlan.model.js"
 
 // Get all action plans with optional filters
 export async function getActionPlans(req, res) {
   try {
-    const { department, status } = req.query
+    const { departmentId, status, categoryId } = req.query
 
     const filters = {}
-    if (department) filters.department = department
+    if (departmentId) filters.department = new mongoose.Types.ObjectId(departmentId)
     if (status) filters.status = status
+    if (categoryId) filters.category = new mongoose.Types.ObjectId(categoryId)
 
     const plans = await ActionPlan.find(filters)
     return res.json(plans)
@@ -36,18 +38,18 @@ export async function getActionPlanById(req, res) {
 // Create a new action plan
 export async function createActionPlan(req, res) {
   try {
-    const { department, category, expectation, action, owner, targetDate, status } = req.body
+    const { departmentId, categoryId, expectation, action, ownerId, targetDate, status} = req.body
 
-    if (!department || !category || !expectation || !action || !owner || !targetDate) {
+    if (!departmentId || !categoryId || !expectation || !action || !ownerId || !targetDate) {
       return res.status(400).json({ message: "Missing required fields" })
     }
 
     const plan = new ActionPlan({
-      department,
-      category,
+      department : new mongoose.Types.ObjectId(departmentId),
+      category : new mongoose.Types.ObjectId(categoryId),
       expectation,
       action,
-      owner,
+      owner : new mongoose.Types.ObjectId(ownerId),
       targetDate: new Date(targetDate),
       status: status || "pending",
     })
@@ -118,7 +120,7 @@ export async function updateActionPlans(req, res) {
 // Delete an action plan
 export async function deleteActionPlan(req, res) {
   try {
-    const plan = await findById(req.params.id)
+    const plan = await ActionPlan.findById(req.params.id)
 
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })

@@ -1,6 +1,8 @@
 import {User} from "../models/User.model.js"
 import { generateToken, setAuthCookie, clearAuthCookie } from "../middleware/auth.js"
 import {PublicClientApplication} from "@azure/msal-browser"
+import mongoose from "mongoose"
+import { Department } from "../models/Department.model.js"
 
 // Microsoft Teams SSO Configuration
 const msalConfig = {
@@ -17,9 +19,9 @@ const msalClient = new PublicClientApplication(msalConfig)
 // Register a new user
 export async function register(req, res) {
   try {
-    const { name, email, password, department, role = "user" } = req.body
+    const { name, email, password, departmentId, role = "user" } = req.body
 
-    if (!name || !email || !password || !department) {
+    if (!name || !email || !password || !departmentId) {
       return res.status(400).json({ message: "All fields are required" })
     }
 
@@ -29,12 +31,17 @@ export async function register(req, res) {
       return res.status(409).json({ message: "User already exists" })
     }
 
+    const department = await Department.findById(departmentId);
+    if (!department){
+      return res.status(404).json({message : "Invalid Department Id"})
+    }
+
     // Create new user
     const user = new User({
       name,
       email,
       password,
-      department,
+      department : new mongoose.Types.ObjectId(departmentId),
       role, 
     })
 
@@ -52,7 +59,7 @@ export async function register(req, res) {
         id: user._id,
         name: user.name,
         email: user.email,
-        department: user.department,
+        department: await Department.findById(user.department),
         role: user.role,
       },
     })
@@ -102,7 +109,7 @@ export async function login(req, res) {
         id: user._id,
         name: user.name,
         email: user.email,
-        department: user.department,
+        department: await Department.findById(user.department),
         role: user.role,
       },
     })
@@ -132,7 +139,7 @@ export async function getCurrentUser(req, res) {
       id: req.user._id,
       name: req.user.name,
       email: req.user.email,
-      department: req.user.department,
+      department: await Department.findById(req.user.department),
       role: req.user.role,
     })
   } catch (error) {

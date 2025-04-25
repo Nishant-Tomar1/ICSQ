@@ -1,13 +1,14 @@
+import mongoose from "mongoose"
 import {Survey} from "../models/Survey.model.js"
 
 // Get all surveys with optional filters
 export async function getSurveys(req, res) {
   try {
-    const { fromDepartment, toDepartment } = req.query
+    const { fromDepartmentId, toDepartmentId } = req.query
 
     const filters = {}
-    if (fromDepartment) filters.fromDepartment = fromDepartment
-    if (toDepartment) filters.toDepartment = toDepartment
+    if (fromDepartmentId) filters.fromDepartment = new mongoose.Types.ObjectId(fromDepartmentId)
+    if (toDepartmentId) filters.toDepartment = new mongoose.Types.ObjectId(toDepartmentId)
 
     const surveys = await Survey.find(filters)
     return res.json(surveys)
@@ -36,15 +37,15 @@ export async function getSurveyById(req, res) {
 // Create a new survey
 export async function createSurvey(req, res) {
   try {
-    const { fromDepartment, toDepartment, responses, date } = req.body
+    const { fromDepartmentId, toDepartmentId, responses, date } = req.body
 
-    if (!fromDepartment || !toDepartment || !responses) {
+    if (!fromDepartmentId || !toDepartmentId || !responses) {
       return res.status(400).json({ message: "Missing required fields" })
     }
 
     const survey = new Survey({
-      fromDepartment,
-      toDepartment,
+      fromDepartment :fromDepartmentId,
+      toDepartment :toDepartmentId,
       responses,
       date: date ? new Date(date) : new Date(),
     })
@@ -61,7 +62,7 @@ export async function createSurvey(req, res) {
 // Update a survey
 export async function updateSurvey(req, res) {
   try {
-    const { fromDepartment, toDepartment, responses, date } = req.body
+    const { fromDepartmentId, toDepartmentId, responses, date } = req.body
 
     const survey = await Survey.findById(req.params.id)
 
@@ -69,8 +70,8 @@ export async function updateSurvey(req, res) {
       return res.status(404).json({ message: "Survey not found" })
     }
 
-    if (fromDepartment) survey.fromDepartment = fromDepartment
-    if (toDepartment) survey.toDepartment = toDepartment
+    if (fromDepartmentId) survey.fromDepartment = new mongoose.Types.ObjectId(fromDepartmentId)
+    if (toDepartmentId) survey.toDepartment = new mongoose.Types.ObjectId(toDepartmentId)
     if (responses) survey.responses = responses
     if (date) survey.date = new Date(date)
 

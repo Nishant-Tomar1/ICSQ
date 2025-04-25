@@ -15,7 +15,9 @@ const SurveySchema = new Schema(
     responses: {
       type: Map,
       of: {
-        rating: Number,
+        rating: {
+          type:Number,enum:[20,40,60,80,100]
+        },
         expectations: [String],
         priority: String,
       },

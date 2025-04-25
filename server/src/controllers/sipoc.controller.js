@@ -1,15 +1,22 @@
+import mongoose from "mongoose"
+import { Department } from "../models/Department.model.js"
 import {SIPOC} from "../models/SIPOC.model.js"
 
 // Get SIPOC by department
 export async function getSIPOCByDepartment(req, res) {
   try {
-    const { department } = req.query
+    const { departmentId } = req.query
 
-    if (!department) {
-      return res.status(400).json({ message: "Department parameter is required" })
+    if (!departmentId) {
+      return res.status(400).json({ message: "DepartmentId parameter is required" })
     }
 
-    const sipoc = await SIPOC.findOne({ department })
+    const department = await Department.findById(departmentId)
+    if(!department){
+      return res.status(404).json({message :"Invalid DepartmentId"})
+    }
+
+    const sipoc = await SIPOC.findOne({ department : departmentId })
 
     if (!sipoc) {
       return res.status(404).json({ message: "SIPOC not found for this department" })
@@ -25,14 +32,19 @@ export async function getSIPOCByDepartment(req, res) {
 // Create or update SIPOC
 export async function createOrUpdateSIPOC(req, res) {
   try {
-    const { department, entries } = req.body
+    const { departmentId, entries } = req.body
 
-    if (!department || !entries) {
-      return res.status(400).json({ message: "Department and entries are required" })
+    if (!departmentId || !entries) {
+      return res.status(400).json({ message: "DepartmentId and entries are required" })
+    }
+
+    const department = await Department.findById(departmentId)
+    if(!department){
+      return res.status(404).json({message :"Invalid DepartmentId"})
     }
 
     // Find and update if exists, create if not
-    const sipoc = await SIPOC.findOneAndUpdate({ department }, { department, entries }, { new: true, upsert: true })
+    const sipoc = await SIPOC.findOneAndUpdate({ department : new mongoose.Types.ObjectId(departmentId) }, { department : new mongoose.Types.ObjectId(departmentId), entries }, { new: true, upsert: true })
 
     return res.json(sipoc)
   } catch (error) {
@@ -44,13 +56,18 @@ export async function createOrUpdateSIPOC(req, res) {
 // Delete SIPOC
 export async function deleteSIPOC(req, res) {
   try {
-    const { department } = req.query
+    const { departmentId } = req.query
 
-    if (!department) {
-      return res.status(400).json({ message: "Department parameter is required" })
+    if (!departmentId) {
+      return res.status(400).json({ message: "DepartmentId parameter is required" })
     }
 
-    const result = await SIPOC.deleteOne({ department })
+    const department = await Department.findById(departmentId)
+    if(!department){
+      return res.status(404).json({message :"Invalid DepartmentId"})
+    }
+
+    const result = await SIPOC.deleteOne({ department : new mongoose.Types.ObjectId(departmentId) })
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "SIPOC not found for this department" })

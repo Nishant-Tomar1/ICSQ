@@ -21,7 +21,8 @@ export async function getDepartmentScores(req, res) {
       let categoryCount = 0
 
       // Calculate average score for this survey
-      for (const [category, data] of Object.entries(survey.responses.toObject())) {
+      for (const [,data] of survey.responses.toObject()) {
+        
         if (data.rating) {
           departmentTotal += data.rating
           categoryCount++
@@ -57,7 +58,7 @@ export async function getCategoryScores(req, res) {
     const categoryScores = {}
 
     surveys.forEach((survey) => {
-      for (const [category, data] of Object.entries(survey.responses.toObject())) {
+      for (const [category, data] of survey.responses.toObject()) {
         if (!categoryScores[category]) {
           categoryScores[category] = {
             totalScore: 0,

@@ -11,12 +11,14 @@ const UserSchema = new Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true
     },
     password: {
       type: String,
     },
     department: {
-      type : String,
+      type : Schema.Types.ObjectId,
+      ref : 'Department',
       required: true,
     },
     role: {
