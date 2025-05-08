@@ -2,14 +2,11 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/Avatar"
-import Button from "./ui/Button"
-import { Dropdown } from "./ui/dropdown-menu"
 
-function DashboardHeader({ user }) {
+function DashboardHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { currentUser, logout, isAdmin } = useAuth()
   const { toast } = useToast()
 
   const handleLogout = async () => {
@@ -30,6 +27,7 @@ function DashboardHeader({ user }) {
   }
 
   const getInitials = (name) => {
+    if (!name) return "U"
     return name
       .split(" ")
       .map((n) => n[0])
@@ -38,95 +36,80 @@ function DashboardHeader({ user }) {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
-              <span className="text-xl font-bold text-gray-800">ICSQ.sobharealty.com</span>
+              <span className="text-xl font-bold text-blue-600">ICSQ.sobharealty.com</span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
+            <Link to="/dashboard" className="text-gray-600 hover:text-blue-600 font-medium">
               Home
             </Link>
-            <Link to="/survey/1" className="text-gray-600 hover:text-gray-900">
+            <Link to={`/survey`} className="text-gray-600 hover:text-blue-600 font-medium">
               Survey
             </Link>
-            <Link to="/sipoc" className="text-gray-600 hover:text-gray-900">
+            <Link to="/sipoc" className="text-gray-600 hover:text-blue-600 font-medium">
               SIPOC
             </Link>
-            <Link to="/action-plans" className="text-gray-600 hover:text-gray-900">
+            <Link to="/action-plans" className="text-gray-600 hover:text-blue-600 font-medium">
               Action Plans
             </Link>
-            <Link to="/reports" className="text-gray-600 hover:text-gray-900">
+            <Link to="/reports" className="text-gray-600 hover:text-blue-600 font-medium">
               Reports
             </Link>
+            {isAdmin() && (
+              <Link to="/admin" className="text-blue-600 hover:text-blue-800 font-medium">
+                Admin
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center">
-            <Dropdown
-              trigger={
-                <button className="relative h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg" alt={user?.name || "User"} />
-                    <AvatarFallback>{user?.name ? getInitials(user.name) : "U"}</AvatarFallback>
-                  </Avatar>
+            <div className="relative group">
+              <button className="flex items-center space-x-2 focus:outline-none">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                  {getInitials(currentUser?.name)}
+                </div>
+                <div className="hidden md:block text-left">
+                  <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
+                  <div className="text-xs text-gray-500">{currentUser?.department?.name || "Department"}</div>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+
+              {/* Dropdown */}
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
+                <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Logout
                 </button>
-              }
-              items={[
-                {
-                  label: (
-                    <div>
-                      <p className="font-medium">{user?.name || "User"}</p>
-                      <p className="text-xs text-gray-500">{user?.department || "Department"}</p>
-                    </div>
-                  ),
-                  type: "label",
-                },
-                { type: "separator" },
-                {
-                  label: "Profile",
-                  icon: (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-                    </svg>
-                  ),
-                  onClick: () => navigate("/profile"),
-                },
-                {
-                  label: "Logout",
-                  icon: (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7z"
-                        clipRule="evenodd"
-                      />
-                      <path d="M4 8a1 1 0 011-1h5a1 1 0 110 2H5a1 1 0 01-1-1z" />
-                    </svg>
-                  ),
-                  onClick: handleLogout,
-                },
-              ]}
-            />
+              </div>
+            </div>
 
             {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              className="md:hidden ml-2 p-2"
+            <button
+              className="md:hidden ml-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <svg
@@ -138,7 +121,7 @@ function DashboardHeader({ user }) {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -153,7 +136,7 @@ function DashboardHeader({ user }) {
               Home
             </Link>
             <Link
-              to="/survey/1"
+              to={`/survey`}
               className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
               onClick={() => setIsMobileMenuOpen(false)}
             >
@@ -180,6 +163,15 @@ function DashboardHeader({ user }) {
             >
               Reports
             </Link>
+            {isAdmin() && (
+              <Link
+                to="/admin"
+                className="block px-3 py-2 rounded-md text-blue-600 hover:bg-blue-50"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Admin
+              </Link>
+            )}
           </nav>
         )}
       </div>

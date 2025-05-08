@@ -7,6 +7,7 @@ import Input from "../components/ui/Input"
 import Label from "../components/ui/Label"
 import Separator from "../components/ui/Separator"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card"
+import logo from  "../assets/logo.png"
 
 function LoginPage() {
   const [email, setEmail] = useState("")
@@ -49,7 +50,7 @@ function LoginPage() {
         title: "Login successful",
         description: "Welcome back to SOBHA ICSQ System",
       })
-      navigate(location.state?.from?.pathname || "/dashboard")
+      navigate(location?.from?.pathname || "/dashboard")
     } catch (error) {
       toast({
         title: "Login failed",
@@ -77,7 +78,7 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/placeholder.svg" alt="SOBHA Logo" width={240} height={80} className="mx-auto mb-4" />
+          <img src={logo} alt="SOBHA Logo" width={60} className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-800">ICSQ Survey System</h1>
           <p className="text-gray-600">Understanding Within, Delight Beyond</p>
         </div>

@@ -106,11 +106,12 @@ export async function login(req, res) {
     return res.json({
       message: "Login successful",
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         department: await Department.findById(user.department),
         role: user.role,
+        surveyedDepartmentIds : user.surveyedDepartmentIds
       },
     })
   } catch (error) {
@@ -136,11 +137,12 @@ export async function logout(req, res) {
 export async function getCurrentUser(req, res) {
   try {
     return res.json({
-      id: req.user._id,
+      _id: req.user._id,
       name: req.user.name,
       email: req.user.email,
       department: await Department.findById(req.user.department),
       role: req.user.role,
+      surveyedDepartmentIds : req.user.surveyedDepartmentIds
     })
   } catch (error) {
     console.error("Get current user error:", error)

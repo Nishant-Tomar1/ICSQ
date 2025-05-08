@@ -11,7 +11,29 @@ export async function getActionPlans(req, res) {
     if (status) filters.status = status
     if (categoryId) filters.category = new mongoose.Types.ObjectId(categoryId)
 
-    const plans = await ActionPlan.find(filters)
+    // const plans = await ActionPlan.find(filters)
+    const plans = await ActionPlan.aggregate([
+      {
+        $match : filters
+      },
+      {
+        $lookup : {
+          from : 'categories',
+          localField : 'category',
+          foreignField : '_id',
+          as : 'category',
+        }
+      },
+      {
+        $lookup : {
+          from : 'users',
+          localField : 'owner',
+          foreignField : '_id',
+          as : 'owner'
+        }
+      }
+    ])
+    
     return res.json(plans)
   } catch (error) {
     console.error("Error fetching action plans:", error)

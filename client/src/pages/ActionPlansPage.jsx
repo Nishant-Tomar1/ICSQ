@@ -9,6 +9,8 @@ import Input from "../components/ui/Input"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/Table"
 import Select from "../components/ui/Select"
 import Badge from "../components/ui/Badge"
+import axios from "axios"
+import { capitalizeFirstLetter, Server } from "../Constants"
 
 function ActionPlansPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -21,81 +23,29 @@ function ActionPlansPage() {
   const { toast } = useToast()
   const { currentUser } = useAuth()
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // In a real app, fetch action plans from API
-        // const response = await axios.get("/api/action-plans", {
-        //   params: { department: currentUser?.department },
-        //   withCredentials: true,
-        // });
-        // setActionPlans(response.data);
-        // setFilteredPlans(response.data);
-
-        // Mock action plans data
-        const mockActionPlans = [
-          {
-            id: "1",
-            category: "Quality of Work",
-            expectation: "Improve code quality and reduce bugs",
-            action: "Implement code reviews for all pull requests",
-            owner: "John Doe",
-            targetDate: "2025-03-15",
-            status: "in-progress",
-          },
-          {
-            id: "2",
-            category: "Communication & Responsiveness",
-            expectation: "Faster response to emails and messages",
-            action: "Set up dedicated time slots for communication",
-            owner: "Jane Smith",
-            targetDate: "2025-02-28",
-            status: "completed",
-          },
-          {
-            id: "3",
-            category: "Process Efficiency & Timelines",
-            expectation: "Streamline project handover process",
-            action: "Create standardized handover templates",
-            owner: "Alex Johnson",
-            targetDate: "2025-04-10",
-            status: "pending",
-          },
-          {
-            id: "4",
-            category: "Collaboration & Support",
-            expectation: "Better cross-team collaboration",
-            action: "Schedule bi-weekly cross-team sync meetings",
-            owner: "Sarah Williams",
-            targetDate: "2025-03-05",
-            status: "in-progress",
-          },
-          {
-            id: "5",
-            category: "Meeting Deadlines and Commitments",
-            expectation: "Improve on-time delivery rate",
-            action: "Implement buffer time in project schedules",
-            owner: "Michael Brown",
-            targetDate: "2025-03-20",
-            status: "pending",
-          },
-        ]
-
-        setActionPlans(mockActionPlans)
-        setFilteredPlans(mockActionPlans)
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to load action plans",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(`${Server}/action-plans`, {
+        params: { departmentId: currentUser?.department._id },
+        withCredentials: true,
+      });
+      // console.log("response :",response.data);
+      setActionPlans(response.data);
+      setFilteredPlans(response.data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load action plans",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchData()
-  }, [currentUser, toast])
+  }, [currentUser])
 
   useEffect(() => {
     // Apply filters
@@ -106,7 +56,7 @@ function ActionPlansPage() {
     }
 
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((plan) => plan.category === categoryFilter)
+      filtered = filtered.filter((plan) => plan.category?.[0].name === categoryFilter)
     }
 
     if (searchQuery) {
@@ -115,7 +65,8 @@ function ActionPlansPage() {
         (plan) =>
           plan.action.toLowerCase().includes(query) ||
           plan.expectation.toLowerCase().includes(query) ||
-          plan.owner.toLowerCase().includes(query),
+          plan.owner?.[0]?.name.toLowerCase().includes(query) || 
+          plan.category?.[0]?.name.toLowerCase().includes(query),
       )
     }
 
@@ -123,32 +74,35 @@ function ActionPlansPage() {
   }, [statusFilter, categoryFilter, searchQuery, actionPlans])
 
   const handleStatusChange = (id, status) => {
-    setActionPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status } : plan)))
+    setActionPlans((prev) => prev.map((plan) => (plan._id === id ? { ...plan, status } : plan)))
   }
 
   const handleSaveAll = async () => {
     setIsLoading(true)
-
+    const reqData = actionPlans.map((plan) => ({...plan, category : plan?.category?.[0]?._id, owner : plan?.owner?.[0]?._id}));
+    // console.log(reqData);
     try {
-      // In a real app, save to API
-      // await axios.put(
-      //   "/api/action-plans",
-      //   {
-      //     plans: actionPlans,
-      //   },
-      //   { withCredentials: true },
-      // );
+      await axios.put(
+        `${Server}/action-plans`,
+        {
+          plans: reqData,
+        },
+        { withCredentials: true },
+      );
 
       toast({
         title: "Action Plans Saved",
         description: "Your action plans have been updated successfully",
       })
+      fetchData()
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to save action plans",
         variant: "destructive",
       })
+      console.log(error);
+      
     } finally {
       setIsLoading(false)
     }
@@ -178,8 +132,7 @@ function ActionPlansPage() {
     )
   }
 
-  // Get unique categories for filter
-  const categories = ["all", ...new Set(actionPlans.map((plan) => plan.category))]
+  const categories = ["all", ...new Set(actionPlans.map((plan) => plan.category?.[0]?.name))]
 
   const statusOptions = [
     { value: "all", label: "All Statuses" },
@@ -201,7 +154,7 @@ function ActionPlansPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Action Plans - {currentUser?.department}</span>
+              <span>Action Plans - {currentUser?.department?.name}</span>
               <Button onClick={handleSaveAll} disabled={isLoading}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -251,17 +204,17 @@ function ActionPlansPage() {
               </TableHeader>
               <TableBody>
                 {filteredPlans.map((plan) => (
-                  <TableRow key={plan.id}>
-                    <TableCell>{plan.category}</TableCell>
+                  <TableRow key={plan._id}>
+                    <TableCell>{capitalizeFirstLetter(plan.category?.[0]?.name)}</TableCell>
                     <TableCell>{plan.expectation}</TableCell>
                     <TableCell>{plan.action}</TableCell>
-                    <TableCell>{plan.owner}</TableCell>
+                    <TableCell>{capitalizeFirstLetter(plan.owner?.[0]?.name)}</TableCell>
                     <TableCell>{new Date(plan.targetDate).toLocaleDateString()}</TableCell>
                     <TableCell>{getStatusBadge(plan.status)}</TableCell>
                     <TableCell>
                       <Select
                         value={plan.status}
-                        onValueChange={(value) => handleStatusChange(plan.id, value)}
+                        onValueChange={(value) => handleStatusChange(plan._id, value)}
                         options={[
                           { value: "pending", label: "Pending" },
                           { value: "in-progress", label: "In Progress" },

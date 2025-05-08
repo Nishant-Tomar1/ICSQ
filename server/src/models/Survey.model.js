@@ -2,6 +2,11 @@ import { Schema, model } from "mongoose"
 
 const SurveySchema = new Schema(
   {
+    userId : {
+      type : Schema.Types.ObjectId,
+      ref : 'User',
+      required : true
+    },
     fromDepartment: {
       type: Schema.Types.ObjectId,
       ref : 'Department',
@@ -16,10 +21,9 @@ const SurveySchema = new Schema(
       type: Map,
       of: {
         rating: {
-          type:Number,enum:[20,40,60,80,100]
+          type:Number,enum:[0,20,40,60,80,100]
         },
         expectations: [String],
-        priority: String,
       },
       required: true,
     },

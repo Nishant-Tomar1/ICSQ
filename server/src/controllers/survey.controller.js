@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import {Survey} from "../models/Survey.model.js"
+import { User } from "../models/User.model.js"
 
 // Get all surveys with optional filters
 export async function getSurveys(req, res) {
@@ -37,13 +38,22 @@ export async function getSurveyById(req, res) {
 // Create a new survey
 export async function createSurvey(req, res) {
   try {
-    const { fromDepartmentId, toDepartmentId, responses, date } = req.body
+    const { userId, fromDepartmentId, toDepartmentId, responses, date } = req.body
 
-    if (!fromDepartmentId || !toDepartmentId || !responses) {
+    if (!userId || !fromDepartmentId || !toDepartmentId || !responses) {
       return res.status(400).json({ message: "Missing required fields" })
     }
 
+    const user = await User.findById(userId);
+
+    if (!user){
+      return res.status(404).json({message : "Invalid UserId"})
+    }
+  
+    const surveyedDepartmentIds = user.surveyedDepartmentIds;
+
     const survey = new Survey({
+      userId,
       fromDepartment :fromDepartmentId,
       toDepartment :toDepartmentId,
       responses,
@@ -51,6 +61,12 @@ export async function createSurvey(req, res) {
     })
 
     await survey.save()
+
+    const updatedSurveyedDepartmentIds = [...surveyedDepartmentIds, toDepartmentId];
+    await User.updateOne(
+      { _id: userId },
+      { $set: { surveyedDepartmentIds: updatedSurveyedDepartmentIds } }
+    );
 
     return res.status(201).json(survey)
   } catch (error) {
@@ -92,6 +108,15 @@ export async function deleteSurvey(req, res) {
     if (!survey) {
       return res.status(404).json({ message: "Survey not found" })
     }
+
+    await User.findByIdAndUpdate(
+      {
+         _id : survey.userId
+      },
+      {
+        $pull: { surveyedDepartmentIds: survey.toDepartment }
+      }    
+    )  
 
     await survey.deleteOne()
 

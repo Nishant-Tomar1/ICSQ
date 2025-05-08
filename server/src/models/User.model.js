@@ -26,6 +26,9 @@ const UserSchema = new Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+    surveyedDepartmentIds : [{
+      type : String,
+    }]
   },
   {
     timestamps: true,

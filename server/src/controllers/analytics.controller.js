@@ -1,12 +1,19 @@
 import {Survey} from "../models/Survey.model.js"
 import {ActionPlan} from "../models/ActionPlan.model.js"
+import {Department} from "../models/Department.model.js"
 
 // Get department scores
 export async function getDepartmentScores(req, res) {
   try {
     const surveys = await Survey.find()
+    const departments = await Department.find()
+    
+    // Create a map of department ID to department name
+    const departmentNames = {}
+    departments.forEach((dept) => {
+      departmentNames[dept._id.toString()] = dept.name
+    })
 
-    // Group surveys by department and calculate average scores
     const departmentScores = {}
 
     surveys.forEach((survey) => {
@@ -20,9 +27,7 @@ export async function getDepartmentScores(req, res) {
       let departmentTotal = 0
       let categoryCount = 0
 
-      // Calculate average score for this survey
-      for (const [,data] of survey.responses.toObject()) {
-        
+      for (const [, data] of survey.responses.toObject()) {
         if (data.rating) {
           departmentTotal += data.rating
           categoryCount++
@@ -36,9 +41,10 @@ export async function getDepartmentScores(req, res) {
       }
     })
 
-    // Calculate final averages
-    const result = Object.entries(departmentScores).map(([department, data]) => ({
-      department,
+    // Final result with department name
+    const result = Object.entries(departmentScores).map(([_id, data]) => ({
+      _id,
+      name: departmentNames[_id] || "Unknown Department",
       score: Math.round(data.count > 0 ? data.totalScore / data.count : 0),
     }))
 

@@ -1,0 +1,318 @@
+import { useState, useEffect } from "react"
+import { useToast } from "../../contexts/ToastContext"
+import DashboardHeader from "../../components/DashboardHeader"
+import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/Card"
+import Button from "../../components/ui/Button"
+import Input from "../../components/ui/Input"
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/Table"
+import Textarea from "../../components/ui/Textarea"
+
+function AdminCategoriesPage() {
+  const [categories, setCategories] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [newCategory, setNewCategory] = useState({
+    name: "",
+    description: "",
+  })
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // In a real app, this would fetch from your API
+        // const response = await axios.get("/api/admin/categories", { withCredentials: true });
+        // setCategories(response.data);
+
+        // Mock data for demonstration
+        const mockCategories = [
+          { id: 1, name: "Quality of Work", description: "Evaluates the quality and accuracy of deliverables" },
+          {
+            id: 2,
+            name: "Communication & Responsiveness",
+            description: "Assesses communication effectiveness and response time",
+          },
+          {
+            id: 3,
+            name: "Process Efficiency & Timelines",
+            description: "Evaluates process efficiency and adherence to timelines",
+          },
+          {
+            id: 4,
+            name: "Collaboration & Support",
+            description: "Measures teamwork and support provided to other departments",
+          },
+          {
+            id: 5,
+            name: "Meeting Deadlines and Commitments",
+            description: "Assesses ability to meet agreed deadlines",
+          },
+          { id: 6, name: "Problem Resolution & Issue Handling", description: "Evaluates problem-solving capabilities" },
+          { id: 7, name: "Overall Satisfaction", description: "General satisfaction with the department's services" },
+        ]
+
+        setCategories(mockCategories)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load categories",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, [toast])
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    if (editingCategory) {
+      setEditingCategory({
+        ...editingCategory,
+        [name]: value,
+      })
+    } else {
+      setNewCategory({
+        ...newCategory,
+        [name]: value,
+      })
+    }
+  }
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault()
+    if (!newCategory.name) {
+      toast({
+        title: "Error",
+        description: "Category name is required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // In a real app, this would be an API call
+      // const response = await axios.post("/api/admin/categories", newCategory, { withCredentials: true });
+      // const addedCategory = response.data;
+
+      // Mock adding a category
+      const addedCategory = {
+        id: categories.length + 1,
+        ...newCategory,
+      }
+
+      setCategories([...categories, addedCategory])
+      setNewCategory({ name: "", description: "" })
+
+      toast({
+        title: "Success",
+        description: "Category added successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add category",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditCategory = (category) => {
+    setEditingCategory({ ...category })
+  }
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory.name) {
+      toast({
+        title: "Error",
+        description: "Category name is required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // In a real app, this would be an API call
+      // await axios.put(`/api/admin/categories/${editingCategory.id}`, editingCategory, { withCredentials: true });
+
+      // Update category in state
+      setCategories(categories.map((cat) => (cat.id === editingCategory.id ? { ...editingCategory } : cat)))
+
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
+      })
+
+      setEditingCategory(null)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this category?")) {
+      return
+    }
+
+    try {
+      // In a real app, this would be an API call
+      // await axios.delete(`/api/admin/categories/${id}`, { withCredentials: true });
+
+      // Remove category from state
+      setCategories(categories.filter((cat) => cat.id !== id))
+
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader />
+        <div className="container mx-auto py-8 px-4">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader />
+
+      <main className="container mx-auto py-8 px-4">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-800">Manage Survey Categories</h1>
+          <p className="text-gray-600">Add, edit, or remove survey categories in the system</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Survey Categories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[120px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map((category) => (
+                      <TableRow key={category.id}>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell>{category.description}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditCategory(category)}>
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteCategory(category.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {categories.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-4">
+                          No categories found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>{editingCategory ? "Edit Category" : "Add Category"}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={editingCategory ? undefined : handleAddCategory}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <Input
+                        name="name"
+                        value={editingCategory ? editingCategory.name : newCategory.name}
+                        onChange={handleInputChange}
+                        placeholder="Category name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <Textarea
+                        name="description"
+                        value={editingCategory ? editingCategory.description : newCategory.description}
+                        onChange={handleInputChange}
+                        placeholder="Category description"
+                        rows={3}
+                      />
+                    </div>
+
+                    {editingCategory ? (
+                      <div className="flex space-x-2">
+                        <Button type="button" onClick={handleUpdateCategory} disabled={isSubmitting} className="flex-1">
+                          {isSubmitting ? "Updating..." : "Update Category"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button type="submit" disabled={isSubmitting} className="w-full">
+                        {isSubmitting ? "Adding..." : "Add Category"}
+                      </Button>
+                    )}
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+export default AdminCategoriesPage

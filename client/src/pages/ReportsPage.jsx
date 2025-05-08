@@ -6,8 +6,12 @@ import DashboardHeader from "../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/Tabs"
+import axios from "axios"
+import { capitalizeFirstLetter, Server } from "../Constants"
 
 function ReportsPage() {
+  const [departmentScores, setDepartmentScores] = useState([])
+  const [categoryScores, setCategoryScores] = useState([]);
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -15,18 +19,23 @@ function ReportsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true)
       try {
-        // In a real app, fetch data from API
-        // Simulate loading
-        setTimeout(() => {
-          setIsLoading(false)
-        }, 500)
+        const deptScoreResponse = await axios.get(`${Server}/analytics/department-scores`,{withCredentials : true});
+        // console.log(deptScoreResponse.data);
+        setDepartmentScores(deptScoreResponse.data)
+
+        const catgScoreResponse = await axios.get(`${Server}/analytics/category-scores`,{withCredentials : true});
+        // console.log(catgScoreResponse.data);
+        setCategoryScores(catgScoreResponse.data)
+        
       } catch (error) {
         toast({
           title: "Error",
           description: "Failed to load report data",
           variant: "destructive",
         })
+      } finally {
         setIsLoading(false)
       }
     }
@@ -53,25 +62,25 @@ function ReportsPage() {
   }
 
   // Mock data for charts
-  const departmentScores = [
-    { name: "Development", score: 68 },
-    { name: "Stay By Latinum", score: 69 },
-    { name: "SOBHA PMC", score: 72 },
-    { name: "LFM", score: 75 },
-    { name: "Procurement", score: 80 },
-    { name: "Marketing", score: 73 },
-    { name: "Finance", score: 71 },
-    { name: "HR & Admin", score: 74 },
-  ]
+  // const departmentScores = [
+  //   { name: "Development", score: 68 },
+  //   { name: "Stay By Latinum", score: 69 },
+  //   { name: "SOBHA PMC", score: 72 },
+  //   { name: "LFM", score: 75 },
+  //   { name: "Procurement", score: 80 },
+  //   { name: "Marketing", score: 73 },
+  //   { name: "Finance", score: 71 },
+  //   { name: "HR & Admin", score: 74 },
+  // ]
 
-  const categoryScores = [
-    { name: "Quality of Work", score: 75 },
-    { name: "Communication", score: 68 },
-    { name: "Process Efficiency", score: 72 },
-    { name: "Collaboration", score: 79 },
-    { name: "Meeting Deadlines", score: 70 },
-    { name: "Problem Resolution", score: 73 },
-  ]
+  // const categoryScores = [
+  //   { name: "Quality of Work", score: 75 },
+  //   { name: "Communication", score: 68 },
+  //   { name: "Process Efficiency", score: 72 },
+  //   { name: "Collaboration", score: 79 },
+  //   { name: "Meeting Deadlines", score: 70 },
+  //   { name: "Problem Resolution", score: 73 },
+  // ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -125,7 +134,7 @@ function ReportsPage() {
               </TabsList>
 
               <TabsContent value="department">
-                <div className="h-[400px] mt-4">
+                <div className="min-h-[100px] mt-4">
                   <div className="w-full h-full bg-white p-4 border border-gray-200 rounded-lg">
                     <div className="text-center text-gray-500">
                       <p>Department Scores Chart</p>
@@ -133,7 +142,7 @@ function ReportsPage() {
                         {departmentScores.map((dept) => (
                           <div key={dept.name} className="mb-2">
                             <div className="flex items-center">
-                              <span className="w-32 text-left">{dept.name}</span>
+                              <span className="w-32 text-left">{capitalizeFirstLetter(dept.name)}</span>
                               <div className="flex-1 mx-2">
                                 <div className="bg-gray-200 h-4 rounded-full overflow-hidden">
                                   <div
@@ -153,15 +162,15 @@ function ReportsPage() {
               </TabsContent>
 
               <TabsContent value="category">
-                <div className="h-[400px] mt-4">
+                <div className="min-h-[100px] mt-4">
                   <div className="w-full h-full bg-white p-4 border border-gray-200 rounded-lg">
                     <div className="text-center text-gray-500">
                       <p>Category Scores Chart</p>
                       <div className="mt-4">
                         {categoryScores.map((cat) => (
-                          <div key={cat.name} className="mb-2">
+                          <div key={cat.category} className="mb-2">
                             <div className="flex items-center">
-                              <span className="w-32 text-left">{cat.name}</span>
+                              <span className="w-80 max-w-[40%] text-left">{capitalizeFirstLetter(cat.category)}</span>
                               <div className="flex-1 mx-2">
                                 <div className="bg-gray-200 h-4 rounded-full overflow-hidden">
                                   <div
@@ -205,7 +214,7 @@ function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Report Summary</CardTitle>
           </CardHeader>
@@ -244,7 +253,7 @@ function ReportsPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </main>
     </div>
   )

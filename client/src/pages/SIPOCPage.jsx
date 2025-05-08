@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Input from "../components/ui/Input"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/Table"
+import axios from "axios"
+import { capitalizeFirstLetter, Server } from "../Constants"
 
 function SIPOCPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -25,46 +27,16 @@ function SIPOCPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (currentUser?.department) {
+        if (currentUser?.department?._id) {
           try {
-            // In a real app, fetch SIPOC data from API
-            // const response = await axios.get(`/api/sipoc?department=${currentUser.department}`, {
-            //   withCredentials: true,
-            // });
-            // setSipocEntries(response.data.entries || []);
+            const response = await axios.get(`${Server}/sipoc?departmentId=${currentUser.department._id}`, {
+              withCredentials: true,
+            });
+            
+            setSipocEntries(response.data.entries || []);
 
-            // Mock SIPOC data
-            const mockSipocData = [
-              {
-                id: "1",
-                supplier: "HR & Admin",
-                input: "Employee onboarding documents",
-                process: "Employee integration",
-                output: "Trained team members",
-                customer: "Development Team",
-              },
-              {
-                id: "2",
-                supplier: "Finance & Accounts",
-                input: "Budget approvals",
-                process: "Financial planning",
-                output: "Project budgets",
-                customer: "Project Managers",
-              },
-              {
-                id: "3",
-                supplier: "Marketing",
-                input: "Market research data",
-                process: "Market analysis",
-                output: "Market insights",
-                customer: "Sales Team",
-              },
-            ]
-
-            setSipocEntries(mockSipocData)
           } catch (error) {
             if (error.response?.status === 404) {
-              // No SIPOC found for this department, that's okay
               setSipocEntries([])
             } else {
               throw error
@@ -83,7 +55,7 @@ function SIPOCPage() {
     }
 
     fetchData()
-  }, [currentUser, toast])
+  }, [currentUser])
 
   const handleInputChange = (field, value) => {
     setNewEntry((prev) => ({
@@ -123,7 +95,7 @@ function SIPOCPage() {
   }
 
   const handleDeleteEntry = (id) => {
-    setSipocEntries((prev) => prev.filter((entry) => entry.id !== id))
+    setSipocEntries((prev) => prev.filter((entry) => entry._id !== id))
 
     toast({
       title: "Entry Deleted",
@@ -135,15 +107,14 @@ function SIPOCPage() {
     setIsLoading(true)
 
     try {
-      // In a real app, save to API
-      // await axios.put(
-      //   "/api/sipoc",
-      //   {
-      //     department: currentUser.department,
-      //     entries: sipocEntries,
-      //   },
-      //   { withCredentials: true },
-      // );
+      await axios.put(
+        `${Server}/sipoc`,
+        {
+          departmentId: currentUser.department._id,
+          entries: sipocEntries,
+        },
+        { withCredentials: true },
+      );
 
       toast({
         title: "SIPOC Saved",
@@ -179,8 +150,8 @@ function SIPOCPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>SIPOC Management - {currentUser?.department}</span>
-              <Button onClick={handleSaveAll} disabled={isLoading}>
+              <span>SIPOC Management - {capitalizeFirstLetter(currentUser?.department?.name)}</span>
+             {(currentUser?.role === "admin") && <Button onClick={handleSaveAll} disabled={isLoading}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 mr-2"
@@ -190,7 +161,7 @@ function SIPOCPage() {
                   <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
                 </svg>
                 Save All
-              </Button>
+              </Button>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -207,19 +178,19 @@ function SIPOCPage() {
                   <TableHead>Process</TableHead>
                   <TableHead>Output</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  {(currentUser?.role === "admin") && <TableHead className="w-[80px]">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sipocEntries.map((entry) => (
-                  <TableRow key={entry.id}>
+                {sipocEntries.map((entry, index) => (
+                  <TableRow key={index}>
                     <TableCell>{entry.supplier}</TableCell>
                     <TableCell>{entry.input}</TableCell>
                     <TableCell>{entry.process}</TableCell>
                     <TableCell>{entry.output}</TableCell>
                     <TableCell>{entry.customer}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" className="p-2" onClick={() => handleDeleteEntry(entry.id)}>
+                    {(currentUser?.role === "admin") && <TableCell>
+                      <Button variant="ghost" className="p-2" onClick={() => handleDeleteEntry(entry._id)}>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-4 w-4"
@@ -233,10 +204,10 @@ function SIPOCPage() {
                           />
                         </svg>
                       </Button>
-                    </TableCell>
+                    </TableCell>}
                   </TableRow>
                 ))}
-                <TableRow>
+               {(currentUser?.role === "admin") && <TableRow>
                   <TableCell>
                     <Input
                       placeholder="Supplier"
@@ -288,7 +259,7 @@ function SIPOCPage() {
                       </svg>
                     </Button>
                   </TableCell>
-                </TableRow>
+                </TableRow>}
               </TableBody>
             </Table>
           </CardContent>

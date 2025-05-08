@@ -1,9 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
+import { useToast } from "../contexts/ToastContext"
 
-function ProtectedRoute({ children }) {
-  const { currentUser, loading } = useAuth()
+function AdminRoute({ children }) {
+  const { currentUser, loading, isAdmin } = useAuth()
   const location = useLocation()
+  const { toast } = useToast()
 
   if (loading) {
     return (
@@ -15,13 +17,22 @@ function ProtectedRoute({ children }) {
       </div>
     )
   }
-  
+
   if (!currentUser) {
     // Redirect to login page but save the current location they were trying to access
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  if (!isAdmin()) {
+    toast({
+      title: "Access Denied",
+      description: "You don't have permission to access this page",
+      variant: "destructive",
+    })
+    return <Navigate to="/dashboard" replace />
+  }
+
   return children
 }
 
-export default ProtectedRoute
+export default AdminRoute

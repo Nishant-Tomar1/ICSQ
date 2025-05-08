@@ -14,6 +14,7 @@ function Button({
     ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
     link: "bg-transparent underline text-blue-600 hover:text-blue-800",
     destructive: "bg-red-600 hover:bg-red-700 text-white",
+    success: "bg-green-600 hover:bg-green-700 text-white",
   }
 
   const sizeClasses = {

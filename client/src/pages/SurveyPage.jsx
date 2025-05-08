@@ -7,52 +7,41 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Textarea from "../components/ui/Textarea"
 import { RadioGroup, RadioItem } from "../components/ui/RadioGroup"
+import { capitalizeFirstLetter, Server } from "../Constants"
+import axios from "axios"
 
 function SurveyPage() {
   const { departmentId } = useParams()
   const [department, setDepartment] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [categories, setCategories] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({})
-  const [currentExpectation, setCurrentExpectation] = useState("")
+  // const [currentExpectation, setCurrentExpectation] = useState("")
+  const [currentExpectations, setCurrentExpectations] = useState({});
+
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { currentUser } = useAuth()
-
-  // Survey categories based on the PDF
-  const categories = [
-    { id: "quality", name: "Quality of Work" },
-    { id: "communication", name: "Communication & Responsiveness" },
-    { id: "process", name: "Process Efficiency & Timelines" },
-    { id: "collaboration", name: "Collaboration & Support" },
-    { id: "deadlines", name: "Meeting Deadlines and Commitments" },
-    { id: "resolution", name: "Problem Resolution & Issue Handling" },
-    { id: "overall", name: "Overall Satisfaction" },
-  ]
+  const { currentUser, checkAuth } = useAuth()
 
   useEffect(() => {
+    const alreadySurveyed = currentUser?.surveyedDepartmentIds.includes(departmentId) || false;
+    setIsLoading(true)
     const fetchData = async () => {
       try {
-        // In a real app, fetch department data from API
-        // const deptResponse = await axios.get(`/api/departments/${departmentId}`, { withCredentials: true });
-        // setDepartment(deptResponse.data);
+        const deptResponse = await axios.get(`${Server}/departments/${departmentId}`, { withCredentials: true });
+        setDepartment(deptResponse.data);
 
-        // Mock department data
-        const mockDepartment = {
-          id: departmentId,
-          name: getDepartmentName(departmentId),
-          description: "Department Description",
+        const catgResponse = await axios.get(`${Server}/categories`, { withCredentials: true });
+        setCategories(catgResponse.data);
+        
+        const userDepartment = {
+          id: deptResponse.data._id,
+          name: capitalizeFirstLetter(deptResponse.data.name),
+          description: deptResponse.data.description,
         }
-        setDepartment(mockDepartment)
+        setDepartment(userDepartment)
+        initializeFormData();
 
-        // Initialize form data
-        const initialFormData = {}
-        categories.forEach((category) => {
-          initialFormData[category.id] = {
-            rating: "",
-            expectations: [],
-          }
-        })
-        setFormData(initialFormData)
       } catch (error) {
         toast({
           title: "Error",
@@ -64,58 +53,60 @@ function SurveyPage() {
       }
     }
 
-    fetchData()
-  }, [departmentId, toast])
-
-  const getDepartmentName = (id) => {
-    const departmentMap = {
-      1: "Development",
-      2: "Stay By Latinum",
-      3: "Audit & Assurance",
-      4: "HR & Admin",
-      5: "Group IT",
-      6: "Procurement",
-      7: "SCM",
-      8: "Marketing",
-      9: "Finance & Accounts",
-      10: "PNC Architects",
-      11: "SOBHA PMC",
-      12: "LFM",
+    if(!alreadySurveyed){
+      fetchData()
     }
+    else{
+      setIsLoading(false)
+    }
+  }, [departmentId, categories?.length])
 
-    return departmentMap[id] || "Unknown Department"
+  const initializeFormData = () =>{
+    const initialFormData = {}
+    categories.forEach((category) => {
+      initialFormData[category.name] = {
+        rating: 0,
+        expectations: [],
+      }
+    })
+    setFormData(initialFormData)
   }
 
-  const handleRatingChange = (categoryId, value) => {
+  const handleRatingChange = (categoryName, value) => {
     setFormData((prev) => ({
       ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
+      [categoryName]: {
+        ...prev[categoryName],
         rating: value,
       },
     }))
   }
 
-  const handleAddExpectation = (categoryId) => {
-    if (!currentExpectation.trim()) return
-
+  const handleAddExpectation = (categoryName) => {
+    const expectation = currentExpectations[categoryName]?.trim();
+    if (!expectation) return;
+  
     setFormData((prev) => ({
       ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
-        expectations: [...prev[categoryId].expectations, currentExpectation.trim()],
+      [categoryName]: {
+        ...prev?.[categoryName],
+        expectations: [...(prev?.[categoryName]?.expectations || []), expectation],
       },
-    }))
+    }));
+  
+    setCurrentExpectations((prev) => ({
+      ...prev,
+      [categoryName]: '',
+    }));
+  };
+  
 
-    setCurrentExpectation("")
-  }
-
-  const handleRemoveExpectation = (categoryId, index) => {
+  const handleRemoveExpectation = (categoryName, index) => {
     setFormData((prev) => ({
       ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
-        expectations: prev[categoryId].expectations.filter((_, i) => i !== index),
+      [categoryName]: {
+        ...prev[categoryName],
+        expectations: prev[categoryName].expectations.filter((_, i) => i !== index),
       },
     }))
   }
@@ -125,35 +116,45 @@ function SurveyPage() {
 
     try {
       // Validate form data
-      const invalidCategories = categories.filter((category) => !formData[category.id].rating)
-
+      const invalidCategories = categories.filter((category) => {
+        const data = formData[category.name];
+        const hasRating = data?.rating;
+        const lowRating = hasRating && data.rating <= 60;
+        const hasExpectations = Array.isArray(data?.expectations) && data.expectations.length > 0;
+      
+        return !hasRating || (lowRating && !hasExpectations);
+      });
+      
       if (invalidCategories.length > 0) {
         toast({
           title: "Incomplete Survey",
-          description: `Please provide ratings for all categories`,
+          description: "Please provide ratings for all categories. For low ratings (≤ 60), expectations are required.",
           variant: "destructive",
-        })
-        setIsLoading(false)
-        return
+        });
+        setIsLoading(false);
+        return;
       }
-
+      
+      
       // In a real app, submit to API
-      // await axios.post(
-      //   "/api/surveys",
-      //   {
-      //     fromDepartment: currentUser.department,
-      //     toDepartment: department.name,
-      //     responses: formData,
-      //     date: new Date(),
-      //   },
-      //   { withCredentials: true },
-      // );
+      await axios.post(
+        `${Server}/surveys`,
+        {
+          userId : currentUser._id,
+          fromDepartmentId: currentUser.department._id,
+          toDepartmentId: departmentId,
+          responses: formData,
+          date: new Date(),
+        },
+        { withCredentials: true },
+      );
 
       toast({
         title: "Survey Submitted",
         description: `Your feedback for ${department.name} has been recorded`,
       })
-
+      
+      checkAuth();
       navigate("/dashboard")
     } catch (error) {
       toast({
@@ -161,8 +162,11 @@ function SurveyPage() {
         description: "Failed to submit survey",
         variant: "destructive",
       })
+      
+      console.log(error);
     } finally {
       setIsLoading(false)
+      
     }
   }
 
@@ -177,6 +181,16 @@ function SurveyPage() {
     )
   }
 
+  if (currentUser?.surveyedDepartmentIds.includes(departmentId)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="mt-4">You have already Submitted survey for this Department !</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={currentUser} />
@@ -185,46 +199,46 @@ function SurveyPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>ICSQ Survey for {department.name}</span>
+              <span>ICSQ Survey for {department?.name}</span>
             </CardTitle>
           </CardHeader>
         </Card>
 
-        <div className="space-y-8">
+        <div className="space-y-8"> 
           {categories.map((category) => (
-            <Card key={category.id} className="border">
+            <Card key={category.name} className="border">
               <CardHeader>
-                <CardTitle className="text-lg">{category.name}</CardTitle>
+                <CardTitle className="text-lg"> {capitalizeFirstLetter(category.name)}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Rating</h4>
                   <RadioGroup
-                    value={formData[category.id]?.rating || ""}
-                    onValueChange={(value) => handleRatingChange(category.id, value)}
+                    value={formData[category.name]?.rating || ""}
+                    onValueChange={(value) => handleRatingChange(category.name, value)}
                     className="flex flex-wrap gap-4"
                   >
-                    <RadioItem value="20" id={`${category.id}-poor`}>
+                    <RadioItem value={20} id={`${category.name}-poor`}>
                       Poor (20)
                     </RadioItem>
-                    <RadioItem value="40" id={`${category.id}-below-average`}>
+                    <RadioItem value={40} id={`${category.name}-below-average`}>
                       Below Average (40)
                     </RadioItem>
-                    <RadioItem value="60" id={`${category.id}-average`}>
+                    <RadioItem value={60} id={`${category.name}-average`}>
                       Average (60)
                     </RadioItem>
-                    <RadioItem value="80" id={`${category.id}-good`}>
+                    <RadioItem value={80} id={`${category.name}-good`}>
                       Good (80)
                     </RadioItem>
-                    <RadioItem value="100" id={`${category.id}-impressive`}>
+                    <RadioItem value={100} id={`${category.name}-impressive`}>
                       Very Impressive (100)
                     </RadioItem>
                   </RadioGroup>
                 </div>
 
-                {(formData[category.id]?.rating === "20" ||
-                  formData[category.id]?.rating === "40" ||
-                  formData[category.id]?.rating === "60") && (
+                {(formData[category.name]?.rating === 20 ||
+                  formData[category.name]?.rating === 40 ||
+                  formData[category.name]?.rating === 60) && (
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Expectations</h4>
                     <p className="text-sm text-gray-500 mb-2">
@@ -232,13 +246,13 @@ function SurveyPage() {
                     </p>
 
                     <div className="space-y-2">
-                      {formData[category.id]?.expectations.map((expectation, index) => (
+                      {formData?.[category.name]?.expectations?.map((expectation, index) => (
                         <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                           <span className="flex-grow">{expectation}</span>
                           <Button
                             variant="ghost"
                             className="p-1"
-                            onClick={() => handleRemoveExpectation(category.id, index)}
+                            onClick={() => handleRemoveExpectation(category.name, index)}
                           >
                             Remove
                           </Button>
@@ -247,15 +261,19 @@ function SurveyPage() {
                     </div>
 
                     <div className="flex gap-2 mt-2">
-                      <Textarea
-                        placeholder="Enter your expectation..."
-                        value={currentExpectation}
-                        onChange={(e) => setCurrentExpectation(e.target.value)}
-                        className="flex-grow"
-                      />
-                      <Button onClick={() => handleAddExpectation(category.id)} className="self-end">
-                        Add
-                      </Button>
+                        <Textarea
+                          placeholder="Enter your expectation..."
+                          value={currentExpectations[category.name] || ''}
+                          onChange={(e) =>
+                            setCurrentExpectations((prev) => ({
+                              ...prev,
+                              [category.name]: e.target.value,
+                            }))}
+                          className="flex-grow"
+                        />
+                        <Button onClick={() => handleAddExpectation(category.name)} className="self-end">
+                          Add
+                        </Button>
                     </div>
                   </div>
                 )}
