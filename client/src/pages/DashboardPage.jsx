@@ -73,9 +73,9 @@ function DashboardPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="home">Home</TabsTrigger>
             <TabsTrigger value="survey">Ready for ICSQ Survey</TabsTrigger>
-            <TabsTrigger value="sipoc">SIPOC</TabsTrigger>
-            <TabsTrigger value="action-plans">Action Plans</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+            {/* <TabsTrigger value="sipoc">SIPOC</TabsTrigger> */}
+            {/* <TabsTrigger value="action-plans">Action Plans</TabsTrigger> */}
+            {/* <TabsTrigger value="reports">Reports</TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="home" className="space-y-6">

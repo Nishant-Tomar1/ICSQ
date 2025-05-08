@@ -153,7 +153,7 @@ function DashboardHeader({ user }) {
               Home
             </Link>
             <Link
-              to="/survey"
+              to="/survey/1"
               className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
               onClick={() => setIsMobileMenuOpen(false)}
             >
