@@ -1,10 +1,7 @@
 import { Router } from "express"
 const router = Router()
-import { register, login, logout, getCurrentUser, getMicrosoftLoginUrl, handleMicrosoftCallback } from "../controllers/auth.controller.js"
+import { login, logout, getCurrentUser, getMicrosoftLoginUrl, handleMicrosoftCallback } from "../controllers/auth.controller.js"
 import { requireAuth } from "../middleware/auth.js"
-
-// Register a new user
-router.post("/register", register)
 
 // Login with email and password
 router.post("/login", login)

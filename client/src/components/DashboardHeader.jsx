@@ -41,7 +41,7 @@ function DashboardHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
-              <span className="text-xl font-bold text-blue-600">ICSQ.sobharealty.com</span>
+              <span className="text-xl font-bold text-blue-600"> <span className="hidden lg:block">ICSQ.sobharealty.com </span><span className="lg:hidden">ICSQ</span></span>
             </Link>
           </div>
 

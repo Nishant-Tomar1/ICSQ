@@ -1,7 +1,6 @@
 import {User} from "../models/User.model.js"
 import { generateToken, setAuthCookie, clearAuthCookie } from "../middleware/auth.js"
 import {PublicClientApplication} from "@azure/msal-browser"
-import mongoose from "mongoose"
 import { Department } from "../models/Department.model.js"
 
 // Microsoft Teams SSO Configuration
@@ -15,59 +14,6 @@ const msalConfig = {
 
 // Create MSAL application
 const msalClient = new PublicClientApplication(msalConfig)
-
-// Register a new user
-export async function register(req, res) {
-  try {
-    const { name, email, password, departmentId, role = "user" } = req.body
-
-    if (!name || !email || !password || !departmentId) {
-      return res.status(400).json({ message: "All fields are required" })
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-      return res.status(409).json({ message: "User already exists" })
-    }
-
-    const department = await Department.findById(departmentId);
-    if (!department){
-      return res.status(404).json({message : "Invalid Department Id"})
-    }
-
-    // Create new user
-    const user = new User({
-      name,
-      email,
-      password,
-      department : new mongoose.Types.ObjectId(departmentId),
-      role, 
-    })
-
-    await user.save()
-
-    // Generate JWT token
-    const token = generateToken(user)
-
-    // Set auth cookie
-    setAuthCookie(res, token)
-
-    return res.status(201).json({ 
-      message: "Registration successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        department: await Department.findById(user.department),
-        role: user.role,
-      },
-    })
-  } catch (error) {
-    console.error("Registration error:", error)
-    return res.status(500).json({ message: "An error occurred during registration" })
-  }
-}
 
 // Login with email and password
 export async function login(req, res) {

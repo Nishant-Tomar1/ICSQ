@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
 import { getSurveys, getSurveyById, createSurvey, updateSurvey, deleteSurvey } from "../controllers/survey.controller.js"
-import { requireAuth } from "../middleware/auth.js"
+import { requireAdmin, requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)
@@ -19,6 +19,6 @@ router.post("/", createSurvey)
 router.put("/:id", updateSurvey)
 
 // Delete a survey
-router.delete("/:id", deleteSurvey)
+router.delete("/:id", requireAdmin, deleteSurvey)
 
 export default router

@@ -6,6 +6,8 @@ import Button from "../../components/ui/Button"
 import Input from "../../components/ui/Input"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/Table"
 import Textarea from "../../components/ui/Textarea"
+import axios from "axios"
+import { capitalizeFirstLetter, Server } from "../../Constants"
 
 function AdminCategoriesPage() {
   const [categories, setCategories] = useState([])
@@ -21,38 +23,9 @@ function AdminCategoriesPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // In a real app, this would fetch from your API
-        // const response = await axios.get("/api/admin/categories", { withCredentials: true });
-        // setCategories(response.data);
+        const response = await axios.get(`${Server}/categories`, { withCredentials: true });
+        setCategories(response.data);
 
-        // Mock data for demonstration
-        const mockCategories = [
-          { id: 1, name: "Quality of Work", description: "Evaluates the quality and accuracy of deliverables" },
-          {
-            id: 2,
-            name: "Communication & Responsiveness",
-            description: "Assesses communication effectiveness and response time",
-          },
-          {
-            id: 3,
-            name: "Process Efficiency & Timelines",
-            description: "Evaluates process efficiency and adherence to timelines",
-          },
-          {
-            id: 4,
-            name: "Collaboration & Support",
-            description: "Measures teamwork and support provided to other departments",
-          },
-          {
-            id: 5,
-            name: "Meeting Deadlines and Commitments",
-            description: "Assesses ability to meet agreed deadlines",
-          },
-          { id: 6, name: "Problem Resolution & Issue Handling", description: "Evaluates problem-solving capabilities" },
-          { id: 7, name: "Overall Satisfaction", description: "General satisfaction with the department's services" },
-        ]
-
-        setCategories(mockCategories)
       } catch (error) {
         toast({
           title: "Error",
@@ -65,7 +38,7 @@ function AdminCategoriesPage() {
     }
 
     fetchCategories()
-  }, [toast])
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -96,15 +69,8 @@ function AdminCategoriesPage() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would be an API call
-      // const response = await axios.post("/api/admin/categories", newCategory, { withCredentials: true });
-      // const addedCategory = response.data;
-
-      // Mock adding a category
-      const addedCategory = {
-        id: categories.length + 1,
-        ...newCategory,
-      }
+      const response = await axios.post(`${Server}/categories`, newCategory, { withCredentials: true });
+      const addedCategory = response.data;
 
       setCategories([...categories, addedCategory])
       setNewCategory({ name: "", description: "" })
@@ -141,11 +107,10 @@ function AdminCategoriesPage() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would be an API call
-      // await axios.put(`/api/admin/categories/${editingCategory.id}`, editingCategory, { withCredentials: true });
+      await axios.put(`${Server}/categories/${editingCategory._id}`, editingCategory, { withCredentials: true });
 
       // Update category in state
-      setCategories(categories.map((cat) => (cat.id === editingCategory.id ? { ...editingCategory } : cat)))
+      setCategories(categories.map((cat) => (cat._id === editingCategory._id ? { ...editingCategory } : cat)))
 
       toast({
         title: "Success",
@@ -165,16 +130,15 @@ function AdminCategoriesPage() {
   }
 
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) {
+    if (!window.confirm("Are you sure you want to delete this category? This action is IRREVERSIBLE!")) {
       return
     }
 
     try {
-      // In a real app, this would be an API call
-      // await axios.delete(`/api/admin/categories/${id}`, { withCredentials: true });
+      await axios.delete(`${Server}/categories/${id}`, { withCredentials: true });
 
       // Remove category from state
-      setCategories(categories.filter((cat) => cat.id !== id))
+      setCategories(categories.filter((cat) => cat._id !== id))
 
       toast({
         title: "Success",
@@ -233,15 +197,15 @@ function AdminCategoriesPage() {
                   </TableHeader>
                   <TableBody>
                     {categories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableRow key={category._id}>
+                        <TableCell className="font-medium">{capitalizeFirstLetter(category.name)}</TableCell>
                         <TableCell>{category.description}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button variant="outline" size="sm" onClick={() => handleEditCategory(category)}>
                               Edit
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteCategory(category.id)}>
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteCategory(category._id)}>
                               Delete
                             </Button>
                           </div>

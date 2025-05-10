@@ -37,7 +37,7 @@ export async function requireAdmin(req, res, next) {
     if (req.user && req.user.role === "admin") {
       next()
     } else {
-      return res.status(403).json({ message: "Access denied" })
+      return res.status(403).json({ message: "Access denied (Only Admins are permitted)" })
     }
   } catch (error) {
     console.error("Authorization error:", error)

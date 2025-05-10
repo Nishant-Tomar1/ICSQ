@@ -41,7 +41,7 @@ function ReportsPage() {
     }
 
     fetchData()
-  }, [toast])
+  }, [])
 
   const handleDownloadReport = (format) => {
     toast({
@@ -60,27 +60,6 @@ function ReportsPage() {
       </div>
     )
   }
-
-  // Mock data for charts
-  // const departmentScores = [
-  //   { name: "Development", score: 68 },
-  //   { name: "Stay By Latinum", score: 69 },
-  //   { name: "SOBHA PMC", score: 72 },
-  //   { name: "LFM", score: 75 },
-  //   { name: "Procurement", score: 80 },
-  //   { name: "Marketing", score: 73 },
-  //   { name: "Finance", score: 71 },
-  //   { name: "HR & Admin", score: 74 },
-  // ]
-
-  // const categoryScores = [
-  //   { name: "Quality of Work", score: 75 },
-  //   { name: "Communication", score: 68 },
-  //   { name: "Process Efficiency", score: 72 },
-  //   { name: "Collaboration", score: 79 },
-  //   { name: "Meeting Deadlines", score: 70 },
-  //   { name: "Problem Resolution", score: 73 },
-  // ]
 
   return (
     <div className="min-h-screen bg-gray-50">

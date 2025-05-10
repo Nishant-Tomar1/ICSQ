@@ -7,6 +7,8 @@ import Input from "../../components/ui/Input"
 import Select from "../../components/ui/Select"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/Table"
 import Badge from "../../components/ui/Badge"
+import axios from "axios"
+import { getDepartmentName, Server } from "../../Constants"
 
 function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -26,45 +28,14 @@ function AdminUsersPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // In a real app, this would fetch from your API
-        // const usersResponse = await axios.get("/api/admin/users", { withCredentials: true });
-        // const departmentsResponse = await axios.get("/api/admin/departments", { withCredentials: true });
-        // setUsers(usersResponse.data);
-        // setDepartments(departmentsResponse.data);
-
-        // Mock data for demonstration
-        const mockUsers = [
-          { id: 1, name: "John Doe", email: "john@sobharealty.com", department: "Development", role: "admin" },
-          { id: 2, name: "Jane Smith", email: "jane@sobharealty.com", department: "HR & Admin", role: "user" },
-          { id: 3, name: "Alex Johnson", email: "alex@sobharealty.com", department: "Marketing", role: "user" },
-          {
-            id: 4,
-            name: "Sarah Williams",
-            email: "sarah@sobharealty.com",
-            department: "Finance & Accounts",
-            role: "user",
-          },
-          { id: 5, name: "Michael Brown", email: "michael@sobharealty.com", department: "Procurement", role: "admin" },
-        ]
-
-        const mockDepartments = [
-          { id: 1, name: "Development" },
-          { id: 2, name: "Stay By Latinum" },
-          { id: 3, name: "Audit & Assurance" },
-          { id: 4, name: "HR & Admin" },
-          { id: 5, name: "Group IT" },
-          { id: 6, name: "Procurement" },
-          { id: 7, name: "SCM" },
-          { id: 8, name: "Marketing" },
-          { id: 9, name: "Finance & Accounts" },
-          { id: 10, name: "PNC Architects" },
-          { id: 11, name: "SOBHA PMC" },
-          { id: 12, name: "LFM" },
-        ]
-
-        setUsers(mockUsers)
-        setDepartments(mockDepartments)
+        const usersResponse = await axios.get(`${Server}/users`, { withCredentials: true });
+        const departmentsResponse = await axios.get(`${Server}/departments`, { withCredentials: true });
+        
+        setUsers(usersResponse.data);
+        setDepartments(departmentsResponse.data);
       } catch (error) {
+        console.log(error);
+        
         toast({
           title: "Error",
           description: "Failed to load data",
@@ -76,7 +47,7 @@ function AdminUsersPage() {
     }
 
     fetchData()
-  }, [toast])
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -121,17 +92,9 @@ function AdminUsersPage() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would be an API call
-      // const response = await axios.post("/api/admin/users", newUser, { withCredentials: true });
-      // const addedUser = response.data;
-
-      // Mock adding a user
-      const addedUser = {
-        id: users.length + 1,
-        ...newUser,
-        password: undefined, // Don't store password in state
-      }
-
+      const response = await axios.post(`${Server}/users`, newUser, { withCredentials: true });
+      const addedUser = response.data.user;
+      
       setUsers([...users, addedUser])
       setNewUser({
         name: "",
@@ -146,6 +109,8 @@ function AdminUsersPage() {
         description: "User added successfully",
       })
     } catch (error) {
+      console.log(error);
+      
       toast({
         title: "Error",
         description: "Failed to add user",
@@ -157,7 +122,7 @@ function AdminUsersPage() {
   }
 
   const handleEditUser = (user) => {
-    setEditingUser({ ...user, password: "" }) // Don't include password when editing
+    setEditingUser({ ...user,  password: "" }) 
   }
 
   const handleUpdateUser = async () => {
@@ -173,17 +138,15 @@ function AdminUsersPage() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would be an API call
-      // const payload = { ...editingUser };
-      // if (!editingUser.password) delete payload.password; // Only send password if changed
-      // await axios.put(`/api/admin/users/${editingUser.id}`, payload, { withCredentials: true });
+      const payload = { ...editingUser };
+      if (!editingUser.password) delete payload.password;
+      await axios.put(`${Server}/users/${editingUser._id}`, payload, { withCredentials: true });
 
-      // Update user in state
       setUsers(
         users.map((user) => {
-          if (user.id === editingUser.id) {
+          if (user._id === editingUser._id) {
             const updatedUser = { ...editingUser }
-            delete updatedUser.password // Don't store password in state
+            delete updatedUser.password 
             return updatedUser
           }
           return user
@@ -208,16 +171,15 @@ function AdminUsersPage() {
   }
 
   const handleDeleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) {
+    if (!window.confirm("Are you sure you want to delete this user? This action is IRREVERSIBLE!")) {
       return
     }
 
     try {
-      // In a real app, this would be an API call
-      // await axios.delete(`/api/admin/users/${id}`, { withCredentials: true });
+      await axios.delete(`${Server}/users/${id}`, { withCredentials: true });
 
       // Remove user from state
-      setUsers(users.filter((user) => user.id !== id))
+      setUsers(users.filter((user) => user._id !== id))
 
       toast({
         title: "Success",
@@ -235,6 +197,7 @@ function AdminUsersPage() {
   const handleCancelEdit = () => {
     setEditingUser(null)
   }
+
 
   if (isLoading) {
     return (
@@ -278,10 +241,10 @@ function AdminUsersPage() {
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user._id}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.department}</TableCell>
+                        <TableCell>{getDepartmentName(user.department, departments)}</TableCell>
                         <TableCell>
                           <Badge variant={user.role === "admin" ? "primary" : "default"}>
                             {user.role === "admin" ? "Admin" : "User"}
@@ -292,7 +255,7 @@ function AdminUsersPage() {
                             <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
                               Edit
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user.id)}>
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user._id)}>
                               Delete
                             </Button>
                           </div>
@@ -346,7 +309,7 @@ function AdminUsersPage() {
                       <Select
                         value={editingUser ? editingUser.department : newUser.department}
                         onValueChange={(value) => handleSelectChange("department", value)}
-                        options={departments.map((dept) => ({ value: dept.name, label: dept.name }))}
+                        options={departments.map((dept, index) => ({ value: dept._id, label:getDepartmentName(dept._id, departments) , key :index}))}
                         placeholder="Select department"
                       />
                     </div>

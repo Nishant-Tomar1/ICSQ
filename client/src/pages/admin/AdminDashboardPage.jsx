@@ -4,6 +4,8 @@ import { useToast } from "../../contexts/ToastContext"
 import DashboardHeader from "../../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/Card"
 import Button from "../../components/ui/Button"
+import { Server } from "../../Constants"
+import axios from "axios"
 
 function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -18,17 +20,9 @@ function AdminDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // In a real app, fetch from API
-        // const response = await axios.get("/api/admin/stats", { withCredentials: true });
-        // setStats(response.data);
+        const response = await axios.get(`${Server}/analytics/stats`, { withCredentials: true });
+        setStats(response.data);
 
-        // Mock data
-        setStats({
-          departments: 12,
-          users: 45,
-          surveys: 128,
-          actionPlans: 37,
-        })
       } catch (error) {
         toast({
           title: "Error",
@@ -41,7 +35,7 @@ function AdminDashboardPage() {
     }
 
     fetchStats()
-  }, [toast])
+  }, [])
 
   if (isLoading) {
     return (

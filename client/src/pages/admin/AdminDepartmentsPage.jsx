@@ -6,6 +6,8 @@ import Button from "../../components/ui/Button"
 import Input from "../../components/ui/Input"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/Table"
 import Textarea from "../../components/ui/Textarea"
+import { capitalizeFirstLetter, Server } from "../../Constants"
+import axios from "axios"
 
 function AdminDepartmentsPage() {
   const [departments, setDepartments] = useState([])
@@ -21,27 +23,9 @@ function AdminDepartmentsPage() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        // In a real app, this would fetch from your API
-        // const response = await axios.get("/api/admin/departments", { withCredentials: true });
-        // setDepartments(response.data);
+        const response = await axios.get(`${Server}/departments`, { withCredentials: true });
+        setDepartments(response.data);
 
-        // Mock data for demonstration
-        const mockDepartments = [
-          { id: 1, name: "Development", description: "Real Estate Development" },
-          { id: 2, name: "Stay By Latinum", description: "Hospitality Services" },
-          { id: 3, name: "Audit & Assurance", description: "Internal Audit" },
-          { id: 4, name: "HR & Admin", description: "Human Resources" },
-          { id: 5, name: "Group IT", description: "Information Technology" },
-          { id: 6, name: "Procurement", description: "Procurement Services" },
-          { id: 7, name: "SCM", description: "Supply Chain Management" },
-          { id: 8, name: "Marketing", description: "Marketing Services" },
-          { id: 9, name: "Finance & Accounts", description: "Financial Services" },
-          { id: 10, name: "PNC Architects", description: "Architecture Services" },
-          { id: 11, name: "SOBHA PMC", description: "Project Management" },
-          { id: 12, name: "LFM", description: "Facilities Management" },
-        ]
-
-        setDepartments(mockDepartments)
       } catch (error) {
         toast({
           title: "Error",
@@ -54,7 +38,7 @@ function AdminDepartmentsPage() {
     }
 
     fetchDepartments()
-  }, [toast])
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -85,15 +69,8 @@ function AdminDepartmentsPage() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would be an API call
-      // const response = await axios.post("/api/admin/departments", newDepartment, { withCredentials: true });
-      // const addedDepartment = response.data;
-
-      // Mock adding a department
-      const addedDepartment = {
-        id: departments.length + 1,
-        ...newDepartment,
-      }
+      const response = await axios.post(`${Server}/departments`, newDepartment, { withCredentials: true });
+      const addedDepartment = response.data;
 
       setDepartments([...departments, addedDepartment])
       setNewDepartment({ name: "", description: "" })
@@ -130,11 +107,10 @@ function AdminDepartmentsPage() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would be an API call
-      // await axios.put(`/api/admin/departments/${editingDepartment.id}`, editingDepartment, { withCredentials: true });
+      await axios.put(`${Server}/departments/${editingDepartment._id}`, editingDepartment, { withCredentials: true });
 
       // Update department in state
-      setDepartments(departments.map((dept) => (dept.id === editingDepartment.id ? { ...editingDepartment } : dept)))
+      setDepartments(departments.map((dept) => (dept._id === editingDepartment._id ? { ...editingDepartment } : dept)))
 
       toast({
         title: "Success",
@@ -154,16 +130,15 @@ function AdminDepartmentsPage() {
   }
 
   const handleDeleteDepartment = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this department?")) {
+    if (!window.confirm("Are you sure you want to delete this department ? This action is IRREVERSIBLE !!")) {
       return
     }
 
     try {
-      // In a real app, this would be an API call
-      // await axios.delete(`/api/admin/departments/${id}`, { withCredentials: true });
+      await axios.delete(`${Server}/departments/${id}`, { withCredentials: true });
 
       // Remove department from state
-      setDepartments(departments.filter((dept) => dept.id !== id))
+      setDepartments(departments.filter((dept) => dept._id !== id))
 
       toast({
         title: "Success",
@@ -222,8 +197,8 @@ function AdminDepartmentsPage() {
                   </TableHeader>
                   <TableBody>
                     {departments.map((department) => (
-                      <TableRow key={department.id}>
-                        <TableCell className="font-medium">{department.name}</TableCell>
+                      <TableRow key={department._id}>
+                        <TableCell className="font-medium">{capitalizeFirstLetter(department.name)}</TableCell>
                         <TableCell>{department.description}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
@@ -233,7 +208,7 @@ function AdminDepartmentsPage() {
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleDeleteDepartment(department.id)}
+                              onClick={() => handleDeleteDepartment(department._id)}
                             >
                               Delete
                             </Button>

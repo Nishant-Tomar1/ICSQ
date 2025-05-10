@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
 import { getCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from "../controllers/category.controller.js"
-import { requireAuth } from "../middleware/auth.js"
+import { requireAdmin, requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)
@@ -13,12 +13,12 @@ router.get("/", getCategories)
 router.get("/:id", getCategoryById)
 
 // Create a new category
-router.post("/", createCategory)
+router.post("/", requireAdmin, createCategory)
 
 // Update a category
-router.put("/:id", updateCategory)
+router.put("/:id", requireAdmin, updateCategory)
 
 // Delete a category
-router.delete("/:id", deleteCategory)
+router.delete("/:id", requireAdmin, deleteCategory)
 
 export default router

@@ -108,6 +108,9 @@ function SurveyListPage() {
                       selectedDepartment?._id === department._id
                         ? "border-2 border-blue-500 shadow-md"
                         : "hover:shadow-md hover:border-blue-300"
+                    } ${currentUser?.surveyedDepartmentIds.includes(department._id)
+                        ? "border-2 border-green-500 shadow-md hover:shadow-md hover:border-green-300"
+                        : ""
                     }`}
                     onClick={() => handleDepartmentClick(department)}
                   >

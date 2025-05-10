@@ -1,6 +1,24 @@
 import {Survey} from "../models/Survey.model.js"
+import {User} from "../models/User.model.js"
 import {ActionPlan} from "../models/ActionPlan.model.js"
 import {Department} from "../models/Department.model.js"
+
+export async function getPlatformStats(req, res) {
+  try {
+    const userCount = await User.estimatedDocumentCount() 
+
+    const deptCount = await Department.estimatedDocumentCount()
+
+    const surveyCount = await Survey.estimatedDocumentCount()
+
+    const actionPlanCount = await ActionPlan.estimatedDocumentCount()
+
+    return res.status(200).json({ "users":userCount, "departments" : deptCount, "actionPlans" : actionPlanCount, "surveys": surveyCount})
+  } catch (error) {
+    console.log("Error calculating stats : ", error);
+    return res.status(500).json({message : "Failed to get statistics"})
+  }
+}
 
 // Get department scores
 export async function getDepartmentScores(req, res) {
