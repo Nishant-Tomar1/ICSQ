@@ -1,6 +1,6 @@
 import { Router } from "express"
 const router = Router()
-import { getDepartmentScores, getCategoryScores, getActionPlanStats, getPlatformStats } from "../controllers/analytics.controller.js"
+import { getDepartmentScores, getCategoryScores, getActionPlanStats, getPlatformStats, getDepartmentScoresforParticular } from "../controllers/analytics.controller.js"
 import { requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
@@ -10,6 +10,9 @@ router.get("/stats", getPlatformStats)
 
 // Get department scores
 router.get("/department-scores", getDepartmentScores)
+
+//Get scores given to a particular department by other departmnets
+router.get("/department-scores/:id", getDepartmentScoresforParticular)
 
 // Get category scores
 router.get("/category-scores", getCategoryScores)

@@ -121,7 +121,7 @@ function ReportsPage() {
                         {departmentScores.map((dept) => (
                           <div key={dept.name} className="mb-2">
                             <div className="flex items-center">
-                              <span className="w-32 text-left">{capitalizeFirstLetter(dept.name)}</span>
+                              <span className="w-48 max-w-[40%] text-left">{capitalizeFirstLetter(dept.name)}</span>
                               <div className="flex-1 mx-2">
                                 <div className="bg-gray-200 h-4 rounded-full overflow-hidden">
                                   <div
@@ -130,7 +130,7 @@ function ReportsPage() {
                                   ></div>
                                 </div>
                               </div>
-                              <span className="w-10 text-right font-medium">{dept.score}%</span>
+                              <span className="w-20 text-right font-medium">{dept.score.toFixed(2)}%</span>
                             </div>
                           </div>
                         ))}

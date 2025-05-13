@@ -1,27 +1,57 @@
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { useAuth } from "../contexts/AuthContext"
-import { useToast } from "../contexts/ToastContext"
-import DashboardHeader from "../components/DashboardHeader"
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
-import Button from "../components/ui/Button"
-import Input from "../components/ui/Input"
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/Table"
-import Select from "../components/ui/Select"
-import Badge from "../components/ui/Badge"
-import axios from "axios"
-import { capitalizeFirstLetter, Server } from "../Constants"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
+import DashboardHeader from "../components/DashboardHeader";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/Table";
+import Select from "../components/ui/Select";
+import Badge from "../components/ui/Badge";
+import axios from "axios";
+import { capitalizeFirstLetter, Server, getDepartmentName } from "../Constants";
 
 function ActionPlansPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [actionPlans, setActionPlans] = useState([])
-  const [filteredPlans, setFilteredPlans] = useState([])
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const { currentUser } = useAuth()
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionPlans, setActionPlans] = useState([]);
+  const [filteredPlans, setFilteredPlans] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
+  const [allDepartments, setAllDepartments] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expModal, setExpModal] = useState(false);
+  const [actionModal, setActionModal] = useState(false);
+  const [formModal, setFormModal] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { currentUser } = useAuth();
+
+  const [newEntry, setNewEntry] = useState({
+    departmentId: currentUser?.department?._id,
+    categoryId: "",
+    expectations: [],
+    actions: [],
+    ownerId: currentUser?._id,
+    targetDate: Date.now(),
+    status: "pending",
+  });
+
+  const [selected, setSelected] = useState({})
 
   const fetchData = async () => {
     try {
@@ -29,97 +59,157 @@ function ActionPlansPage() {
         params: { departmentId: currentUser?.department._id },
         withCredentials: true,
       });
-      // console.log("response :",response.data);
       setActionPlans(response.data);
       setFilteredPlans(response.data);
+
+      const catresponse = await axios.get(`${Server}/categories`, {
+        withCredentials: true,
+      });
+      setAllCategories(catresponse.data);
+
+      const depresponse = await axios.get(`${Server}/departments`, {
+        withCredentials: true,
+      });
+      setAllDepartments(depresponse.data);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to load action plans",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchData()
-  }, [currentUser])
+    fetchData();
+  }, [currentUser]);
 
   useEffect(() => {
     // Apply filters
-    let filtered = [...actionPlans]
+    let filtered = [...actionPlans];
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter((plan) => plan.status === statusFilter)
+      filtered = filtered.filter((plan) => plan.status === statusFilter);
     }
 
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((plan) => plan.category?.[0].name === categoryFilter)
+      filtered = filtered.filter(
+        (plan) => plan.category?.[0].name === categoryFilter
+      );
     }
 
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (plan) =>
-          plan.action.toLowerCase().includes(query) ||
-          plan.expectation.toLowerCase().includes(query) ||
-          plan.owner?.[0]?.name.toLowerCase().includes(query) || 
-          plan.category?.[0]?.name.toLowerCase().includes(query),
-      )
+          (Array.isArray(plan.actions) &&
+            plan.actions.some((a) => a.toLowerCase().includes(query))) ||
+          (Array.isArray(plan.expectations) &&
+            plan.expectations.some((e) => e.toLowerCase().includes(query))) ||
+          plan.owner?.[0]?.name.toLowerCase().includes(query) ||
+          plan.category?.[0]?.name.toLowerCase().includes(query)
+      );
     }
 
-    setFilteredPlans(filtered)
-  }, [statusFilter, categoryFilter, searchQuery, actionPlans])
+    setFilteredPlans(filtered);
+  }, [statusFilter, categoryFilter, searchQuery, actionPlans]);
 
   const handleStatusChange = (id, status) => {
-    setActionPlans((prev) => prev.map((plan) => (plan._id === id ? { ...plan, status } : plan)))
-  }
+    setActionPlans((prev) =>
+      prev.map((plan) => (plan._id === id ? { ...plan, status } : plan))
+    );
+  };
+
+  const handleInputChange = (field, value) => {
+    setNewEntry((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   const handleSaveAll = async () => {
-    setIsLoading(true)
-    const reqData = actionPlans.map((plan) => ({...plan, category : plan?.category?.[0]?._id, owner : plan?.owner?.[0]?._id}));
-    // console.log(reqData);
+    setIsLoading(true);
+    const reqData = actionPlans.map((plan) => ({
+      ...plan,
+      category: plan?.category?.[0]?._id,
+      owner: plan?.owner?.[0]?._id,
+    }));
     try {
       await axios.put(
         `${Server}/action-plans`,
         {
           plans: reqData,
         },
-        { withCredentials: true },
+        { withCredentials: true }
       );
 
       toast({
         title: "Action Plans Saved",
         description: "Your action plans have been updated successfully",
-      })
-      fetchData()
+      });
+      fetchData();
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to save action plans",
         variant: "destructive",
-      })
+      });
       console.log(error);
-      
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
-        return <Badge variant="warning">Pending</Badge>
+        return <Badge variant="warning">Pending</Badge>;
       case "in-progress":
-        return <Badge variant="primary">In Progress</Badge>
+        return <Badge variant="primary">In Progress</Badge>;
       case "completed":
-        return <Badge variant="success">Completed</Badge>
+        return <Badge variant="success">Completed</Badge>;
       default:
-        return <Badge>Unknown</Badge>
+        return <Badge>Unknown</Badge>;
     }
-  }
+  };
+
+  const addExpectation = () => {
+    const updated = [...(newEntry.expectations || [])];
+    updated.push("");
+    handleInputChange("expectations", updated);
+  };
+
+  const removeExpectation = (index) => {
+    const updated = [...(newEntry.expectations || [])];
+    updated.splice(index, 1);
+    handleInputChange("expectations", updated);
+  };
+
+  const handleExpectationsChange = (index, value) => {
+    const updated = [...(newEntry.expectations || [])];
+    updated[index] = value;
+    handleInputChange("expectations", updated);
+  };
+
+  const addAction = () => {
+    const updated = [...(newEntry.actions || [])];
+    updated.push("");
+    handleInputChange("actions", updated);
+  };
+
+  const removeAction = (index) => {
+    const updated = [...(newEntry.actions || [])];
+    updated.splice(index, 1);
+    handleInputChange("actions", updated);
+  };
+
+  const handleActionsChange = (index, value) => {
+    const updated = [...(newEntry.actions || [])];
+    updated[index] = value;
+    handleInputChange("actions", updated);
+  };
 
   if (isLoading) {
     return (
@@ -129,22 +219,64 @@ function ActionPlansPage() {
           <p className="mt-4">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  const categories = ["all", ...new Set(actionPlans.map((plan) => plan.category?.[0]?.name))]
+  const categories = [
+    "all",
+    ...new Set(actionPlans.map((plan) => plan.category?.[0]?.name)),
+  ];
 
   const statusOptions = [
     { value: "all", label: "All Statuses" },
     { value: "pending", label: "Pending" },
     { value: "in-progress", label: "In Progress" },
     { value: "completed", label: "Completed" },
-  ]
+  ];
 
   const categoryOptions = categories.map((category) => ({
     value: category,
     label: category === "all" ? "All Categories" : category,
-  }))
+  }));
+
+  const handleSubmitAdd = async (e) => {
+    e.preventDefault()
+    if (!newEntry.expectations?.length){
+      return toast({
+        title: "Warning",
+        description: "At least one Expectation is required!",
+        variant: "destructive",
+      })
+    }
+    if (!newEntry.actions?.length){
+      return toast({
+        title: "Warning",
+        description: "At least one Action is required!",
+        variant: "destructive",
+      })
+    }
+    setIsSubmitting(true)
+    try {
+      const response = await axios.post(`${Server}/action-plans`, {...newEntry}, {withCredentials : true});
+      setFormModal(false)
+      fetchData()
+      toast({
+        title: "Success",
+        description: "Action Plan added successfully",
+        variant: "informative",
+      });
+      
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Error",
+        description: "Failed to Add Action Plan",
+        variant: "destructive",
+      });
+    } finally{
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -154,30 +286,231 @@ function ActionPlansPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Action Plans - {currentUser?.department?.name}</span>
-              <Button onClick={handleSaveAll} disabled={isLoading}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-2"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                </svg>
-                Save Changes
-              </Button>
+              <span>
+                Action Plans -{" "}
+                {capitalizeFirstLetter(currentUser?.department?.name)}
+              </span>
+              {["admin", "manager"].includes(currentUser.role) && (
+                <>
+                  {["admin", "manager"].includes(currentUser?.role) && (
+                    <>
+                      <Button onClick={() => setFormModal(true)}>
+                        Add Action Plan
+                      </Button>
+                      {formModal && (
+                        <div className="font-normal text-sm fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4 overflow-auto max-h-[95%]">
+                            {/* Close Button */}
+                            <button
+                              className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[40px]"
+                              onClick={() => setFormModal(false)}
+                            >
+                              X
+                            </button>
+
+                            <Card className="shadow-none border-none">
+                              <CardHeader>
+                                <CardTitle>Add Action Plan</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <form onSubmit={handleSubmitAdd}>
+                                  <div className="space-y-4">
+                                    {/* Department */}
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Department
+                                      </label>
+                                      <Input
+                                        disabled
+                                        name="department"
+                                        value={currentUser?.department?.name}
+                                        placeholder="Department"
+                                        required
+                                      />
+                                    </div>
+
+                                    {/* Category */}
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Category
+                                      </label>
+                                      <Select
+                                        value={newEntry.categoryId}
+                                        onValueChange={(value) =>
+                                          handleInputChange("categoryId", value)
+                                        }
+                                        options={allCategories?.map(
+                                          (cat, index) => ({
+                                            value: cat._id,
+                                            label: cat.name,
+                                            key: index,
+                                          })
+                                        )}
+                                        placeholder="Select Category"
+                                      />
+                                    </div>
+
+                                    {/* Expectations */}
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Expectations
+                                      </label>
+                                      {newEntry.expectations?.map(
+                                        (exp, index) => (
+                                          <div
+                                            key={index}
+                                            className="flex items-center space-x-2 mb-2"
+                                          >
+                                            <Input
+                                              value={exp}
+                                              onChange={(e) =>
+                                                handleExpectationsChange(
+                                                  index,
+                                                  e.target.value
+                                                )
+                                              }
+                                              placeholder={`Expectation ${
+                                                index + 1
+                                              }`}
+                                              required
+                                            />
+                                            <Button
+                                              type="button"
+                                              variant="destructive"
+                                              onClick={() =>
+                                                removeExpectation(index)
+                                              }
+                                            >
+                                              X
+                                            </Button>
+                                          </div>
+                                        )
+                                      )}
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={addExpectation}
+                                      >
+                                        + Add Expectation
+                                      </Button>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Actions
+                                      </label>
+                                      {newEntry.actions?.map((act, index) => (
+                                        <div
+                                          key={index}
+                                          className="flex items-center space-x-2 mb-2"
+                                        >
+                                          <Input
+                                            value={act}
+                                            onChange={(e) =>
+                                              handleActionsChange(
+                                                index,
+                                                e.target.value
+                                              )
+                                            }
+                                            placeholder={`Action ${index + 1}`}
+                                            required
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="destructive"
+                                            onClick={() => removeAction(index)}
+                                          >
+                                            X
+                                          </Button>
+                                        </div>
+                                      ))}
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={addAction}
+                                      >
+                                        + Add Action
+                                      </Button>
+                                    </div>
+
+                                      <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Target Date
+                                      </label>
+                                    <input
+                                      type="date"
+                                      name="targetDate"
+                                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+                                      value={newEntry?.targetDate ? new Date(newEntry.targetDate).toISOString().split("T")[0] : ""}
+                                      min={new Date().toISOString().split("T")[0]}
+                                      onChange={(e) => {
+                                        const selectedDate = new Date(e.target.value);
+                                        handleInputChange("targetDate", selectedDate.getTime());
+                                      }}
+                                      required
+                                    />
+
+                                    </div>
+
+                                    {/* Submit */}
+                                    <div className="flex space-x-2">
+                                      <Button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="w-full"
+                                      >
+                                        {isSubmitting
+                                          ? "Adding..."
+                                          : "Add Action Plan"}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </form>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <Button onClick={handleSaveAll} disabled={isLoading}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-2"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                    </svg>
+                    Save Changes
+                  </Button>
+                </>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="w-full sm:w-1/3">
-                <label className="text-sm font-medium mb-1 block">Filter by Status</label>
-                <Select value={statusFilter} onValueChange={setStatusFilter} options={statusOptions} />
+                <label className="text-sm font-medium mb-1 block">
+                  Filter by Status
+                </label>
+                <Select
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                  options={statusOptions}
+                />
               </div>
 
               <div className="w-full sm:w-1/3">
-                <label className="text-sm font-medium mb-1 block">Filter by Category</label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter} options={categoryOptions} />
+                <label className="text-sm font-medium mb-1 block">
+                  Filter by Category
+                </label>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                  options={categoryOptions}
+                />
               </div>
 
               <div className="w-full sm:w-1/3">
@@ -193,39 +526,134 @@ function ActionPlansPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Department</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Expectation</TableHead>
-                  <TableHead>Action Plan</TableHead>
+                  <TableHead>Expectations</TableHead>
+                  <TableHead>Action Plans</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Target Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-[120px]">Update Status</TableHead>
+                  {currentUser.role === "admin" && (
+                    <TableHead className="w-[120px]">Update Status</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPlans.map((plan) => (
-                  <TableRow key={plan._id}>
-                    <TableCell>{capitalizeFirstLetter(plan.category?.[0]?.name)}</TableCell>
-                    <TableCell>{plan.expectation}</TableCell>
-                    <TableCell>{plan.action}</TableCell>
-                    <TableCell>{capitalizeFirstLetter(plan.owner?.[0]?.name)}</TableCell>
-                    <TableCell>{new Date(plan.targetDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{getStatusBadge(plan.status)}</TableCell>
+                {filteredPlans.map((plan, index) => (
+                  <TableRow key={plan._id + index}>
                     <TableCell>
-                      <Select
-                        value={plan.status}
-                        onValueChange={(value) => handleStatusChange(plan._id, value)}
-                        options={[
-                          { value: "pending", label: "Pending" },
-                          { value: "in-progress", label: "In Progress" },
-                          { value: "completed", label: "Completed" },
-                        ]}
-                        className="h-8"
-                      />
+                      {capitalizeFirstLetter(currentUser.department?.name)}
                     </TableCell>
+                    <TableCell>
+                      {capitalizeFirstLetter(plan.category?.[0]?.name)}
+                    </TableCell>
+                    <TableCell>
+                      {" "}
+                      <span
+                        onClick={() => {
+                          setExpModal(true);
+                          setSelected(plan)
+                        }}
+                        className="underline cursor-pointer"
+                      >
+                        Click to see
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {" "}
+                      <span
+                        onClick={() => {
+                          setActionModal(true);
+                          setSelected(plan)
+                        }}
+                        className="underline cursor-pointer"
+                      >
+                        Click to see
+                      </span>{" "}
+                    </TableCell>
+                    <TableCell>
+                      {capitalizeFirstLetter(plan.owner?.[0]?.name)}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(plan.targetDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(plan.status)}</TableCell>
+                    {currentUser.role === "admin" && (
+                      <TableCell>
+                        <Select
+                          value={plan.status}
+                          onValueChange={(value) =>
+                            handleStatusChange(plan._id, value)
+                          }
+                          options={[
+                            { value: "pending", label: "Pending" },
+                            { value: "in-progress", label: "In Progress" },
+                            { value: "completed", label: "Completed" },
+                          ]}
+                          className="h-8"
+                        />
+                      </TableCell>
+                    )}
+                    {/* Expectations Modal */}
+                    {expModal && (
+                      <div
+                        key={plan._id}
+                        className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                      >
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
+                          <button
+                            className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+                            onClick={() => {setExpModal(false);setSelected({});}}
+                          >
+                            X
+                          </button>
+                          <Card className="shadow-none border-none">
+                            <CardHeader>
+                              <CardTitle>Expectations</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {selected?.expectations?.map((exp, index) => (
+                                <span key={plan._id + index}>
+                                  {index + 1}. {exp} <br />
+                                </span>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions Modal */}
+                    {actionModal && (
+                      <div
+                        key={plan._id}
+                        className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                      >
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
+                          <button
+                            className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+                            onClick={() => {setActionModal(false);setSelected({})}}
+                          >
+                            X
+                          </button>
+                          <Card className="shadow-none border-none">
+                            <CardHeader>
+                              <CardTitle>Actions</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {selected?.actions?.map((exp, index) => (
+                                <span key={plan._id + index}>
+                                  {index + 1}. {exp} <br />
+                                </span>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
                   </TableRow>
                 ))}
-                {filteredPlans.length === 0 && (
+                {filteredPlans.length === 0 && currentUser.role === "user" && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-4">
                       No action plans found matching the current filters
@@ -238,7 +666,6 @@ function ActionPlansPage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }
-
-export default ActionPlansPage
+export default ActionPlansPage;

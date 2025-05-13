@@ -2,6 +2,7 @@ import {Survey} from "../models/Survey.model.js"
 import {User} from "../models/User.model.js"
 import {ActionPlan} from "../models/ActionPlan.model.js"
 import {Department} from "../models/Department.model.js"
+import mongoose from "mongoose"
 
 export async function getPlatformStats(req, res) {
   try {
@@ -63,13 +64,82 @@ export async function getDepartmentScores(req, res) {
     const result = Object.entries(departmentScores).map(([_id, data]) => ({
       _id,
       name: departmentNames[_id] || "Unknown Department",
-      score: Math.round(data.count > 0 ? data.totalScore / data.count : 0),
+      score: (data.count > 0 ? data.totalScore / data.count : 0),
     }))
 
     return res.json(result)
   } catch (error) {
     console.error("Error calculating department scores:", error)
     return res.status(500).json({ message: "Failed to calculate department scores" })
+  }
+}
+
+// Get department scores for a particular department by other departments
+export async function getDepartmentScoresforParticular(req, res) {
+  try {
+    const {id : departmentId} = req.params
+    
+    const surveys = await Survey.aggregate([
+      {
+        $match: {
+          toDepartment: new mongoose.Types.ObjectId(departmentId)
+        }
+      },
+      {
+        $project: {
+          fromDepartment: 1,
+          ratings: {
+            $map: {
+              input: { $objectToArray: "$responses" },
+              as: "resp",
+              in: "$$resp.v.rating"
+            }
+          }
+        }
+      },
+      {
+        $unwind: "$ratings"
+      },
+      {
+        $group: {
+          _id: "$fromDepartment",
+          averageScore: { $avg: "$ratings" },
+          totalSurveys: { $addToSet: "$_id" }
+        }
+      },
+      {
+        $project: {
+          averageScore: 1,
+          surveyCount: { $size: "$totalSurveys" }
+        }
+      },
+      {
+        $lookup: {
+          from: "departments",
+          localField: "_id",
+          foreignField: "_id",
+          as: "department"
+        }
+      },
+      {
+        $unwind: "$department"
+      },
+      {
+        $project: {
+          _id: 0,
+          fromDepartmentId: "$_id",
+          fromDepartmentName: "$department.name",
+          averageScore: 1,
+          surveyCount: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json(surveys)
+    
+  } catch (error) {
+    console.error("Error calculating scores for given department:", error)
+    return res.status(500).json({ message: "Failed to calculate department scores for given department" })
   }
 }
 

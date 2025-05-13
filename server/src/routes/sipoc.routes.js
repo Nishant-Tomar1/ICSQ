@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
 import { getSIPOCByDepartment, createOrUpdateSIPOC, deleteSIPOC } from "../controllers/sipoc.controller.js"
-import { requireAdmin, requireAuth } from "../middleware/auth.js"
+import { requireAdmin, requireAuth, requireManager } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)
@@ -10,7 +10,7 @@ router.use(requireAuth)
 router.get("/", getSIPOCByDepartment)
 
 // Create or update SIPOC
-router.put("/", createOrUpdateSIPOC)
+router.put("/",requireManager, createOrUpdateSIPOC)
 
 // Delete SIPOC
 router.delete("/",requireAdmin, deleteSIPOC)

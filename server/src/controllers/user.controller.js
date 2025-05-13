@@ -75,8 +75,8 @@ export async function addUser(req, res) {
 // Update a user
 export async function updateUser(req, res) {
   try {
-    const { name, email, departmentId, role, password } = req.body
-
+    const { name, email,department: departmentId, role, password } = req.body
+    
     const user = await User.findById(req.params?.id)
 
     if (!user) {
@@ -90,7 +90,6 @@ export async function updateUser(req, res) {
     if (password) user.password = password
     
     await user.save({validateBeforeSave : false})
-    
     return res.json(user)
   } catch (error) {
     console.error(`Error updating user ${req.params.id}:`, error)

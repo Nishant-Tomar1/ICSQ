@@ -7,16 +7,16 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Textarea from "../components/ui/Textarea"
 import { RadioGroup, RadioItem } from "../components/ui/RadioGroup"
-import { capitalizeFirstLetter, Server } from "../Constants"
+import { capitalizeFirstLetter,getDepartmentName, Server } from "../Constants"
 import axios from "axios"
 
 function SurveyPage() {
   const { departmentId } = useParams()
   const [department, setDepartment] = useState(null)
+  const [departments, setDepartments] = useState([])
   const [categories, setCategories] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({})
-  // const [currentExpectation, setCurrentExpectation] = useState("")
   const [currentExpectations, setCurrentExpectations] = useState({});
 
   const navigate = useNavigate()
@@ -33,6 +33,9 @@ function SurveyPage() {
 
         const catgResponse = await axios.get(`${Server}/categories`, { withCredentials: true });
         setCategories(catgResponse.data);
+
+        const departmentsResponse = await axios.get(`${Server}/departments`, { withCredentials: true });
+        setDepartments(departmentsResponse.data)
         
         const userDepartment = {
           id: deptResponse.data._id,
@@ -53,12 +56,7 @@ function SurveyPage() {
       }
     }
 
-    if(!alreadySurveyed){
-      fetchData()
-    }
-    else{
-      setIsLoading(false)
-    }
+    fetchData()
   }, [departmentId, categories?.length])
 
   const initializeFormData = () =>{
@@ -99,7 +97,6 @@ function SurveyPage() {
       [categoryName]: '',
     }));
   };
-  
 
   const handleRemoveExpectation = (categoryName, index) => {
     setFormData((prev) => ({
@@ -135,8 +132,6 @@ function SurveyPage() {
         return;
       }
       
-      
-      // In a real app, submit to API
       await axios.post(
         `${Server}/surveys`,
         {
@@ -170,6 +165,7 @@ function SurveyPage() {
     }
   }
 
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -181,146 +177,152 @@ function SurveyPage() {
     )
   }
 
-  
-
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={currentUser} />
+
+      <main className="container mx-auto py-2 px-4">
+        <Card className="mb-2">
+          <CardContent>
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {JSON.parse(localStorage.getItem("selectedDepartments"))?.map((dept, index) => (
+                  <div
+                  key={dept}
+                  className={`bg-white border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
+                    dept === departmentId
+                    ? "border-2 border-blue-500 shadow-md"
+                    : "hover:shadow-md hover:border-blue-300"
+                  }`}
+                  onClick={() => navigate(`/survey/${dept}`, {replace :true})}
+                  >
+                    <div className="h-16 flex items-center justify-center">
+                      <span className="font-medium">{capitalizeFirstLetter(getDepartmentName(dept, departments))}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+
       {
         (currentUser?.surveyedDepartmentIds.includes(departmentId)) ?
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-[50vh] flex items-center justify-center">
               <div className="text-center">
                 <p className="mt-4">You have already Submitted survey for this Department !</p>
               </div>
             </div>
           
         :
-      <main className="container mx-auto py-6 px-4">
-        <Card className="mb-6">
+      <main className="container mx-auto py-4 px-4">
+        {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>ICSQ Survey for {department?.name}</span>
             </CardTitle>
           </CardHeader>
-        </Card>
+        </Card> */}
 
-        <div className="space-y-4">
-          {categories.map((category) => (
-            <div
-              key={category.name}
-              className="border rounded-lg p-4 md:table md:table-fixed w-full border-gray-200"
-            >
-              <div className="md:table-row text-center">
-                {/* Department Name */}
-                <div className="md:table-cell md:w-1/3 lg:text-lg font-semibold text-gray-800 pb-4 md:pb-0 align-middle">
-                  {capitalizeFirstLetter(category.name)}
-                </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
+            <thead className="bg-gray-100 text-left">
+              <tr>
+                <th className="px-4 py-3 text-sm font-semibold text-gray-700">Category</th>
+                <th className="px-4 py-3 text-sm font-semibold text-gray-700 text-center">Rating</th>
+                <th className="px-4 py-3 text-sm font-semibold text-gray-700">Expectations</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((category) => (
+                <tr key={category.name} className="border-t border-gray-200">
+                  {/* Category Name */}
+                  <td className="px-4 py-4 align-top font-medium text-gray-800">
+                    {capitalizeFirstLetter(category.name)}
+                  </td>
 
-                {/* Ratings (Horizontal Emojis) */}
-                <div className="md:table-cell md:w-1/3 pb-4 md:pb-0 align-middle">
-                  <RadioGroup
-                    value={formData[category.name]?.rating || ""}
-                    onValueChange={(value) => handleRatingChange(category.name, value)}
-                    className="flex flex-row w-full"
-                  >
-                    <RadioItem
-                      value={20}
-                      id={`${category.name}-poor`}
-                      title="Poor"
-                      className="inline-flex items-center justify-center cursor-pointer"
-                    >
-                      <span className="text-2xl">😞</span>
-                    </RadioItem>
-                    <RadioItem
-                      value={40}
-                      id={`${category.name}-below-average`}
-                      title="Below Average"
-                      className="inline-flex items-center justify-center cursor-pointer"
-                    >
-                      <span className="text-2xl">😕</span>
-                    </RadioItem>
-                    <RadioItem
-                      value={60}
-                      id={`${category.name}-average`}
-                      title="Average"
-                      className="inline-flex items-center justify-center cursor-pointer"
-                    >
-                      <span className="text-2xl">😐</span>
-                    </RadioItem>
-                    <RadioItem
-                      value={80}
-                      id={`${category.name}-good`}
-                      title="Good"
-                      className="inline-flex items-center justify-center cursor-pointer"
-                    >
-                      <span className="text-2xl">🙂</span>
-                    </RadioItem>
-                    <RadioItem
-                      value={100}
-                      id={`${category.name}-impressive`}
-                      title="Very Impressive"
-                      className="inline-flex items-center justify-center cursor-pointer"
-                    >
-                      <span className="text-2xl">🤩</span>
-                    </RadioItem>
-                  </RadioGroup>
-                </div>
+                  {/* Ratings with Emojis */}
+                  <td className="px-4 py-4 align-middle">
+                  <div className="flex flex-row items-center justify-center gap-4">
+                    {[20, 40, 60, 80, 100].map((value, index) => {
+                      const emojiList = ["😞", "😕", "😐", "🙂", "🤩"];
+                      const titles = ["Poor", "Below Avg", "Average", "Good", "Very Impressive"];
+                      const isSelected = formData[category.name]?.rating === value;
 
-                {/* Expectations if low rating */}
-                <div className="md:table-cell md:w-1/3 align-middle">
-                  {(formData[category.name]?.rating === 20 ||
-                    formData[category.name]?.rating === 40 ||
-                    formData[category.name]?.rating === 60) && (
-                    <div className="space-y-2 mt-2 md:mt-0">
-                      <p className="text-xs text-gray-500">
-                        Reason for the score and your expectations:
-                      </p>
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => handleRatingChange(category.name, value)}
+                          title={titles[index]}
+                          className={`text-2xl p-2 rounded-full border transition 
+                            ${isSelected ? "bg-green-50 border-green-500" : "border-transparent hover:border-gray-300"}`}
+                        >
+                          {emojiList[index]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </td>
 
+
+                  {/* Expectations Section */}
+                  <td className="px-4 py-4 align-top">
+                    {(formData[category.name]?.rating !== 100) && (
                       <div className="space-y-2">
+                        <p className="text-xs text-gray-500 mb-1">
+                          Reason for the score and your expectations:
+                        </p>
+
+                        {/* Existing Expectations */}
                         {formData?.[category.name]?.expectations?.map((expectation, index) => (
                           <div
                             key={index}
                             className="flex items-center gap-2 p-2 bg-gray-50 rounded"
                           >
                             <span className="flex-grow text-sm">{expectation}</span>
-                            <Button
+                            <button
                               variant="ghost"
                               size="sm"
                               className="p-1"
                               onClick={() => handleRemoveExpectation(category.name, index)}
                             >
                               ❌
-                            </Button>
+                            </button>
                           </div>
                         ))}
-                      </div>
 
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder="Your expectation..."
-                          value={currentExpectations[category.name] || ''}
-                          onChange={(e) =>
-                            setCurrentExpectations((prev) => ({
-                              ...prev,
-                              [category.name]: e.target.value,
-                            }))
-                          }
-                          className="flex-grow"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddExpectation(category.name)}
-                        >
-                          ✚
-                        </Button>
+                        {/* Input + Add Button */}
+                        <div className="flex gap-2">
+                          <Textarea
+                            placeholder="Your expectation..."
+                            value={currentExpectations[category.name] || ''}
+                            onChange={(e) =>
+                              setCurrentExpectations((prev) => ({
+                                ...prev,
+                                [category.name]: e.target.value,
+                              }))
+                            }
+                            className="flex-grow h-16"
+                          />
+                          <button
+                            size="sm"
+                            className="bg-green-600 h-10 w-10 rounded-md text-white hover:bg-green-500"
+                            onClick={() => handleAddExpectation(category.name)}
+                          >
+                            ✚
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+
 
         <div className="flex justify-end gap-4 mt-8">
           <Button variant="outline" onClick={() => navigate("/dashboard")}>

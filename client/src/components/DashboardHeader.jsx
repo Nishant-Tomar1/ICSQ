@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
+import { capitalizeFirstLetter } from "../Constants"
 
 function DashboardHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -77,7 +78,7 @@ function DashboardHeader() {
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
-                  <div className="text-xs text-gray-500">{currentUser?.department?.name || "Department"}</div>
+                  <div className="text-xs text-gray-500">{currentUser.role || ""} {currentUser.role !== "admin" ? "- " + ( capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}</div>
                 </div>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

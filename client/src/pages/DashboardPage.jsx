@@ -12,6 +12,7 @@ import axios from "axios"
 function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [departmentScores, setDepartmentScores] = useState([])
+  const [departmetnScoresToParticaular, setDepartmentScoresToParticular] = useState([])
   const [totalAverage, setTotalAverage] = useState(0)
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -30,8 +31,14 @@ function DashboardPage() {
         setDepartmentScores(filteredScores)
 
         // Calculate total average
-        const avg = data.reduce((sum, dept) => sum + dept.score, 0) / data.lengthv || "N/A"
+        const avg = (data.reduce((sum, dept) => sum + dept.score, 0) / data.length) || "N/A"
         setTotalAverage(avg)
+
+        if (["manager","user"].includes(currentUser.role)){
+          const partresponse = await axios.get(`${Server}/analytics/department-scores/${currentUser.department?._id}`, { withCredentials: true })
+          setDepartmentScoresToParticular(partresponse.data)
+        }
+
       } catch (error) {
         toast({
           title: "Error",
@@ -79,24 +86,25 @@ function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold mb-4 text-blue-600">
-                {typeof userDepartmentScore === "number" ? `${userDepartmentScore}%` : userDepartmentScore}
+                {typeof userDepartmentScore === "number" ? `${userDepartmentScore.toFixed(2)}%` : userDepartmentScore}
               </div>
               <Progress value={typeof userDepartmentScore === "number" ? userDepartmentScore : 0} />
             </CardContent>
           </Card>
 
-          <Card>
+          {(currentUser.role === "admin")&&<Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Total Average ICSQ %</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold mb-4 text-blue-600">{typeof totalAverage === "number" ? `${totalAverage}%` : totalAverage}</div>
+              <div className="text-4xl font-bold mb-4 text-blue-600">{typeof totalAverage === "number" ? `${totalAverage.toFixed(2)}%` : totalAverage}</div>
               <Progress value={typeof totalAverage === "number" ? totalAverage : 0} />
             </CardContent>
-          </Card>
+          </Card>}
         </div>
 
-        {isAdmin() && <Card className="mb-8">
+        {isAdmin() ?
+        <Card className="mb-8">
           <CardHeader>
             <CardTitle>Department ICSQ Scores</CardTitle>
           </CardHeader>
@@ -108,7 +116,31 @@ function DashboardPage() {
                     <div className="font-medium">{capitalizeFirstLetter(dept.name)}</div>
                     <div className="flex items-center justify-between mt-2">
                       <Progress value={dept.score} className="h-2 flex-grow mr-2" />
-                      <span className="font-bold text-blue-600">{dept.score}%</span>
+                      <span className="font-bold text-blue-600">{dept.score?.toFixed(2)}%</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        : <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Scores Given to your department ({currentUser.department?.name}) by other departments</CardTitle>
+          </CardHeader>
+
+          {!departmetnScoresToParticaular.length && 
+          <p className="text-gray-600 text-center mt-4">No surveys happened for your department yet!</p> }
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {departmetnScoresToParticaular.map((dept) => (
+                <Card key={dept?.fromDepartmentId} className="border">
+                  <CardContent className="p-4">
+                    <div className="font-medium">{capitalizeFirstLetter(dept?.fromDepartmentName)}</div>
+                    <div className="flex items-center justify-between mt-2">
+                      <Progress value={dept?.averageScore} className="h-2 flex-grow mr-2" />
+                      <span className="font-bold text-blue-600">{dept?.averageScore.toFixed(2)}%</span>
                     </div>
                   </CardContent>
                 </Card>

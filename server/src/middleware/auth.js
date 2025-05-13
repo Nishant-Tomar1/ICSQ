@@ -6,7 +6,7 @@ export async function requireAuth(req, res, next) {
   try {
     // Get token from cookie
     const token = req.cookies.icsq_token
-
+    
     // Check if token exists
     if (!token) {
       return res.status(401).json({ message: "Not authenticated" })
@@ -38,6 +38,20 @@ export async function requireAdmin(req, res, next) {
       next()
     } else {
       return res.status(403).json({ message: "Access denied (Only Admins are permitted)" })
+    }
+  } catch (error) {
+    console.error("Authorization error:", error)
+    return res.status(403).json({ message: "Authorization failed" })
+  }
+}
+
+// Middleware to check if user is manager
+export async function requireManager(req, res, next) {
+  try {
+    if (req.user && (req.user.role === "manager" || req.user.role === "admin")) {
+      next()
+    } else {
+      return res.status(403).json({ message: "Access denied (Only Managers and admins are permitted)" })
     }
   } catch (error) {
     console.error("Authorization error:", error)

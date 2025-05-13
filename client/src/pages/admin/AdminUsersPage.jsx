@@ -8,7 +8,7 @@ import Select from "../../components/ui/Select"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/Table"
 import Badge from "../../components/ui/Badge"
 import axios from "axios"
-import { getDepartmentName, Server } from "../../Constants"
+import { capitalizeFirstLetter, getDepartmentName, Server } from "../../Constants"
 
 function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -246,8 +246,8 @@ function AdminUsersPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{getDepartmentName(user.department, departments)}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === "admin" ? "primary" : "default"}>
-                            {user.role === "admin" ? "Admin" : "User"}
+                          <Badge variant={user.role === "admin" ? "success" : user.role === "manager" ? "primary" : "default"}>
+                            {capitalizeFirstLetter(user.role)}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -320,6 +320,7 @@ function AdminUsersPage() {
                         onValueChange={(value) => handleSelectChange("role", value)}
                         options={[
                           { value: "user", label: "User" },
+                          { value: "manager", label: "Manager" },
                           { value: "admin", label: "Admin" },
                         ]}
                       />

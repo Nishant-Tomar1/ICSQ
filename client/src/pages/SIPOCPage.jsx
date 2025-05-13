@@ -151,7 +151,7 @@ function SIPOCPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>SIPOC Management - {capitalizeFirstLetter(currentUser?.department?.name)}</span>
-             {(currentUser?.role === "admin") && <Button onClick={handleSaveAll} disabled={isLoading}>
+             {(["admin","manager"].includes(currentUser?.role)) && <Button onClick={handleSaveAll} disabled={isLoading}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 mr-2"
@@ -178,7 +178,7 @@ function SIPOCPage() {
                   <TableHead>Process</TableHead>
                   <TableHead>Output</TableHead>
                   <TableHead>Customer</TableHead>
-                  {(currentUser?.role === "admin") && <TableHead className="w-[80px]">Actions</TableHead>}
+                  {(["admin","manager"].includes(currentUser?.role)) && <TableHead className="w-[80px]">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -189,7 +189,7 @@ function SIPOCPage() {
                     <TableCell>{entry.process}</TableCell>
                     <TableCell>{entry.output}</TableCell>
                     <TableCell>{entry.customer}</TableCell>
-                    {(currentUser?.role === "admin") && <TableCell>
+                    {(["admin","manager"].includes(currentUser?.role)) && <TableCell>
                       <Button variant="ghost" className="p-2" onClick={() => handleDeleteEntry(entry._id)}>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -207,7 +207,7 @@ function SIPOCPage() {
                     </TableCell>}
                   </TableRow>
                 ))}
-               {(currentUser?.role === "admin") && <TableRow>
+               {(["admin","manager"].includes(currentUser?.role)) && <TableRow>
                   <TableCell>
                     <Input
                       placeholder="Supplier"
