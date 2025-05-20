@@ -1,6 +1,6 @@
 import { Router } from "express"
 const router = Router()
-import { getDepartmentScores, getCategoryScores, getActionPlanStats, getPlatformStats, getDepartmentScoresforParticular } from "../controllers/analytics.controller.js"
+import { getDepartmentScores, getCategoryScores, getActionPlanStats, getPlatformStats, getDepartmentScoresforParticular, getExpectationData } from "../controllers/analytics.controller.js"
 import { requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
@@ -19,5 +19,8 @@ router.get("/category-scores", getCategoryScores)
 
 // Get action plan stats
 router.get("/action-plan-stats", getActionPlanStats)
+
+// Get Expectaions data
+router.get("/expectation-data/:id", getExpectationData)
 
 export default router

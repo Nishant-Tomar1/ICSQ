@@ -60,16 +60,15 @@ export async function getActionPlanById(req, res) {
 // Create a new action plan
 export async function createActionPlan(req, res) {
   try {
-    const { departmentId, categoryId, expectations, actions, ownerId, targetDate, status} = req.body
+    const { departmentId, categoryId, actions, ownerId, targetDate, status} = req.body
     
-    if (!departmentId || !categoryId || !expectations || !actions || !ownerId || !targetDate) {
+    if (!departmentId || !categoryId || !actions || !ownerId || !targetDate) {
       return res.status(400).json({ message: "Missing required fields" })
     }
 
     const plan = new ActionPlan({
       department : new mongoose.Types.ObjectId(departmentId),
       category : new mongoose.Types.ObjectId(categoryId),
-      expectations,
       actions,
       owner : new mongoose.Types.ObjectId(ownerId),
       targetDate: new Date(targetDate),
@@ -88,7 +87,7 @@ export async function createActionPlan(req, res) {
 // Update an action plan
 export async function updateActionPlan(req, res) {
   try {
-    const { department, category, expectations, actions, owner, targetDate, status } = req.body
+    const { department, category, actions, owner, targetDate, status } = req.body
 
     const plan = await ActionPlan.findById(req.params.id)
 
@@ -98,7 +97,6 @@ export async function updateActionPlan(req, res) {
 
     if (department) plan.department = department
     if (category) plan.category = category
-    if (expectations) plan.expectations = expectations
     if (actions) plan.actions = actions
     if (owner) plan.owner = owner
     if (targetDate) plan.targetDate = new Date(targetDate)

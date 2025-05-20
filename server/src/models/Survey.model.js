@@ -23,7 +23,7 @@ const SurveySchema = new Schema(
         rating: {
           type:Number,enum:[0,20,40,60,80,100]
         },
-        expectations: [String],
+        expectations: String,
       },
       required: true,
     },

@@ -12,9 +12,6 @@ const ActionPlanSchema = new Schema(
       ref : 'Category',
       required: true,
     },
-    expectations: [{
-      type: String,
-    }],
     actions: [{
       type: String,
     }],

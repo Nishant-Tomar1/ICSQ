@@ -22,6 +22,7 @@ import {
 import Select from "../components/ui/Select";
 import Badge from "../components/ui/Badge";
 import axios from "axios";
+import { FaAngleDown, FaAngleUp } from "react-icons/fa";
 import { capitalizeFirstLetter, Server, getDepartmentName } from "../Constants";
 
 function ActionPlansPage() {
@@ -30,13 +31,16 @@ function ActionPlansPage() {
   const [filteredPlans, setFilteredPlans] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [allDepartments, setAllDepartments] = useState([]);
+  const [expectationData, setExpectationData] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expModal, setExpModal] = useState(false);
+  const [expModal2, setExpModal2] = useState(false);
   const [actionModal, setActionModal] = useState(false);
   const [formModal, setFormModal] = useState(false);
+  const [showTable, setShowTable] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { currentUser } = useAuth();
@@ -44,7 +48,6 @@ function ActionPlansPage() {
   const [newEntry, setNewEntry] = useState({
     departmentId: currentUser?.department?._id,
     categoryId: "",
-    expectations: [],
     actions: [],
     ownerId: currentUser?._id,
     targetDate: Date.now(),
@@ -52,6 +55,7 @@ function ActionPlansPage() {
   });
 
   const [selected, setSelected] = useState({})
+  const [selectedCategory, setSelectedCategory] = useState({})
 
   const fetchData = async () => {
     try {
@@ -71,6 +75,10 @@ function ActionPlansPage() {
         withCredentials: true,
       });
       setAllDepartments(depresponse.data);
+
+      const expresponse = await axios.get(`${Server}/analytics/expectation-data/${currentUser?.department?._id}`, {withCredentials: true})
+      setExpectationData(expresponse.data)
+      
     } catch (error) {
       toast({
         title: "Error",
@@ -241,13 +249,6 @@ function ActionPlansPage() {
 
   const handleSubmitAdd = async (e) => {
     e.preventDefault()
-    if (!newEntry.expectations?.length){
-      return toast({
-        title: "Warning",
-        description: "At least one Expectation is required!",
-        variant: "destructive",
-      })
-    }
     if (!newEntry.actions?.length){
       return toast({
         title: "Warning",
@@ -278,11 +279,123 @@ function ActionPlansPage() {
     }
   }
 
+  const ExpectationsTable = ({ data, categoryName }) => {    
+      const categoryData = data.find(
+        (item) => item.category.toLowerCase() === categoryName?.toLowerCase()
+      );
+
+      if (!categoryData) {
+        return (
+          <div className="p-4 text-red-500 font-semibold">
+            No data found for category: <span className="italic">{categoryName}</span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="p-4">
+          <table className="w-full table-auto border-collapse">
+            <thead>
+              <tr className="bg-gray-200 text-left">
+                <th className="p-2 border">Department</th>
+                <th className="p-2 border">User</th>
+                <th className="p-2 border">Expectations</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categoryData.departments.map((dept, deptIdx) =>
+                dept.users.map((user, userIdx) => (
+                  <tr key={`${deptIdx}-${userIdx}`} className="hover:bg-gray-50">
+                    <td className="p-2 border">{capitalizeFirstLetter(dept.name)}</td>
+                    <td className="p-2 border">{user.name}</td>
+                    <td className="p-2 border">
+                      <ul className="list-disc list-inside">
+                        {user.expectations.map((exp, expIdx) => (
+                          <li key={expIdx}>{exp}</li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-6 px-4">
+
+       {["admin", "manager"].includes(currentUser.role) && 
+        <Card className="mb-6">
+          <CardHeader >
+            <CardTitle className="flex items-center justify-between">
+              <span className="cursor-pointer flex items-center" onClick={()=>{setShowTable(prev=>!prev)}}>
+                Expectations (by other departments)  {showTable ? <FaAngleUp/> : <FaAngleDown/> }
+              </span>        
+            </CardTitle>
+          </CardHeader>
+          {showTable &&<CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Expectations</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allCategories.map((category, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      {capitalizeFirstLetter(category.name)}
+                    </TableCell>
+                    <TableCell>
+                      {" "}
+                      <span
+                        onClick={() => {
+                          setExpModal2(true);
+                          setSelectedCategory(category.name)
+                        }}
+                        className="underline cursor-pointer"
+                      >
+                        Click to see
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+                {expModal2 && (
+                  <div
+                    className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                  >
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
+                      <button
+                        className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+                        onClick={() => {setExpModal2(false);setSelectedCategory({});}}
+                      >
+                        X
+                      </button>
+                      <Card className="shadow-none border-none">
+                        <CardHeader>
+                          <CardTitle>Expectations</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ExpectationsTable data={expectationData} categoryName={selectedCategory}/>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+            </Table>
+             
+          </CardContent>}
+        </Card>
+        }
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -350,8 +463,7 @@ function ActionPlansPage() {
                                       />
                                     </div>
 
-                                    {/* Expectations */}
-                                    <div>
+                                    {/* <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Expectations
                                       </label>
@@ -393,7 +505,7 @@ function ActionPlansPage() {
                                       >
                                         + Add Expectation
                                       </Button>
-                                    </div>
+                                    </div> */}
 
                                     {/* Actions */}
                                     <div>
@@ -612,11 +724,7 @@ function ActionPlansPage() {
                               <CardTitle>Expectations</CardTitle>
                             </CardHeader>
                             <CardContent>
-                              {selected?.expectations?.map((exp, index) => (
-                                <span key={plan._id + index}>
-                                  {index + 1}. {exp} <br />
-                                </span>
-                              ))}
+                              <ExpectationsTable data={expectationData} categoryName={plan.category?.[0]?.name}/>
                             </CardContent>
                           </Card>
                         </div>
@@ -669,3 +777,70 @@ function ActionPlansPage() {
   );
 }
 export default ActionPlansPage;
+
+
+
+            // <Table>
+            //   <TableHeader>
+            //     <TableRow>
+            //       <TableHead>Category</TableHead>
+            //       <TableHead>Expectations</TableHead>
+            //     </TableRow>
+            //   </TableHeader>
+            //   <TableBody>
+            //     {filteredPlans.map((plan, index) => (
+            //       <TableRow key={plan._id + index}>
+            //         <TableCell>
+            //           {capitalizeFirstLetter(plan.category?.[0]?.name)}
+            //         </TableCell>
+            //         <TableCell>
+            //           {" "}
+            //           <span
+            //             onClick={() => {
+            //               setExpModal(true);
+            //               setSelected(plan)
+            //             }}
+            //             className="underline cursor-pointer"
+            //           >
+            //             Click to see
+            //           </span>
+            //         </TableCell>
+            //         {/* Expectations Modal */}
+            //         {expModal && (
+            //           <div
+            //             key={plan._id}
+            //             className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            //           >
+            //             <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
+            //               <button
+            //                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+            //                 onClick={() => {setExpModal(false);setSelected({});}}
+            //               >
+            //                 X
+            //               </button>
+            //               <Card className="shadow-none border-none">
+            //                 <CardHeader>
+            //                   <CardTitle>Expectations</CardTitle>
+            //                 </CardHeader>
+            //                 <CardContent>
+            //                   {selected?.expectations?.map((exp, index) => (
+            //                     <span key={plan._id + index}>
+            //                       {index + 1}. {exp} <br />
+            //                     </span>
+            //                   ))}
+            //                 </CardContent>
+            //               </Card>
+            //             </div>
+            //           </div>
+            //         )}
+            //       </TableRow>
+            //     ))}
+            //     {filteredPlans.length === 0 && currentUser.role === "user" && (
+            //       <TableRow>
+            //         <TableCell colSpan={7} className="text-center py-4">
+            //           No action plans found matching the current filters
+            //         </TableCell>
+            //       </TableRow>
+            //     )}
+            //   </TableBody>
+            // </Table>

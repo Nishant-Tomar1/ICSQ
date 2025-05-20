@@ -64,7 +64,7 @@ function SurveyPage() {
     categories.forEach((category) => {
       initialFormData[category.name] = {
         rating: 0,
-        expectations: [],
+        expectations: "",
       }
     })
     setFormData(initialFormData)
@@ -80,33 +80,44 @@ function SurveyPage() {
     }))
   }
 
-  const handleAddExpectation = (categoryName) => {
-    const expectation = currentExpectations[categoryName]?.trim();
-    if (!expectation) return;
-  
-    setFormData((prev) => ({
-      ...prev,
-      [categoryName]: {
-        ...prev?.[categoryName],
-        expectations: [...(prev?.[categoryName]?.expectations || []), expectation],
-      },
-    }));
-  
-    setCurrentExpectations((prev) => ({
-      ...prev,
-      [categoryName]: '',
-    }));
-  };
-
-  const handleRemoveExpectation = (categoryName, index) => {
+  const handleExpectationChange = (categoryName, value) => {
     setFormData((prev) => ({
       ...prev,
       [categoryName]: {
         ...prev[categoryName],
-        expectations: prev[categoryName].expectations.filter((_, i) => i !== index),
+        expectations: value,
       },
     }))
   }
+
+
+  // const handleAddExpectation = (categoryName) => {
+  //   const expectation = currentExpectations[categoryName]?.trim();
+  //   if (!expectation) return;
+  
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [categoryName]: {
+  //       ...prev?.[categoryName],
+  //       expectations: [...(prev?.[categoryName]?.expectations || []), expectation],
+  //     },
+  //   }));
+  
+  //   setCurrentExpectations((prev) => ({
+  //     ...prev,
+  //     [categoryName]: '',
+  //   }));
+  // };
+
+  // const handleRemoveExpectation = (categoryName, index) => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [categoryName]: {
+  //       ...prev[categoryName],
+  //       expectations: prev[categoryName].expectations.filter((_, i) => i !== index),
+  //     },
+  //   }))
+  // }
 
   const handleSubmit = async () => {
     setIsLoading(true)
@@ -117,7 +128,7 @@ function SurveyPage() {
         const data = formData[category.name];
         const hasRating = data?.rating;
         const lowRating = hasRating && data.rating <= 60;
-        const hasExpectations = Array.isArray(data?.expectations) && data.expectations.length > 0;
+        const hasExpectations = data?.expectations
       
         return !hasRating || (lowRating && !hasExpectations);
       });
@@ -217,13 +228,6 @@ function SurveyPage() {
           
         :
       <main className="container mx-auto py-4 px-4">
-        {/* <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>ICSQ Survey for {department?.name}</span>
-            </CardTitle>
-          </CardHeader>
-        </Card> */}
 
         <div className="overflow-x-auto">
           <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
@@ -276,7 +280,7 @@ function SurveyPage() {
                         </p>
 
                         {/* Existing Expectations */}
-                        {formData?.[category.name]?.expectations?.map((expectation, index) => (
+                        {/* {formData?.[category.name]?.expectations?.map((expectation, index) => (
                           <div
                             key={index}
                             className="flex items-center gap-2 p-2 bg-gray-50 rounded"
@@ -291,28 +295,23 @@ function SurveyPage() {
                               ❌
                             </button>
                           </div>
-                        ))}
+                        ))} */}
 
                         {/* Input + Add Button */}
                         <div className="flex gap-2">
                           <Textarea
-                            placeholder="Your expectation..."
-                            value={currentExpectations[category.name] || ''}
-                            onChange={(e) =>
-                              setCurrentExpectations((prev) => ({
-                                ...prev,
-                                [category.name]: e.target.value,
-                              }))
-                            }
+                            placeholder="Your expectations..."
+                            value={formData[category.name]?.expectations || ''}
+                            onChange={(e) => handleExpectationChange(category.name, e.target.value)}
                             className="flex-grow h-16"
                           />
-                          <button
+                          {/* <button
                             size="sm"
                             className="bg-green-600 h-10 w-10 rounded-md text-white hover:bg-green-500"
                             onClick={() => handleAddExpectation(category.name)}
                           >
                             ✚
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     )}
