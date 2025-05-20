@@ -3,8 +3,10 @@ import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
 import { capitalizeFirstLetter } from "../Constants"
+import { FaAngleDown, FaAngleUp } from "react-icons/fa";
 
 function DashboardHeader() {
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
   const { currentUser, logout, isAdmin } = useAuth()
@@ -72,7 +74,7 @@ function DashboardHeader() {
 
           <div className="flex items-center">
             <div className="relative group">
-              <button className="flex items-center space-x-2 focus:outline-none">
+              <button className="flex items-center space-x-2 focus:outline-none" onClick={()=> {setDrawerOpen(prev => !prev)}}>
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
                   {getInitials(currentUser?.name)}
                 </div>
@@ -80,22 +82,12 @@ function DashboardHeader() {
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
                   <div className="text-xs text-gray-500">{currentUser.role || ""} {currentUser.role !== "admin" ? "- " + ( capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}</div>
                 </div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                {drawerOpen ? <FaAngleUp/> :  <FaAngleDown/> }
               </button>
 
               {/* Dropdown */}
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
+             {drawerOpen && 
+             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
                 <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                   Profile
                 </Link>
@@ -105,7 +97,7 @@ function DashboardHeader() {
                 >
                   Logout
                 </button>
-              </div>
+              </div>}
             </div>
 
             {/* Mobile menu button */}
