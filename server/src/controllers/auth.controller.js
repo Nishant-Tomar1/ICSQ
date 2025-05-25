@@ -1,6 +1,6 @@
 import {User} from "../models/User.model.js"
 import { generateToken, setAuthCookie, clearAuthCookie } from "../middleware/auth.js"
-import {PublicClientApplication} from "@azure/msal-browser"
+import { ConfidentialClientApplication } from "@azure/msal-node"
 import { Department } from "../models/Department.model.js"
 
 // Microsoft Teams SSO Configuration
@@ -13,7 +13,7 @@ const msalConfig = {
 }
 
 // Create MSAL application
-const msalClient = new PublicClientApplication(msalConfig)
+const msalClient = new ConfidentialClientApplication(msalConfig)
 
 // Login with email and password
 export async function login(req, res) {
@@ -99,7 +99,8 @@ export async function getCurrentUser(req, res) {
 // Get Microsoft Teams login URL
 export async function getMicrosoftLoginUrl(req, res) {
   try {
-    const redirectUri = req.query.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/microsoft/callback`
+    const redirectUri =
+      req.query.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/microsoft/callback`
 
     const authCodeUrlParameters = {
       scopes: ["user.read"],
@@ -107,6 +108,7 @@ export async function getMicrosoftLoginUrl(req, res) {
     }
 
     const loginUrl = await msalClient.getAuthCodeUrl(authCodeUrlParameters)
+    // console.log("Generated Microsoft login URL:", loginUrl)
 
     return res.json({ loginUrl })
   } catch (error) {

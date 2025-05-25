@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
 import { capitalizeFirstLetter } from "../Constants"
-import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { FaAngleDown, FaAngleUp } from "react-icons/fa"
 
 function DashboardHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -44,29 +44,32 @@ function DashboardHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
-              <span className="text-xl font-bold text-blue-600"> <span className="hidden lg:block">ICSQ.sobharealty.com </span><span className="lg:hidden">ICSQ</span></span>
+              <span className="text-xl font-bold text-[#83725E]">
+                <span className="hidden lg:block">ICSQ.sobharealty.com </span>
+                <span className="lg:hidden">ICSQ</span>
+              </span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/dashboard" className="text-gray-600 hover:text-blue-600 font-medium">
+            <Link to="/dashboard" className="text-gray-600 hover:text-[#83725E] font-medium">
               Home
             </Link>
-            <Link to={`/survey`} className="text-gray-600 hover:text-blue-600 font-medium">
+            <Link to="/survey" className="text-gray-600 hover:text-[#83725E] font-medium">
               Survey
             </Link>
-            <Link to="/sipoc" className="text-gray-600 hover:text-blue-600 font-medium">
+            <Link to="/sipoc" className="text-gray-600 hover:text-[#83725E] font-medium">
               SIPOC
             </Link>
-            <Link to="/action-plans" className="text-gray-600 hover:text-blue-600 font-medium">
+            <Link to="/action-plans" className="text-gray-600 hover:text-[#83725E] font-medium">
               Action Plans
             </Link>
-            <Link to="/reports" className="text-gray-600 hover:text-blue-600 font-medium">
+            <Link to="/reports" className="text-gray-600 hover:text-[#83725E] font-medium">
               Reports
             </Link>
             {isAdmin() && (
-              <Link to="/admin" className="text-blue-600 hover:text-blue-800 font-medium">
+              <Link to="/admin" className="text-[#83725E] hover:text-[#6e5d4d] font-medium">
                 Admin
               </Link>
             )}
@@ -74,35 +77,42 @@ function DashboardHeader() {
 
           <div className="flex items-center">
             <div className="relative group">
-              <button className="flex items-center space-x-2 focus:outline-none" onClick={()=> {setDrawerOpen(prev => !prev)}}>
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+              <button className="flex items-center space-x-2 focus:outline-none" onClick={() => setDrawerOpen(prev => !prev)}>
+                <div className="h-10 w-10 rounded-full bg-[#f1ece7] flex items-center justify-center text-[#83725E] font-medium">
                   {getInitials(currentUser?.name)}
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
-                  <div className="text-xs text-gray-500">{currentUser.role || ""} {currentUser.role !== "admin" ? "- " + ( capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}</div>
+                  <div className="text-xs text-gray-500">
+                    {currentUser.role || ""}
+                    {currentUser.role !== "admin" ? " - " + (capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}
+                  </div>
                 </div>
-                {drawerOpen ? <FaAngleUp/> :  <FaAngleDown/> }
+                {drawerOpen ? <FaAngleUp /> : <FaAngleDown />}
               </button>
 
               {/* Dropdown */}
-             {drawerOpen && 
-             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
-                <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </div>}
+              {drawerOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-100 z-10">
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#f8f6f4]"
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-[#f8f6f4]"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden ml-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+              className="md:hidden ml-4 p-2 rounded-md text-gray-600 hover:text-[#83725E] hover:bg-gray-100 focus:outline-none"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <svg
@@ -121,45 +131,23 @@ function DashboardHeader() {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <nav className="md:hidden pt-4 pb-2 space-y-2">
-            <Link
-              to="/dashboard"
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
-              to={`/survey`}
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Survey
-            </Link>
-            <Link
-              to="/sipoc"
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              SIPOC
-            </Link>
-            <Link
-              to="/action-plans"
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Action Plans
-            </Link>
-            <Link
-              to="/reports"
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Reports
-            </Link>
+            {["/dashboard", "/survey", "/sipoc", "/action-plans", "/reports"].map((path, i) => {
+              const name = ["Home", "Survey", "SIPOC", "Action Plans", "Reports"][i]
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  className="block px-3 py-2 rounded-md text-gray-700 hover:bg-[#f8f6f4]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {name}
+                </Link>
+              )
+            })}
             {isAdmin() && (
               <Link
                 to="/admin"
-                className="block px-3 py-2 rounded-md text-blue-600 hover:bg-blue-50"
+                className="block px-3 py-2 rounded-md text-[#83725E] hover:bg-[#f8f6f4]"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Admin

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Routes, Route, Navigate} from "react-router-dom"
 import { useAuth } from "./contexts/AuthContext"
 import LoginPage from "./pages/LoginPage"
 import DashboardPage from "./pages/DashboardPage"
@@ -15,20 +15,41 @@ import ProfilePage from "./pages/ProfilePage"
 import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
 import Toast from "./components/ui/Toast"
+import loaderImage from "./assets/icsq-loader.jpg"
+import {useState, useEffect} from 'react'
 
 function App() {
   const { loading } = useAuth()
+  const [showLoader, setShowLoader] = useState(true)
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-blue-600 font-medium">Loading...</p>
-        </div>
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setShowLoader(false), 1000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowLoader(true)
+    }
+  }, [loading])
+
+  if (loading || showLoader) {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
+      style={{
+        backgroundImage: `url(${loaderImage})`,
+      }}
+    >
+      {/* Blurred overlay */}
+      <div className="absolute inset-0 backdrop-brightness-75 z-0"></div>
+
+      {/* Spinner and text */}
+      <div className="relative z-10 text-center text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+        <p className="mt-4 font-semibold text-lg">Loading...</p>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <>

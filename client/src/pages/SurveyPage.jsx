@@ -202,8 +202,8 @@ function SurveyPage() {
                   key={dept}
                   className={`bg-white border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
                     dept === departmentId
-                    ? "border-2 border-blue-500 shadow-md"
-                    : "hover:shadow-md hover:border-blue-300"
+                    ? "border-2 border-[#83725E] shadow-md"
+                    : "hover:shadow-md hover:border-[#a48d6e]"
                   }`}
                   onClick={() => navigate(`/survey/${dept}`, {replace :true})}
                   >

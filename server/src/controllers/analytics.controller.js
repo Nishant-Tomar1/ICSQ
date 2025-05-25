@@ -24,124 +24,167 @@ export async function getPlatformStats(req, res) {
 // Get department scores
 export async function getDepartmentScores(req, res) {
   try {
-    const surveys = await Survey.find()
-    const departments = await Department.find()
-    
-    // Create a map of department ID to department name
-    const departmentNames = {}
-    departments.forEach((dept) => {
-      departmentNames[dept._id.toString()] = dept.name
-    })
+    const surveys = await Survey.find().lean();  // << plain objects
+    const departments = await Department.find();
 
-    const departmentScores = {}
+    const departmentNames = {};
+    departments.forEach((dept) => {
+      departmentNames[dept._id.toString()] = dept.name;
+    });
+
+    const departmentScores = {};
 
     surveys.forEach((survey) => {
-      if (!departmentScores[survey.toDepartment]) {
-        departmentScores[survey.toDepartment] = {
+      const deptId = survey.toDepartment?.toString();
+      const responses = survey.responses || {};
+
+      if (!deptId || typeof responses !== 'object') return;
+
+      if (!departmentScores[deptId]) {
+        departmentScores[deptId] = {
           totalScore: 0,
           count: 0,
-        }
+          detailedScores: {},
+        };
       }
 
-      let departmentTotal = 0
-      let categoryCount = 0
+      let surveyTotal = 0;
+      let categoryCount = 0;
 
-      for (const [, data] of survey.responses.toObject()) {
-        if (data.rating) {
-          departmentTotal += data.rating
-          categoryCount++
+      for (const [category, value] of Object.entries(responses)) {
+        const rating = parseInt(value.rating);
+        if (!rating || isNaN(rating)) continue;
+
+        surveyTotal += rating;
+        categoryCount++;
+
+        if (!departmentScores[deptId].detailedScores[category]) {
+          departmentScores[deptId].detailedScores[category] = {
+            total: 0,
+            count: 0,
+          };
         }
+
+        departmentScores[deptId].detailedScores[category].total += rating;
+        departmentScores[deptId].detailedScores[category].count += 1;
       }
 
       if (categoryCount > 0) {
-        const surveyAverage = departmentTotal / categoryCount
-        departmentScores[survey.toDepartment].totalScore += surveyAverage
-        departmentScores[survey.toDepartment].count++
+        departmentScores[deptId].totalScore += surveyTotal / categoryCount;
+        departmentScores[deptId].count += 1;
       }
-    })
+    });
 
-    // Final result with department name
-    const result = Object.entries(departmentScores).map(([_id, data]) => ({
-      _id,
-      name: departmentNames[_id] || "Unknown Department",
-      score: (data.count > 0 ? data.totalScore / data.count : 0),
-    }))
+    const result = Object.entries(departmentScores).map(([deptId, data]) => {
+      const detailed = {};
+      for (const [cat, info] of Object.entries(data.detailedScores)) {
+        detailed[cat] = info.count > 0 ? info.total / info.count : 0;
+      }
 
-    return res.json(result)
+      return {
+        _id: deptId,
+        name: departmentNames[deptId] || "Unknown Department",
+        score: data.count > 0 ? data.totalScore / data.count : 0,
+        detailedScores: detailed,
+      };
+    });
+
+    return res.json(result);
   } catch (error) {
-    console.error("Error calculating department scores:", error)
-    return res.status(500).json({ message: "Failed to calculate department scores" })
+    console.error("Error calculating department scores:", error);
+    return res.status(500).json({ message: "Failed to calculate department scores" });
   }
 }
 
 // Get department scores for a particular department by other departments
 export async function getDepartmentScoresforParticular(req, res) {
   try {
-    const {id : departmentId} = req.params
-    
+    const { id: departmentId } = req.params;
+
     const surveys = await Survey.aggregate([
       {
         $match: {
-          toDepartment: new mongoose.Types.ObjectId(departmentId)
-        }
+          toDepartment: new mongoose.Types.ObjectId(departmentId),
+        },
       },
       {
         $project: {
           fromDepartment: 1,
-          ratings: {
-            $map: {
-              input: { $objectToArray: "$responses" },
-              as: "resp",
-              in: "$$resp.v.rating"
-            }
-          }
-        }
+          responseArray: { $objectToArray: "$responses" },
+        },
       },
+      { $unwind: "$responseArray" },
       {
-        $unwind: "$ratings"
+        $project: {
+          fromDepartment: 1,
+          category: "$responseArray.k",
+          rating: "$responseArray.v.rating",
+        },
       },
       {
         $group: {
-          _id: "$fromDepartment",
-          averageScore: { $avg: "$ratings" },
-          totalSurveys: { $addToSet: "$_id" }
-        }
+          _id: {
+            fromDepartment: "$fromDepartment",
+            category: "$category",
+          },
+          avgRating: { $avg: "$rating" },
+          surveyIds: { $addToSet: "$_id" },
+        },
       },
       {
-        $project: {
-          averageScore: 1,
-          surveyCount: { $size: "$totalSurveys" }
-        }
+        $group: {
+          _id: "$_id.fromDepartment",
+          detailedScores: {
+            $push: {
+              category: "$_id.category",
+              average: "$avgRating",
+            },
+          },
+          surveyCount: { $sum: { $size: "$surveyIds" } },
+          overallScore: { $avg: "$avgRating" },
+        },
       },
       {
         $lookup: {
           from: "departments",
           localField: "_id",
           foreignField: "_id",
-          as: "department"
-        }
+          as: "department",
+        },
       },
-      {
-        $unwind: "$department"
-      },
+      { $unwind: "$department" },
       {
         $project: {
           _id: 0,
           fromDepartmentId: "$_id",
           fromDepartmentName: "$department.name",
-          averageScore: 1,
-          surveyCount: 1
-        }
-      }
+          averageScore: "$overallScore",
+          surveyCount: 1,
+          detailedScores: {
+            $arrayToObject: {
+              $map: {
+                input: "$detailedScores",
+                as: "item",
+                in: {
+                  k: "$$item.category",
+                  v: "$$item.average",
+                },
+              },
+            },
+          },
+        },
+      },
     ]);
 
-    return res.status(200).json(surveys)
-    
+    return res.status(200).json(surveys);
   } catch (error) {
-    console.error("Error calculating scores for given department:", error)
-    return res.status(500).json({ message: "Failed to calculate department scores for given department" })
+    console.error("Error calculating scores for given department:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to calculate department scores for given department" });
   }
 }
+
 
 // Get category scores
 export async function getCategoryScores(req, res) {

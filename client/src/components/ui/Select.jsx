@@ -27,7 +27,7 @@ function Select({ value, onValueChange, placeholder, options, className = "" }) 
     <div className="relative" ref={selectRef}>
       <button
         type="button"
-        className={`relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${className}`}
+        className={`relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#a48d6e] focus:border-[#a48d6e] ${className}`}
         onClick={toggleSelect}
       >
         <span className="block truncate">
@@ -65,7 +65,7 @@ function Select({ value, onValueChange, placeholder, options, className = "" }) 
             >
               <span className="block truncate">{option.label}</span>
               {value === option.value && (
-                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#83725E]">
                   <svg
                     className="h-5 w-5"
                     xmlns="http://www.w3.org/2000/svg"

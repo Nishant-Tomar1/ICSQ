@@ -9,17 +9,17 @@ function Button({
   ...props
 }) {
   const variantClasses = {
-    default: "bg-blue-600 hover:bg-blue-700 text-white",
-    outline: "bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-50",
-    ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
-    link: "bg-transparent underline text-blue-600 hover:text-blue-800",
+    default: "bg-[#83725E] hover:bg-[#6f5f4e] text-white",
+    outline: "bg-transparent border border-[#83725E] text-[#83725E] hover:bg-[#f6f5f4]",
+    ghost: "bg-transparent text-[#83725E] hover:bg-[#f6f5f4]",
+    link: "bg-transparent text-[#83725E] underline hover:text-[#6f5f4e]",
     destructive: "bg-red-600 hover:bg-red-700 text-white",
     success: "bg-green-600 hover:bg-green-700 text-white",
   }
 
   const sizeClasses = {
     sm: "py-1 px-3 text-sm",
-    default: "py-2 px-4",
+    default: "py-2 px-4 text-base",
     lg: "py-3 px-6 text-lg",
     icon: "p-2",
   }
@@ -27,7 +27,7 @@ function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+      className={`inline-flex items-center justify-center font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#83725E] focus:ring-offset-2 ${
         variantClasses[variant] || variantClasses.default
       } ${sizeClasses[size] || sizeClasses.default} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
       disabled={disabled}

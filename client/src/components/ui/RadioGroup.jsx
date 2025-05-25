@@ -30,7 +30,7 @@ function RadioItem({ value, id, children, className = "" }) {
         value={value}
         checked={checked}
         onChange={() => onValueChange(value)}
-        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+        className="h-4 w-4 text-[#83725E] border-gray-300 focus:ring-[#a48d6e]"
       />
       <label htmlFor={id} className="ml-2 block text-sm text-gray-700">
         {children}

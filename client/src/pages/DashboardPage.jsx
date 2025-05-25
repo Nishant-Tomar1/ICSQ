@@ -5,9 +5,10 @@ import { useToast } from "../contexts/ToastContext"
 import DashboardHeader from "../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
-import Progress from "../components/ui/Progress"
 import { capitalizeFirstLetter, Server } from "../Constants"
 import axios from "axios"
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
+import "react-circular-progressbar/dist/styles.css"
 
 function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -21,20 +22,19 @@ function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${Server}/analytics/department-scores`, { withCredentials: true });
-        const data = response.data;
-        // Filter scores based on user role
+        const response = await axios.get(`${Server}/analytics/department-scores`, { withCredentials: true })
+        const data = response.data
+
         let filteredScores = data
         if (!isAdmin()) {
           filteredScores = data.filter((dept) => dept.name === currentUser?.department?.name)
         }
         setDepartmentScores(filteredScores)
 
-        // Calculate total average
         const avg = (data.reduce((sum, dept) => sum + dept.score, 0) / data.length) || "N/A"
         setTotalAverage(avg)
 
-        if (["manager","user"].includes(currentUser.role)){
+        if (["manager", "user"].includes(currentUser.role)) {
           const partresponse = await axios.get(`${Server}/analytics/department-scores/${currentUser.department?._id}`, { withCredentials: true })
           setDepartmentScoresToParticular(partresponse.data)
         }
@@ -59,15 +59,28 @@ function DashboardPage() {
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#83725E]"></div>
           </div>
         </div>
       </div>
     )
   }
 
-  // Get user's department score
   const userDepartmentScore = departmentScores.find((dept) => dept.name === currentUser?.department?.name)?.score || "N/A"
+
+  const renderCircularProgress = (value) => (
+    <CircularProgressbar
+      value={value}
+      maxValue={100}
+      text={`${value.toFixed(1)}%`}
+      styles={buildStyles({
+        textColor: "#83725E",
+        pathColor: "#83725E",
+        trailColor: "#f0f0f0",
+        textSize: "16px"
+      })}
+    />
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,69 +98,70 @@ function DashboardPage() {
               <CardTitle className="text-lg">Your Department ICSQ %</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold mb-4 text-blue-600">
-                {typeof userDepartmentScore === "number" ? `${userDepartmentScore.toFixed(2)}%` : userDepartmentScore}
+              <div className="w-24 h-24 mx-auto mb-4">
+                {typeof userDepartmentScore === "number" ? renderCircularProgress(userDepartmentScore) : "N/A"}
               </div>
-              <Progress value={typeof userDepartmentScore === "number" ? userDepartmentScore : 0} />
             </CardContent>
           </Card>
 
-          {(currentUser.role === "admin")&&<Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Total Average ICSQ %</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold mb-4 text-blue-600">{typeof totalAverage === "number" ? `${totalAverage.toFixed(2)}%` : totalAverage}</div>
-              <Progress value={typeof totalAverage === "number" ? totalAverage : 0} />
-            </CardContent>
-          </Card>}
+          {currentUser.role === "admin" && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Total Average ICSQ %</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="w-24 h-24 mx-auto mb-4">
+                  {typeof totalAverage === "number" ? renderCircularProgress(totalAverage) : "N/A"}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {isAdmin() ?
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Department ICSQ Scores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {departmentScores.map((dept) => (
-                <Card key={dept._id} className="border">
-                  <CardContent className="p-4">
-                    <div className="font-medium">{capitalizeFirstLetter(dept.name)}</div>
-                    <div className="flex items-center justify-between mt-2">
-                      <Progress value={dept.score} className="h-2 flex-grow mr-2" />
-                      <span className="font-bold text-blue-600">{dept.score?.toFixed(2)}%</span>
+        {isAdmin() ? (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Department ICSQ Scores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {departmentScores.map((dept) => (
+                  <Card key={dept._id} className="border p-4">
+                    <div className="text-center font-medium mb-2">
+                      {capitalizeFirstLetter(dept.name)}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        : <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Scores Given to your department ({currentUser.department?.name}) by other departments</CardTitle>
-          </CardHeader>
-
-          {!departmetnScoresToParticaular.length && 
-          <p className="text-gray-600 text-center mt-4">No surveys happened for your department yet!</p> }
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {departmetnScoresToParticaular.map((dept) => (
-                <Card key={dept?.fromDepartmentId} className="border">
-                  <CardContent className="p-4">
-                    <div className="font-medium">{capitalizeFirstLetter(dept?.fromDepartmentName)}</div>
-                    <div className="flex items-center justify-between mt-2">
-                      <Progress value={dept?.averageScore} className="h-2 flex-grow mr-2" />
-                      <span className="font-bold text-blue-600">{dept?.averageScore.toFixed(2)}%</span>
+                    <div className="w-20 h-20 mx-auto">
+                      {renderCircularProgress(dept.score)}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>}
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Scores Given to Your Department ({currentUser.department?.name})</CardTitle>
+            </CardHeader>
+            {!departmetnScoresToParticaular.length && (
+              <p className="text-gray-600 text-center mt-4">No surveys happened for your department yet!</p>
+            )}
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {departmetnScoresToParticaular.map((dept) => (
+                  <Card key={dept?.fromDepartmentId} className="border p-4">
+                    <div className="text-center font-medium mb-2">
+                      {capitalizeFirstLetter(dept?.fromDepartmentName)}
+                    </div>
+                    <div className="w-20 h-20 mx-auto">
+                      {renderCircularProgress(dept?.averageScore)}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-center mt-6">
           <Button onClick={() => navigate("/survey")} className="px-8 py-3 text-lg">

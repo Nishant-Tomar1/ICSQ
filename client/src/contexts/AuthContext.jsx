@@ -11,7 +11,6 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
-
   
   const checkAuth = async () => {
     try {
@@ -45,9 +44,9 @@ export function AuthProvider({ children }) {
   // Get Microsoft login URL
   const getMicrosoftLoginUrl = async () => {
     const response = await axios.get(
-      `/api/auth/microsoft?redirectUri=${window.location.origin}/api/auth/microsoft/callback`,
-    )
-    return response.data.loginUrl
+      `${Server}/auth/microsoft`,
+    )    
+    return response.data.loginUrl;
   }
 
   // Check if user is admin

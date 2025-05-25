@@ -4,7 +4,7 @@ function Input({ type = "text", placeholder, value, onChange, className = "", di
   return (
     <input
       type={type}
-      className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+      className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#83725E] focus:border-[#83725E] ${
         disabled ? "bg-gray-100 cursor-not-allowed" : ""
       } ${className}`}
       placeholder={placeholder}
