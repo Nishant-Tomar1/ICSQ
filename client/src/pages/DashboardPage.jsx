@@ -9,9 +9,12 @@ import { capitalizeFirstLetter, Server } from "../Constants"
 import axios from "axios"
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
 import "react-circular-progressbar/dist/styles.css"
+// import WebChart from "../components/WebChart"
 
 function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalDept, setModalDept] = useState({})
   const [departmentScores, setDepartmentScores] = useState([])
   const [departmetnScoresToParticaular, setDepartmentScoresToParticular] = useState([])
   const [totalAverage, setTotalAverage] = useState(0)
@@ -130,7 +133,7 @@ function DashboardPage() {
                     <div className="text-center font-medium mb-2">
                       {capitalizeFirstLetter(dept.name)}
                     </div>
-                    <div className="w-20 h-20 mx-auto">
+                    <div  onClick={()=>{setModalDept(dept);setModalOpen(true)}} className="w-20 h-20 mx-auto">
                       {renderCircularProgress(dept.score)}
                     </div>
                   </Card>
@@ -150,7 +153,7 @@ function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {departmetnScoresToParticaular.map((dept) => (
                   <Card key={dept?.fromDepartmentId} className="border p-4">
-                    <div className="text-center font-medium mb-2">
+                    <div onClick={()=>{setModalDept(dept);setModalOpen(true)}} className="text-center font-medium mb-2">
                       {capitalizeFirstLetter(dept?.fromDepartmentName)}
                     </div>
                     <div className="w-20 h-20 mx-auto">
@@ -168,6 +171,18 @@ function DashboardPage() {
             Start ICSQ Survey
           </Button>
         </div>
+
+        {/* {modalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 w-full">
+                  <div className="bg-white rounded-lg shadow-lg lg:w-[60%] max-w-lg p-6 relative">
+                    <WebChart detailedScores={modalDept?.detailedScores || {}}/>
+                    <div className="mt-4 text-right">
+                      <button onClick={() => {setModalOpen(false);setModalDept({})}} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Close</button>
+                    </div>
+                  </div>
+                </div>
+          )} */}
+
       </main>
     </div>
   )

@@ -12,7 +12,7 @@ router.get("/", getSurveys)
 // Get survey by ID
 router.get("/:id", getSurveyById)
 
-// Create a new survey
+// Crdeate a new survey
 router.post("/", createSurvey)
 
 // Update a survey

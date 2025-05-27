@@ -5,18 +5,18 @@ const SIPOCSchema = new Schema(
     department: {
       type: Schema.Types.ObjectId,
       ref:'Department',
-      required: true,
-      unique: true,
+      required : true
     },
-    entries: [
-      {
+    entries:{
         supplier: String,
         input: String,
-        process: String,
+        process: {
+          input : String,
+          file : String
+        },
         output: String,
         customer: String,
-      },
-    ],
+    },
   },
   {
     timestamps: true,

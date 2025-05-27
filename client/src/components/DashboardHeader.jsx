@@ -65,13 +65,16 @@ function DashboardHeader() {
             <Link to="/action-plans" className="text-gray-600 hover:text-[#83725E] font-medium">
               Action Plans
             </Link>
-            <Link to="/reports" className="text-gray-600 hover:text-[#83725E] font-medium">
+            {isAdmin() &&(
+              <>
+              <Link to="/reports" className="text-gray-600 hover:text-[#83725E] font-medium">
               Reports
             </Link>
-            {isAdmin() && (
+             
               <Link to="/admin" className="text-[#83725E] hover:text-[#6e5d4d] font-medium">
                 Admin
               </Link>
+              </>
             )}
           </nav>
 
@@ -132,7 +135,7 @@ function DashboardHeader() {
         {isMobileMenuOpen && (
           <nav className="md:hidden pt-4 pb-2 space-y-2">
             {["/dashboard", "/survey", "/sipoc", "/action-plans", "/reports"].map((path, i) => {
-              const name = ["Home", "Survey", "SIPOC", "Action Plans", "Reports"][i]
+              const name = ["Home", "Survey", "SIPOC", "Action Plans"][i]
               return (
                 <Link
                   key={path}
@@ -145,6 +148,14 @@ function DashboardHeader() {
               )
             })}
             {isAdmin() && (
+              <>
+              <Link
+                to="/reports"
+                className="block px-3 py-2 rounded-md text-[#83725E] hover:bg-[#f8f6f4]"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Reports
+              </Link>
               <Link
                 to="/admin"
                 className="block px-3 py-2 rounded-md text-[#83725E] hover:bg-[#f8f6f4]"
@@ -152,6 +163,7 @@ function DashboardHeader() {
               >
                 Admin
               </Link>
+              </>
             )}
           </nav>
         )}

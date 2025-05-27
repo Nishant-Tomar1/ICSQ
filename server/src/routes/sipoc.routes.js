@@ -1,7 +1,8 @@
 import { Router } from "express"
 const router = Router()
-import { getSIPOCByDepartment, createOrUpdateSIPOC, deleteSIPOC } from "../controllers/sipoc.controller.js"
+import { getSIPOCByDepartment, createSIPOC, deleteSIPOC, updateSIPOC, getSIPOCById } from "../controllers/sipoc.controller.js"
 import { requireAdmin, requireAuth, requireManager } from "../middleware/auth.js"
+import { upload } from "../middleware/multer.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)
@@ -9,10 +10,30 @@ router.use(requireAuth)
 // Get SIPOC by department
 router.get("/", getSIPOCByDepartment)
 
-// Create or update SIPOC
-router.put("/",requireManager, createOrUpdateSIPOC)
+// Get SIPOC by Id
+router.get("/:id", getSIPOCById)
+
+//Create SIPOC
+router.post("/", requireManager,
+    upload.fields([
+        {
+            name : "processPicture",
+            maxCount : 1
+        }
+    ]),
+    createSIPOC)
+
+// update SIPOC
+router.put("/:id", requireManager,
+    upload.fields([
+        {
+            name : "processPicture",
+            maxCount : 1
+        }
+    ]),
+    updateSIPOC)
 
 // Delete SIPOC
-router.delete("/",requireAdmin, deleteSIPOC)
+router.delete("/", requireAdmin, deleteSIPOC)
 
 export default router
