@@ -9,7 +9,7 @@ import { capitalizeFirstLetter, Server } from "../Constants"
 import axios from "axios"
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
 import "react-circular-progressbar/dist/styles.css"
-// import WebChart from "../components/WebChart"
+import WebChart from "../components/WebChart"
 
 function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -62,7 +62,7 @@ function DashboardPage() {
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#83725E]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[rgb(131,114,94)]"></div>
           </div>
         </div>
       </div>
@@ -96,7 +96,7 @@ function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card>
+          {(typeof userDepartmentScore === "number") && <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Your Department ICSQ %</CardTitle>
             </CardHeader>
@@ -105,7 +105,7 @@ function DashboardPage() {
                 {typeof userDepartmentScore === "number" ? renderCircularProgress(userDepartmentScore) : "N/A"}
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {currentUser.role === "admin" && (
             <Card>
@@ -128,12 +128,12 @@ function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {departmentScores.map((dept) => (
+                {departmentScores.length>0 && departmentScores.map((dept) => (
                   <Card key={dept._id} className="border p-4">
                     <div className="text-center font-medium mb-2">
                       {capitalizeFirstLetter(dept.name)}
                     </div>
-                    <div  onClick={()=>{setModalDept(dept);setModalOpen(true)}} className="w-20 h-20 mx-auto">
+                    <div onClick={()=>{setModalDept(dept);setModalOpen(true)}} className="cursor-pointer w-20 h-20 mx-auto">
                       {renderCircularProgress(dept.score)}
                     </div>
                   </Card>
@@ -146,23 +146,24 @@ function DashboardPage() {
             <CardHeader>
               <CardTitle>Scores Given to Your Department ({currentUser.department?.name})</CardTitle>
             </CardHeader>
-            {!departmetnScoresToParticaular.length && (
-              <p className="text-gray-600 text-center mt-4">No surveys happened for your department yet!</p>
-            )}
+            {(departmetnScoresToParticaular.length===0) ? 
+              <p className="text-gray-600 text-center my-4">No surveys happened for your department yet!</p>
+              :
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {departmetnScoresToParticaular.map((dept) => (
                   <Card key={dept?.fromDepartmentId} className="border p-4">
-                    <div onClick={()=>{setModalDept(dept);setModalOpen(true)}} className="text-center font-medium mb-2">
+                    <div className="text-center font-medium mb-2">
                       {capitalizeFirstLetter(dept?.fromDepartmentName)}
                     </div>
-                    <div className="w-20 h-20 mx-auto">
+                    <div onClick={()=>{setModalDept(dept);setModalOpen(true)}} className="cursor-pointer w-20 h-20 mx-auto">
                       {renderCircularProgress(dept?.averageScore)}
                     </div>
                   </Card>
                 ))}
               </div>
             </CardContent>
+            }
           </Card>
         )}
 
@@ -172,16 +173,16 @@ function DashboardPage() {
           </Button>
         </div>
 
-        {/* {modalOpen && (
+        {modalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 w-full">
-                  <div className="bg-white rounded-lg shadow-lg lg:w-[60%] max-w-lg p-6 relative">
+                  <div className="bg-white rounded-xl shadow-lg lg:w-[50%] max-w-lg p-4 relative overflow-auto">
                     <WebChart detailedScores={modalDept?.detailedScores || {}}/>
-                    <div className="mt-4 text-right">
-                      <button onClick={() => {setModalOpen(false);setModalDept({})}} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Close</button>
+                    <div className="text-right">
+                      <button onClick={() => {setModalOpen(false);setModalDept({})}} className="bg-[#83725E] text-white px-4 py-2 rounded hover:bg-[#76624b]">Close</button>
                     </div>
                   </div>
                 </div>
-          )} */}
+          )}
 
       </main>
     </div>

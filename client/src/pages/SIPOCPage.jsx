@@ -279,7 +279,7 @@ function SIPOCPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-4 max-w-3xl w-full">
             <h3 className="text-lg font-semibold mb-4">Process Image</h3>
-            <img src={imageModal.src} alt="Process" className="w-full max-h-[80vh] object-contain" />
+            <img src={imageModal.src} alt="Process" className="w-full max-h-[60vh] object-contain" />
             <div className="mt-4 text-right">
               <button onClick={() => setImageModal({ open: false, src: "" })} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Close</button>
             </div>

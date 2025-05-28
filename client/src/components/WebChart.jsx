@@ -1,79 +1,91 @@
-// import React from 'react';
-// import Highcharts from 'highcharts';
-// import HighchartsReact from 'highcharts-react-official';
+import React from 'react';
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Radar } from 'react-chartjs-2';
+import { capitalizeFirstLetter } from '../Constants';
 
-// const WebChart = ({ detailedScores }) => {
-//   const categories = Object.keys(detailedScores);
-//   const scores = Object.values(detailedScores);
+ChartJS.register(
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend
+);
 
-//   const options = {
-//     chart: {
-//       polar: true,
-//       type: 'line',       // Keep 'line' here; series will be 'area'
-//       backgroundColor: '#f8f9fa',
-//       height: 400
-//     },
-//     title: {
-//       text: 'Detailed Scores Overview',
-//       align: 'center',
-//       style: {
-//         fontSize: '18px',
-//         fontWeight: 'bold'
-//       }
-//     },
-//     pane: {
-//       size: '80%'
-//     },
-//     xAxis: {
-//       categories: categories,
-//       tickmarkPlacement: 'on',
-//       lineWidth: 0,
-//       labels: {
-//         style: {
-//           fontSize: '13px',
-//           fontWeight: '600'
-//         }
-//       }
-//     },
-//     yAxis: {
-//       gridLineInterpolation: 'polygon',
-//       lineWidth: 1,
-//       min: 0,
-//       max: 100,
-//       tickInterval: 20,
-//       labels: {
-//         style: {
-//           fontSize: '11px'
-//         }
-//       }
-//     },
-//     tooltip: {
-//       shared: true,
-//       pointFormat: '<span style="color:{series.color}">{series.name}: <b>{point.y}</b><br/>'
-//     },
-//     series: [{
-//       name: 'Score',
-//       data: scores,
-//       pointPlacement: 'on',
-//       type: 'area',          // Important for the filled spiderweb polygon
-//       fillOpacity: 0.25,
-//       marker: {
-//         enabled: true,
-//         radius: 4
-//       },
-//       lineWidth: 2,
-//       color: '#007bff'
-//     }],
-//     credits: {
-//       enabled: false
-//     }
-//   };
+const WebChart = ({ detailedScores }) => {
+  const labels = Object.keys(detailedScores || {});
+  const dataPoints = Object.values(detailedScores || {});
 
-//   return (
-//     <div className="p-4">
-//       <HighchartsReact highcharts={Highcharts} options={options} />
-//     </div>
-//   );
-// };
+  const data = {
+    labels : labels.map((label)=> capitalizeFirstLetter(label.slice(0,18)+"..")),
+    datasets: [
+      {
+        label: 'Score',
+        data: dataPoints,
+        backgroundColor: 'rgba(131,114,94, 0.2)',
+        borderColor: 'rgba(131,114,94, 1)',
+        pointBackgroundColor: 'rgba(131,114,94, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(0, 123, 255, 1)',
+        borderWidth: 2,
+      },
+    ],
+  };
 
-// export default WebChart;
+  const options = {
+  responsive: true,
+  layout: {
+    width : "90%",
+    padding :0,
+    textWrap:true
+  },
+  scales: {
+    r: {
+      beginAtZero: true,
+      max: 100,
+      ticks: {
+        stepSize: 20,
+        backdropColor: 'transparent',
+        color: '#666',
+      },
+      pointLabels: {
+        font: {
+          size: 11,
+          weight: '600',
+        },
+        color: '#333',
+      },
+    },
+  },
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      callbacks: {
+        label: function (context) {
+          return `${context.dataset.label}: ${context.formattedValue}`;
+        },
+      },
+    },
+  },
+};
+
+
+  return (
+    <div className="flex justify-center items-center w-full">
+      <Radar data={data} options={options} />
+    </div>
+  );
+};
+
+export default WebChart;
