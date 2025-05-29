@@ -1,5 +1,6 @@
+import mongoose from "mongoose"
 import { Category } from "../models/Category.model.js"
-
+import { Department } from "../models/Department.model.js"
 // Get all categories
 export async function getCategories(req, res) {
   try {
@@ -16,11 +17,11 @@ export async function getCategoryById(req, res) {
   try {
     const category = await Category.findById(req.params.id)
 
-    if (!category) {
+    if (category.length === 0) {
       return res.status(404).json({ message: "Category not found" })
     }
 
-    return res.json(category)
+    return res.json(category[0])
   } catch (error) {
     console.error(`Error fetching category ${req.params.id}:`, error)
     return res.status(500).json({ message: "Failed to fetch category" })
@@ -30,10 +31,10 @@ export async function getCategoryById(req, res) {
 // Create a new category
 export async function createCategory(req, res) {
   try {
-    const { name, description } = req.body
+    const { name, description, department:departmentId } = req.body
 
     if (!name) {
-      return res.status(400).json({ message: "Category name is required" })
+      return res.status(400).json({ message: "Category name and DepartmentId are required" })
     }
 
     // Check if category already exists
@@ -41,14 +42,23 @@ export async function createCategory(req, res) {
     if (existingCategory) {
       return res.status(409).json({ message: "Category already exists" })
     }
+    if (departmentId){
+      const department = await Department.findById(departmentId);
+      if (!department){
+        return res.status(400).json({message :"Invalid Department Id"})
+      }
+    }
 
     const category = new Category({
       name,
-      description,
+      description
     })
 
-    await category.save()
+    if (departmentId){
+      category.department = new mongoose.Types.ObjectId(departmentId) 
+    }
 
+    await category.save()
     return res.status(201).json(category)
   } catch (error) {
     console.error("Error creating category:", error)
@@ -59,7 +69,7 @@ export async function createCategory(req, res) {
 // Update a category
 export async function updateCategory(req, res) {
   try {
-    const { name, description } = req.body
+    const { name, description, departmentId } = req.body
 
     const category = await Category.findById(req.params.id)
 
@@ -69,9 +79,16 @@ export async function updateCategory(req, res) {
 
     if (name) category.name = name
     if (description !== undefined) category.description = description
+    if (departmentId){
+      const department = await Department.findById(departmentId);
+      if (!department){
+        return res.status(400).json({message :"Invalid Department Id"})
+      }
+      category.department = new mongoose.Types.ObjectId(departmentId)
+    }
 
     await category.save()
-
+    
     return res.json(category)
   } catch (error) {
     console.error(`Error updating category ${req.params.id}:`, error)

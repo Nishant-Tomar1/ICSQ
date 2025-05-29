@@ -310,8 +310,8 @@ function ActionPlansPage() {
                     <td className="p-2 border">{user.name}</td>
                     <td className="p-2 border">
                       <ul className="list-disc list-inside">
-                        {user.expectations.map((exp, expIdx) => (
-                          <li key={expIdx}>{exp}</li>
+                        { user.expectations.map((exp, expIdx) => (
+                          (exp)&&<li key={expIdx}>{exp}</li>
                         ))}
                       </ul>
                     </td>
@@ -348,7 +348,7 @@ function ActionPlansPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allCategories.map((category, index) => (
+                {allCategories.map((category, index) => (!category.department || (String(category.department)===String(currentUser?.department?._id)))&& (
                   <TableRow key={index}>
                     <TableCell>
                       {capitalizeFirstLetter(category.name)}
@@ -368,7 +368,13 @@ function ActionPlansPage() {
                   </TableRow>
                 ))}
               </TableBody>
-                {expModal2 && (
+            </Table>
+             
+          </CardContent>}
+        </Card>
+        }
+
+        {expModal2 && (
                   <div
                     className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
                   >
@@ -390,11 +396,6 @@ function ActionPlansPage() {
                     </div>
                   </div>
                 )}
-            </Table>
-             
-          </CardContent>}
-        </Card>
-        }
 
         <Card className="mb-6">
           <CardHeader>
@@ -462,50 +463,6 @@ function ActionPlansPage() {
                                         placeholder="Select Category"
                                       />
                                     </div>
-
-                                    {/* <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Expectations
-                                      </label>
-                                      {newEntry.expectations?.map(
-                                        (exp, index) => (
-                                          <div
-                                            key={index}
-                                            className="flex items-center space-x-2 mb-2"
-                                          >
-                                            <Input
-                                              value={exp}
-                                              onChange={(e) =>
-                                                handleExpectationsChange(
-                                                  index,
-                                                  e.target.value
-                                                )
-                                              }
-                                              placeholder={`Expectation ${
-                                                index + 1
-                                              }`}
-                                              required
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="destructive"
-                                              onClick={() =>
-                                                removeExpectation(index)
-                                              }
-                                            >
-                                              X
-                                            </Button>
-                                          </div>
-                                        )
-                                      )}
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={addExpectation}
-                                      >
-                                        + Add Expectation
-                                      </Button>
-                                    </div> */}
 
                                     {/* Actions */}
                                     <div>

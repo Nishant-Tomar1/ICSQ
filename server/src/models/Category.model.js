@@ -11,6 +11,10 @@ const CategorySchema = new Schema(
     description: {
       type: String,
     },
+    department : {
+      type : Schema.Types.ObjectId,
+      ref : "Department"
+    }
   },
   {
     timestamps: true,

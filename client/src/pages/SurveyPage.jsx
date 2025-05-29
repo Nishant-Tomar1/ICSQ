@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
 import DashboardHeader from "../components/DashboardHeader"
@@ -31,7 +31,7 @@ function SurveyPage() {
         const deptResponse = await axios.get(`${Server}/departments/${departmentId}`, { withCredentials: true });
         setDepartment(deptResponse.data);
 
-        const catgResponse = await axios.get(`${Server}/categories`, { withCredentials: true });
+        const catgResponse = await axios.get(`${Server}/categories`, { withCredentials: true });       
         setCategories(catgResponse.data);
 
         const departmentsResponse = await axios.get(`${Server}/departments`, { withCredentials: true });
@@ -62,9 +62,11 @@ function SurveyPage() {
   const initializeFormData = () =>{
     const initialFormData = {}
     categories.forEach((category) => {
-      initialFormData[category.name] = {
-        rating: 0,
-        expectations: "",
+      if ((!category.department) || (String(category.department) === String(departmentId)) ){
+        initialFormData[category.name] = {
+          rating: 0,
+          expectations: "",
+        }
       }
     })
     setFormData(initialFormData)
@@ -90,47 +92,19 @@ function SurveyPage() {
     }))
   }
 
-
-  // const handleAddExpectation = (categoryName) => {
-  //   const expectation = currentExpectations[categoryName]?.trim();
-  //   if (!expectation) return;
-  
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [categoryName]: {
-  //       ...prev?.[categoryName],
-  //       expectations: [...(prev?.[categoryName]?.expectations || []), expectation],
-  //     },
-  //   }));
-  
-  //   setCurrentExpectations((prev) => ({
-  //     ...prev,
-  //     [categoryName]: '',
-  //   }));
-  // };
-
-  // const handleRemoveExpectation = (categoryName, index) => {
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [categoryName]: {
-  //       ...prev[categoryName],
-  //       expectations: prev[categoryName].expectations.filter((_, i) => i !== index),
-  //     },
-  //   }))
-  // }
-
   const handleSubmit = async () => {
     setIsLoading(true)
 
     try {
       // Validate form data
-      const invalidCategories = categories.filter((category) => {
+        const invalidCategories = categories.filter((category) => {
+        const match = ((!category.department) || (String(category.department) === String(departmentId)) )
         const data = formData[category.name];
         const hasRating = data?.rating;
         const lowRating = hasRating && data.rating <= 60;
         const hasExpectations = data?.expectations
       
-        return !hasRating || (lowRating && !hasExpectations);
+        return match && (!hasRating || (lowRating && !hasExpectations));
       });
       
       if (invalidCategories.length > 0) {
@@ -175,7 +149,6 @@ function SurveyPage() {
       
     }
   }
-
 
   if (isLoading) {
     return (
@@ -239,7 +212,9 @@ function SurveyPage() {
               </tr>
             </thead>
             <tbody>
-              {categories.map((category) => (
+              {categories.map((category) => 
+              {if ( ((!category.department) || (String(category.department) === String(departmentId)) ) )
+              return (
                 <tr key={category.name} className="border-t border-gray-200">
                   {/* Category Name */}
                   <td className="px-4 py-4 align-top font-medium text-gray-800">
@@ -279,25 +254,6 @@ function SurveyPage() {
                           Reason for the score and your expectations:
                         </p>
 
-                        {/* Existing Expectations */}
-                        {/* {formData?.[category.name]?.expectations?.map((expectation, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2 p-2 bg-gray-50 rounded"
-                          >
-                            <span className="flex-grow text-sm">{expectation}</span>
-                            <button
-                              variant="ghost"
-                              size="sm"
-                              className="p-1"
-                              onClick={() => handleRemoveExpectation(category.name, index)}
-                            >
-                              ❌
-                            </button>
-                          </div>
-                        ))} */}
-
-                        {/* Input + Add Button */}
                         <div className="flex gap-2">
                           <Textarea
                             placeholder="Your expectations..."
@@ -305,19 +261,12 @@ function SurveyPage() {
                             onChange={(e) => handleExpectationChange(category.name, e.target.value)}
                             className="flex-grow h-16"
                           />
-                          {/* <button
-                            size="sm"
-                            className="bg-green-600 h-10 w-10 rounded-md text-white hover:bg-green-500"
-                            onClick={() => handleAddExpectation(category.name)}
-                          >
-                            ✚
-                          </button> */}
                         </div>
                       </div>
                     )}
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

@@ -5,6 +5,7 @@ export const capitalizeFirstLetter = (string) => {
 }
 
 export const getDepartmentName = (id, departmentData) => {
+  if (!id) return ""
   const department = departmentData.find(dept => dept._id === id);
   return department ? department.name : "";
 };

@@ -1,98 +1,138 @@
-import { useState, useEffect } from "react"
-import { useToast } from "../../contexts/ToastContext"
-import DashboardHeader from "../../components/DashboardHeader"
-import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/Card"
-import Button from "../../components/ui/Button"
-import Input from "../../components/ui/Input"
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/Table"
-import Textarea from "../../components/ui/Textarea"
-import axios from "axios"
-import { capitalizeFirstLetter, Server } from "../../Constants"
+import { useState, useEffect } from "react";
+import { useToast } from "../../contexts/ToastContext";
+import DashboardHeader from "../../components/DashboardHeader";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../../components/ui/Card";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../components/ui/Table";
+import Textarea from "../../components/ui/Textarea";
+import axios from "axios";
+import { capitalizeFirstLetter, getDepartmentName, Server } from "../../Constants";
+import Select from "../../components/ui/Select";
 
 function AdminCategoriesPage() {
-  const [categories, setCategories] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [editingCategory, setEditingCategory] = useState(null)
+  const [categories, setCategories] = useState([]);
+  const [allDepartments, setAllDepartments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({
     name: "",
     description: "",
-  })
-  const { toast } = useToast()
+    department: "",
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(`${Server}/categories`, { withCredentials: true });
+        const response = await axios.get(`${Server}/categories`, {
+          withCredentials: true,
+        });
         setCategories(response.data);
 
+        const deptResponse = await axios.get(`${Server}/departments`, {
+          withCredentials: true,
+        });
+        setAllDepartments([
+          { name: "All Departments", _id: "" },
+          ...deptResponse.data,
+        ]);
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to load categories",
+          description: "Failed to load categories and departments",
           variant: "destructive",
-        })
+        });
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchCategories()
-  }, [])
+    fetchData();
+  }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     if (editingCategory) {
       setEditingCategory({
         ...editingCategory,
         [name]: value,
-      })
+      });
     } else {
       setNewCategory({
         ...newCategory,
         [name]: value,
-      })
+      });
     }
-  }
+  };
+
+  const handleDepartmentChange = (departmentIdValue) => {    
+    if (editingCategory) {
+      setEditingCategory({
+        ...editingCategory,
+        departmentId: departmentIdValue,
+      });
+    } else {
+      setNewCategory({
+        ...newCategory,
+        department: departmentIdValue,
+      });
+    }
+  };
 
   const handleAddCategory = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!newCategory.name) {
       toast({
         title: "Error",
         description: "Category name is required",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
+    console.log(newCategory);
 
-    setIsSubmitting(true)
-
+    setIsSubmitting(true);
     try {
-      const response = await axios.post(`${Server}/categories`, newCategory, { withCredentials: true });
+      const response = await axios.post(`${Server}/categories`, newCategory, {
+        withCredentials: true,
+      });
       const addedCategory = response.data;
-
-      setCategories([...categories, addedCategory])
-      setNewCategory({ name: "", description: "" })
+      
+      setCategories([...categories, addedCategory]);
+      setNewCategory({ name: "", description: "",department:"" });
 
       toast({
         title: "Success",
         description: "Category added successfully",
-      })
+      });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to add category",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleEditCategory = (category) => {
-    setEditingCategory({ ...category })
-  }
+    setEditingCategory({ ...category });
+  };
 
   const handleUpdateCategory = async () => {
     if (!editingCategory.name) {
@@ -100,62 +140,76 @@ function AdminCategoriesPage() {
         title: "Error",
         description: "Category name is required",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      await axios.put(`${Server}/categories/${editingCategory._id}`, editingCategory, { withCredentials: true });
+      await axios.put(
+        `${Server}/categories/${editingCategory._id}`,
+        editingCategory,
+        { withCredentials: true }
+      );
 
       // Update category in state
-      setCategories(categories.map((cat) => (cat._id === editingCategory._id ? { ...editingCategory } : cat)))
+      setCategories(
+        categories.map((cat) =>
+          cat._id === editingCategory._id ? { ...editingCategory } : cat
+        )
+      );
 
       toast({
         title: "Success",
         description: "Category updated successfully",
-      })
+      });
 
-      setEditingCategory(null)
+      setEditingCategory(null);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update category",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this category? This action is IRREVERSIBLE!")) {
-      return
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this category? This action is IRREVERSIBLE!"
+      )
+    ) {
+      return;
     }
 
     try {
-      await axios.delete(`${Server}/categories/${id}`, { withCredentials: true });
+      await axios.delete(`${Server}/categories/${id}`, {
+        withCredentials: true,
+      });
 
       // Remove category from state
-      setCategories(categories.filter((cat) => cat._id !== id))
+      setCategories(categories.filter((cat) => cat._id !== id));
 
       toast({
         title: "Success",
         description: "Category deleted successfully",
-      })
+      });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to delete category",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleCancelEdit = () => {
-    setEditingCategory(null)
-  }
+    setEditingCategory(null);
+  };
 
   if (isLoading) {
     return (
@@ -167,7 +221,7 @@ function AdminCategoriesPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -176,8 +230,12 @@ function AdminCategoriesPage() {
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Manage Survey Categories</h1>
-          <p className="text-gray-600">Add, edit, or remove survey categories in the system</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Manage Survey Categories
+          </h1>
+          <p className="text-gray-600">
+            Add, edit, or remove survey categories in the system
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -191,6 +249,7 @@ function AdminCategoriesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Department</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="w-[120px]">Actions</TableHead>
                     </TableRow>
@@ -198,14 +257,25 @@ function AdminCategoriesPage() {
                   <TableBody>
                     {categories.map((category) => (
                       <TableRow key={category._id}>
-                        <TableCell className="font-medium">{capitalizeFirstLetter(category.name)}</TableCell>
-                        <TableCell>{category.description}</TableCell>
+                        <TableCell className="font-medium">
+                          {capitalizeFirstLetter(category.name)}
+                        </TableCell>
+                        <TableCell>{getDepartmentName(category.department, allDepartments) || "All Departments"}</TableCell>
+                        <TableCell>{category.description.slice(0,20)+"..."}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEditCategory(category)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditCategory(category)}
+                            >
                               Edit
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteCategory(category._id)}>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteCategory(category._id)}
+                            >
                               Delete
                             </Button>
                           </div>
@@ -228,26 +298,69 @@ function AdminCategoriesPage() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>{editingCategory ? "Edit Category" : "Add Category"}</CardTitle>
+                <CardTitle>
+                  {editingCategory ? "Edit Category" : "Add Category"}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={editingCategory ? undefined : handleAddCategory}>
+                <form
+                  onSubmit={editingCategory ? undefined : handleAddCategory}
+                >
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Name
+                      </label>
                       <Input
                         name="name"
-                        value={editingCategory ? editingCategory.name : newCategory.name}
+                        value={
+                          editingCategory
+                            ? editingCategory.name
+                            : newCategory.name
+                        }
                         onChange={handleInputChange}
                         placeholder="Category name"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Department
+                      </label>
+                      <Select
+                        name="departmentId"
+                        value={
+                          editingCategory
+                            ? editingCategory?.department || ""
+                            : newCategory?.department
+                        }
+                        label={
+                          editingCategory
+                            ? getDepartmentName(editingCategory?.department, allDepartments) || "All Departments"
+                            : getDepartmentName(newCategory?.department,allDepartments) || "ALL Departments"
+                        }
+                        onValueChange={(value) => {
+                          handleDepartmentChange(value);
+                        }}
+                        options={allDepartments?.map((dept, index) => ({
+                          value: dept._id,
+                          label: dept.name,
+                          key: index,
+                        }))}
+                        placeholder="Select Department"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
                       <Textarea
                         name="description"
-                        value={editingCategory ? editingCategory.description : newCategory.description}
+                        value={
+                          editingCategory
+                            ? editingCategory.description
+                            : newCategory.description
+                        }
                         onChange={handleInputChange}
                         placeholder="Category description"
                         rows={3}
@@ -256,15 +369,29 @@ function AdminCategoriesPage() {
 
                     {editingCategory ? (
                       <div className="flex space-x-2">
-                        <Button type="button" onClick={handleUpdateCategory} disabled={isSubmitting} className="flex-1">
+                        <Button
+                          type="button"
+                          onClick={handleUpdateCategory}
+                          disabled={isSubmitting}
+                          className="flex-1"
+                        >
                           {isSubmitting ? "Updating..." : "Update Category"}
                         </Button>
-                        <Button type="button" variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          disabled={isSubmitting}
+                        >
                           Cancel
                         </Button>
                       </div>
                     ) : (
-                      <Button type="submit" disabled={isSubmitting} className="w-full">
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full"
+                      >
                         {isSubmitting ? "Adding..." : "Add Category"}
                       </Button>
                     )}
@@ -276,7 +403,7 @@ function AdminCategoriesPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
 
-export default AdminCategoriesPage
+export default AdminCategoriesPage;
