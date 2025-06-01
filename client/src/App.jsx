@@ -16,6 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
 import Toast from "./components/ui/Toast"
 import loaderImage from "./assets/icsq-loader.jpg"
+import bgImage from "./assets/bg-image.jpg"
 import {useState, useEffect} from 'react'
 
 function App() {

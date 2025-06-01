@@ -62,13 +62,13 @@ function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-6 px-4">
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            {/* <CardTitle className="flex items-center justify-between">
               <span>ICSQ Reports</span>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => handleDownloadReport("pdf")}>
@@ -102,11 +102,11 @@ function ReportsPage() {
                   Excel
                 </Button>
               </div>
-            </CardTitle>
+            </CardTitle> */}
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="department">
-              <TabsList className="mb-6">
+              <TabsList className="mb-6 text-white">
                 <TabsTrigger value="department">Department Scores</TabsTrigger>
                 <TabsTrigger value="category">Category Scores</TabsTrigger>
                 <TabsTrigger value="trend">Trend Analysis</TabsTrigger>
@@ -114,8 +114,8 @@ function ReportsPage() {
 
               <TabsContent value="department">
                 <div className="min-h-[100px] mt-4">
-                  <div className="w-full h-full bg-white p-4 border border-gray-200 rounded-lg">
-                    <div className="text-center text-gray-500">
+                  <div className="w-full h-full p-4 border border-gray-200 rounded-lg">
+                    <div className="text-center text-gray-100">
                       <p>Department Scores Chart</p>
                       <div className="mt-4">
                         {departmentScores.map((dept) => (
@@ -142,8 +142,8 @@ function ReportsPage() {
 
               <TabsContent value="category">
                 <div className="min-h-[100px] mt-4">
-                  <div className="w-full h-full bg-white p-4 border border-gray-200 rounded-lg">
-                    <div className="text-center text-gray-500">
+                  <div className="w-full h-full p-4 border border-gray-200 rounded-lg">
+                    <div className="text-center text-gray-200">
                       <p>Category Scores Chart</p>
                       <div className="mt-4">
                         {categoryScores.map((cat) => (

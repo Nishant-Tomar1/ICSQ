@@ -160,7 +160,7 @@ function SIPOCPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-6 px-4">
@@ -175,7 +175,7 @@ function SIPOCPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-300 mb-4">
               SIPOC (Supplier, Input, Process, Output, Customer) is a tool that summarizes the inputs and outputs of one
               or more processes in table form. It is used to define a business process before work begins.
             </p>
@@ -229,20 +229,20 @@ function SIPOCPage() {
 
       {/* Add Entry Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 relative">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-lg bg-opacity-40 flex justify-center items-center z-50">
+          <div className="rounded-lg shadow-lg w-full max-w-lg p-6 relative bg-black/40">
             <h2 className="text-xl font-semibold mb-4">Add New Entry</h2>
             <form onSubmit={handleAddEntry} className="space-y-4">
-              <input type="text" placeholder="Supplier" value={newEntry.supplier} onChange={(e) => handleInputChange("supplier", e.target.value)} className="w-full border border-gray-300 p-2 rounded" />
-              <input type="text" placeholder="Input" value={newEntry.input} onChange={(e) => handleInputChange("input", e.target.value)} className="w-full border border-gray-300 p-2 rounded" />
+              <input type="text" placeholder="Supplier" value={newEntry.supplier} onChange={(e) => handleInputChange("supplier", e.target.value)} className="w-full border bg-black/50 border-gray-300 p-2 rounded" />
+              <input type="text" placeholder="Input" value={newEntry.input} onChange={(e) => handleInputChange("input", e.target.value)} className="w-full border bg-black/50 border-gray-300 p-2 rounded" />
               <div className="flex flex-col gap-2">
-                <input type="text" placeholder="Process" value={newEntry.process?.input} onChange={(e) => handleInputChange("process", e.target.value)} className="w-full border border-gray-300 p-2 rounded" />
+                <input type="text" placeholder="Process" value={newEntry.process?.input} onChange={(e) => handleInputChange("process", e.target.value)} className="w-full border bg-black/50 border-gray-300 p-2 rounded" />
                 <input id="processPicture" type="file" accept="image/*" className="w-full" />
               </div>
-              <input type="text" placeholder="Output" value={newEntry.output} onChange={(e) => handleInputChange("output", e.target.value)} className="w-full border border-gray-300 p-2 rounded" />
-              <input type="text" placeholder="Customer" value={newEntry.customer} onChange={(e) => handleInputChange("customer", e.target.value)} className="w-full border border-gray-300 p-2 rounded" />
+              <input type="text" placeholder="Output" value={newEntry.output} onChange={(e) => handleInputChange("output", e.target.value)} className="w-full border bg-black/50 border-gray-300 p-2 rounded" />
+              <input type="text" placeholder="Customer" value={newEntry.customer} onChange={(e) => handleInputChange("customer", e.target.value)} className="w-full border bg-black/50 border-gray-300 p-2 rounded" />
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={()=>{setModalOpen(false)}} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                <button type="button" onClick={()=>{setModalOpen(false)}} className="bg-gray-500 px-4 py-2 rounded hover:bg-gray-700">Cancel</button>
                 <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
                   {!isAdding ? (<><FaPlus className="mr-2" />Add Entry</>) : ("Loading...")}
                 </button>
@@ -254,8 +254,8 @@ function SIPOCPage() {
 
       {/* Detail Modal */}
       {detailModal.open && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-xl p-6 relative">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-lg bg-opacity-40 flex justify-center items-center z-50">
+          <div className=" rounded-lg shadow-lg bg-black/30 w-full max-w-xl p-6 relative">
             <h2 className="text-xl font-semibold mb-4">SIPOC Entry Details</h2>
             <div className="space-y-2">
               <p><strong>Supplier:</strong> {detailModal.entry.entries.supplier}</p>
@@ -276,8 +276,8 @@ function SIPOCPage() {
 
       {/* Image Modal */}
       {imageModal.open && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-3xl w-full">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-lg bg-opacity-50 flex items-center justify-center z-50">
+          <div className=" rounded-lg p-4 max-w-3xl w-full bg-black/30">
             <h3 className="text-lg font-semibold mb-4">Process Image</h3>
             <img src={imageModal.src} alt="Process" className="w-full max-h-[60vh] object-contain" />
             <div className="mt-4 text-right">

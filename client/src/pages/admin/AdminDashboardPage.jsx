@@ -39,7 +39,7 @@ function AdminDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen ">
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
@@ -51,13 +51,13 @@ function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage departments, categories, users and view system statistics</p>
+          <h1 className="text-2xl font-bold text-yellow-500">Admin Dashboard</h1>
+          <p className="text-gray-200">Manage departments, categories, users and view system statistics</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -65,7 +65,7 @@ function AdminDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Total Departments</p>
+                  <p className="text-sm font-medium text-gray-200">Total Departments</p>
                   <p className="text-3xl font-bold text-blue-600">{stats.departments}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-full">
@@ -92,7 +92,7 @@ function AdminDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Total Users</p>
+                  <p className="text-sm font-medium text-gray-200">Total Users</p>
                   <p className="text-3xl font-bold text-green-600">{stats.users}</p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-full">
@@ -119,7 +119,7 @@ function AdminDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Surveys Completed</p>
+                  <p className="text-sm font-medium text-gray-200">Surveys Completed</p>
                   <p className="text-3xl font-bold text-purple-600">{stats.surveys}</p>
                 </div>
                 <div className="p-3 bg-purple-100 rounded-full">
@@ -146,7 +146,7 @@ function AdminDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Action Plans</p>
+                  <p className="text-sm font-medium text-gray-200">Action Plans</p>
                   <p className="text-3xl font-bold text-orange-600">{stats.actionPlans}</p>
                 </div>
                 <div className="p-3 bg-orange-100 rounded-full">
@@ -173,10 +173,10 @@ function AdminDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Manage Departments</CardTitle>
+              <CardTitle className="text-yellow-500">Manage Departments</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">Add, edit, or remove departments in the system.</p>
+              <p className="text-gray-300 mb-4">Add, edit, or remove departments in the system.</p>
               <Link to="/admin/departments">
                 <Button className="w-full">Manage Departments</Button>
               </Link>
@@ -185,10 +185,10 @@ function AdminDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Manage Categories</CardTitle>
+              <CardTitle className="text-yellow-500">Manage Categories</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">Configure survey categories and questions. Add, edit or remove categories.</p>
+              <p className="text-gray-300 mb-4">Configure survey categories and questions. Add, edit or remove categories.</p>
               <Link to="/admin/categories">
                 <Button className="w-full">Manage Categories</Button>
               </Link>
@@ -197,10 +197,10 @@ function AdminDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Manage Users</CardTitle>
+              <CardTitle className="text-yellow-500">Manage Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">Add, edit, or remove users and set permissions.</p>
+              <p className="text-gray-300 mb-4">Add, edit, or remove users and set permissions.</p>
               <Link to="/admin/users">
                 <Button className="w-full">Manage Users</Button>
               </Link>

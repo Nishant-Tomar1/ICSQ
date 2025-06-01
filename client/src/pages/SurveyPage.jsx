@@ -162,7 +162,7 @@ function SurveyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-2 px-4">
@@ -173,10 +173,10 @@ function SurveyPage() {
                 {JSON.parse(localStorage.getItem("selectedDepartments"))?.map((dept, index) => (
                   <div
                   key={dept}
-                  className={`bg-white border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
+                  className={` border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
                     dept === departmentId
-                    ? "border-2 border-[#83725E] shadow-md"
-                    : "hover:shadow-md hover:border-[#a48d6e]"
+                    ? "border-2 border-yellow-500 shadow-md"
+                    : "hover:shadow-md hover:border-yellow-500"
                   }`}
                   onClick={() => navigate(`/survey/${dept}`, {replace :true})}
                   >
@@ -200,15 +200,15 @@ function SurveyPage() {
             </div>
           
         :
-      <main className="container mx-auto py-4 px-4">
+      <main className="container mx-auto py-4 px-4 text-gray-200">
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
-            <thead className="bg-gray-100 text-left">
+        <div className="overflow-x-auto bg-black/20">
+          <table className="min-w-full border border-gray-700 rounded-lg overflow-hidden">
+            <thead className="bg-black/10 text-left">
               <tr>
-                <th className="px-4 py-3 text-sm font-semibold text-gray-700">Category</th>
-                <th className="px-4 py-3 text-sm font-semibold text-gray-700 text-center">Rating</th>
-                <th className="px-4 py-3 text-sm font-semibold text-gray-700">Expectations</th>
+                <th className="px-4 py-3 text-sm font-semibold text-gray-200">Category</th>
+                <th className="px-4 py-3 text-sm font-semibold text-gray-200 text-center">Rating</th>
+                <th className="px-4 py-3 text-sm font-semibold text-gray-200">Expectations</th>
               </tr>
             </thead>
             <tbody>
@@ -217,7 +217,7 @@ function SurveyPage() {
               return (
                 <tr key={category.name} className="border-t border-gray-200">
                   {/* Category Name */}
-                  <td className="px-4 py-4 align-top font-medium text-gray-800">
+                  <td className="px-4 py-4 align-center font-medium text-gray-200">
                     {capitalizeFirstLetter(category.name)}
                   </td>
 
@@ -236,7 +236,7 @@ function SurveyPage() {
                           onClick={() => handleRatingChange(category.name, value)}
                           title={titles[index]}
                           className={`text-2xl p-2 rounded-full border transition 
-                            ${isSelected ? "bg-green-50 border-green-500" : "border-transparent hover:border-gray-300"}`}
+                            ${isSelected ? "bg-green-700 border-green-500" : "border-transparent hover:border-gray-300"}`}
                         >
                           {emojiList[index]}
                         </button>
@@ -250,7 +250,7 @@ function SurveyPage() {
                   <td className="px-4 py-4 align-top">
                     {(formData[category.name]?.rating !== 100) && (
                       <div className="space-y-2">
-                        <p className="text-xs text-gray-500 mb-1">
+                        <p className="text-xs text-gray-300 mb-1">
                           Reason for the score and your expectations:
                         </p>
 

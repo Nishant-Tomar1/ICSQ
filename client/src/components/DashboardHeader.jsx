@@ -39,12 +39,12 @@ function DashboardHeader() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <header className="bg-[#29252c] sticky top-0 z-10 shadow-lg">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
-              <span className="text-xl font-bold text-[#83725E]">
+              <span className="text-xl font-bold text-gray-200">
                 <span className="hidden lg:block">ICSQ.sobharealty.com </span>
                 <span className="lg:hidden">ICSQ</span>
               </span>
@@ -53,25 +53,25 @@ function DashboardHeader() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/dashboard" className="text-gray-600 hover:text-[#83725E] font-medium">
+            <Link to="/dashboard" className="text-gray-200 hover:text-orange-300 font-medium">
               Home
             </Link>
-            <Link to="/survey" className="text-gray-600 hover:text-[#83725E] font-medium">
+            <Link to="/survey" className="text-gray-200 hover:text-orange-300 font-medium">
               Survey
             </Link>
-            <Link to="/sipoc" className="text-gray-600 hover:text-[#83725E] font-medium">
+            <Link to="/sipoc" className="text-gray-200 hover:text-orange-300 font-medium">
               SIPOC
             </Link>
-            <Link to="/action-plans" className="text-gray-600 hover:text-[#83725E] font-medium">
+            <Link to="/action-plans" className="text-gray-200 hover:text-orange-300 font-medium">
               Action Plans
             </Link>
             {isAdmin() &&(
               <>
-              <Link to="/reports" className="text-gray-600 hover:text-[#83725E] font-medium">
+              <Link to="/reports" className="text-gray-200 hover:text-orange-300 font-medium">
               Reports
             </Link>
              
-              <Link to="/admin" className="text-[#83725E] hover:text-[#6e5d4d] font-medium">
+              <Link to="/admin" className="text-orange-300 hover:text-orange-300 font-medium">
                 Admin
               </Link>
               </>
@@ -86,7 +86,7 @@ function DashboardHeader() {
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-300">
                     {currentUser.role || ""}
                     {currentUser.role !== "admin" ? " - " + (capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}
                   </div>
@@ -96,16 +96,16 @@ function DashboardHeader() {
 
               {/* Dropdown */}
               {drawerOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-100 z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-[#5b5058] rounded-md shadow-lg overflow-hidden border border-gray-400 z-10">
                   <Link
                     to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#f8f6f4]"
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-[#72555e]"
                   >
                     Profile
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-[#f8f6f4]"
+                    className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#72555e] hover:text-red-600"
                   >
                     Logout
                   </button>

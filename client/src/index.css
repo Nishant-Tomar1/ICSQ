@@ -4,8 +4,14 @@
 
 body {
   font-family: "Inter", sans-serif;
+  color:antiquewhite ;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: url("./assets/bg-image.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 0%;
+  background-attachment: fixed;
 }
 
 @layer base {

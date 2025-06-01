@@ -9,7 +9,7 @@ function Toast() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`bg-white border rounded-lg shadow-lg p-4 flex items-start space-x-3 transform transition-all duration-300 ease-in-out ${
+          className={`bg-white/95 border rounded-lg shadow-lg p-4 flex items-start space-x-3 transform transition-all duration-300 ease-in-out ${
             toast.variant === "destructive" ? "border-red-500" : "border-gray-200"
           }`}
         >

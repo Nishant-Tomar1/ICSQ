@@ -7,11 +7,11 @@ function Table({ children, className = "" }) {
 }
 
 function TableHeader({ children, className = "" }) {
-  return <thead className={`bg-gray-50 ${className}`}>{children}</thead>
+  return <thead className={` ${className}`}>{children}</thead>
 }
 
 function TableBody({ children, className = "" }) {
-  return <tbody className={`bg-white divide-y divide-gray-200 ${className}`}>{children}</tbody>
+  return <tbody className={`divide-y divide-gray-200 ${className}`}>{children}</tbody>
 }
 
 function TableRow({ children, className = "" }) {
@@ -22,7 +22,7 @@ function TableHead({ children, className = "" }) {
   return (
     <th
       scope="col"
-      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${className}`}
+      className={`px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider ${className}`}
     >
       {children}
     </th>
@@ -30,7 +30,7 @@ function TableHead({ children, className = "" }) {
 }
 
 function TableCell({ children, className = "" }) {
-  return <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-500 ${className}`}>{children}</td>
+  return <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-200 ${className}`}>{children}</td>
 }
 
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell }

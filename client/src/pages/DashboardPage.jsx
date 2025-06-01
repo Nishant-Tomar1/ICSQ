@@ -58,7 +58,7 @@ function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
@@ -77,22 +77,22 @@ function DashboardPage() {
       maxValue={100}
       text={`${value.toFixed(1)}%`}
       styles={buildStyles({
-        textColor: "#83725E",
-        pathColor: "#83725E",
-        trailColor: "#f0f0f0",
+        textColor: "white",
+        pathColor: "goldenrod",
+        trailColor: "transparent",
         textSize: "16px"
       })}
     />
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-scree">
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Welcome, {currentUser?.name}</h1>
-          <p className="text-gray-600">Here's an overview of your ICSQ performance</p>
+          <h1 className="text-2xl font-bold text-gray-200">Welcome,<span className="text-teal-400"> {currentUser?.name} </span></h1>
+          <p className="text-gray-100">Here's an overview of your ICSQ performance</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -129,7 +129,7 @@ function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {departmentScores.length>0 && departmentScores.map((dept) => (
-                  <Card key={dept._id} className="border p-4">
+                  <Card key={dept._id} className="shadow-xl backdrop-brightness-125 bg-white/10 p-4">
                     <div className="text-center font-medium mb-2">
                       {capitalizeFirstLetter(dept.name)}
                     </div>
@@ -152,7 +152,7 @@ function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {departmetnScoresToParticaular.map((dept) => (
-                  <Card key={dept?.fromDepartmentId} className="border p-4">
+                  <Card key={dept?.fromDepartmentId} className="shadow-xl backdrop-brightness-125 bg-white/10 p-4">
                     <div className="text-center font-medium mb-2">
                       {capitalizeFirstLetter(dept?.fromDepartmentName)}
                     </div>
@@ -175,7 +175,7 @@ function DashboardPage() {
 
         {modalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 w-full">
-                  <div className="bg-white rounded-xl shadow-lg lg:w-[50%] max-w-lg p-4 relative overflow-auto">
+                  <div className="shadow-xl bg-white/10 backdrop-brightness-50 p-4l rounded-xl backdrop-blur-3xl lg:w-[50%] max-w-lg p-4 relative overflow-auto">
                     <WebChart detailedScores={modalDept?.detailedScores || {}}/>
                     <div className="text-right">
                       <button onClick={() => {setModalOpen(false);setModalDept({})}} className="bg-[#83725E] text-white px-4 py-2 rounded hover:bg-[#76624b]">Close</button>

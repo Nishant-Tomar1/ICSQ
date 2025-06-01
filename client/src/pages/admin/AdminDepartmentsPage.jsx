@@ -159,7 +159,7 @@ function AdminDepartmentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen ">
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
@@ -171,13 +171,13 @@ function AdminDepartmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Manage Departments</h1>
-          <p className="text-gray-600">Add, edit, or remove departments in the system</p>
+          <h1 className="text-2xl font-bold text-yellow-500">Manage Departments</h1>
+          <p className="text-gray-200">Add, edit, or remove departments in the system</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -238,7 +238,7 @@ function AdminDepartmentsPage() {
                 <form onSubmit={editingDepartment ? undefined : handleAddDepartment}>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">Name</label>
                       <Input
                         name="name"
                         value={editingDepartment ? editingDepartment.name : newDepartment.name}
@@ -248,7 +248,7 @@ function AdminDepartmentsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">Description</label>
                       <Textarea
                         name="description"
                         value={editingDepartment ? editingDepartment.description : newDepartment.description}

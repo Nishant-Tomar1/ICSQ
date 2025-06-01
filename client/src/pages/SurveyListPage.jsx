@@ -86,7 +86,7 @@ function SurveyListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
@@ -95,23 +95,23 @@ function SurveyListPage() {
             <CardTitle>Ready for ICSQ Survey</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-6 text-gray-600">
+            <p className="mb-6 text-gray-300">
               Select departments to evaluate. Your feedback helps improve internal customer satisfaction.
             </p>
 
             {/* Legend */}
           <div className="flex flex-wrap justify-center items-center gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-100" />
-              <span className="text-sm text-gray-600">Already Surveyed</span>
+              <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-900" />
+              <span className="text-sm text-gray-300">Already Surveyed</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-yellow-400 bg-yellow-100" />
-              <span className="text-sm text-gray-600">Your Department</span>
+              <div className="w-4 h-4 rounded border-2 border-yellow-400 bg-yellow-800" />
+              <span className="text-sm text-gray-300">Your Department</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-100" />
-              <span className="text-sm text-gray-600">Selected Department(s)</span>
+              <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-900" />
+              <span className="text-sm text-gray-300">Selected Department(s)</span>
             </div>
           </div>
 
@@ -122,14 +122,14 @@ function SurveyListPage() {
                 {departments.map((department) => (
                     <div
                     key={department._id}
-                    className={`bg-white border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
+                    className={`rounded-lg backdrop-brightness-105 bg-white/10 shadow-sm cursor-pointer transition-all p-4 text-center ${
                       selectedDepartments.includes(department._id)
                         ? "border-2 border-blue-500 shadow-md"
-                        : "hover:shadow-md hover:border-blue-300"
+                        : "hover:border shadow-md hover:border-blue-300"
                     } ${currentUser?.surveyedDepartmentIds.includes(department._id)
-                        && "border-2 border-green-500 shadow-md hover:shadow-md hover:border-green-300"
+                        && "border-2 border-green-600 shadow-md hover:shadow-md hover:border-green-500"
                     } ${currentUser?.department?._id === department?._id
-                        && "border-2 border-yellow-400 shadow-md hover:shadow-md hover:border-yellow-300"
+                        && "border-2 border-yellow-500 shadow-md hover:shadow-md hover:border-yellow-400"
                     }`}
                     onClick={() => handleDepartmentClick(department)}
                   >

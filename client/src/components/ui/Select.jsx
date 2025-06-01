@@ -27,7 +27,7 @@ function Select({ value, onValueChange, placeholder, options, className = "" }) 
     <div className="relative" ref={selectRef}>
       <button
         type="button"
-        className={`relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#a48d6e] focus:border-[#a48d6e] ${className}`}
+        className={`relative w-full border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#a48d6e] focus:border-[#a48d6e] ${className}`}
         onClick={toggleSelect}
       >
         <span className="block truncate">

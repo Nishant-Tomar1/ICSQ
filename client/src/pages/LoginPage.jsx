@@ -95,9 +95,9 @@ function LoginPage() {
             <p className="text-sm text-gray-600">Understanding Within, Delight Beyond</p>
           </div>
 
-          <Card>
+          <Card className="bg-white shadow-none text-gray-800">
             <CardHeader>
-              <CardTitle>Login</CardTitle>
+              <CardTitle className="text-gray-950">Login</CardTitle>
               <CardDescription>Enter your credentials to access the ICSQ system</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

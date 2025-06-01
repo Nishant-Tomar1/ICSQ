@@ -27,7 +27,7 @@ function TabsTrigger({ value, children, className = "" }) {
       className={`px-4 py-2 text-sm font-medium ${
         isActive
           ? "text-blue-600 border-b-2 border-blue-600"
-          : "text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          : "text-gray-200 hover:text-gray-400 hover:border-gray-300"
       } ${className}`}
       onClick={() => setActiveTab(value)}
     >

@@ -201,7 +201,7 @@ function AdminUsersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
@@ -213,13 +213,13 @@ function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Manage Users</h1>
-          <p className="text-gray-600">Add, edit, or remove users in the system</p>
+          <h1 className="text-2xl font-bold text-yellow-500">Manage Users</h1>
+          <p className="text-gray-200">Add, edit, or remove users in the system</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -231,7 +231,7 @@ function AdminUsersPage() {
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow >
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Department</TableHead>
@@ -284,7 +284,7 @@ function AdminUsersPage() {
                 <form onSubmit={editingUser ? undefined : handleAddUser}>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">Name</label>
                       <Input
                         name="name"
                         value={editingUser ? editingUser.name : newUser.name}
@@ -294,7 +294,7 @@ function AdminUsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">Email</label>
                       <Input
                         name="email"
                         type="email"
@@ -305,7 +305,7 @@ function AdminUsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">Department</label>
                       <Select
                         value={editingUser ? editingUser.department : newUser.department}
                         onValueChange={(value) => handleSelectChange("department", value)}
@@ -314,7 +314,7 @@ function AdminUsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                      <label className="block text-sm font-medium text-gray-200 mb-1">Role</label>
                       <Select
                         value={editingUser ? editingUser.role : newUser.role}
                         onValueChange={(value) => handleSelectChange("role", value)}
@@ -326,7 +326,7 @@ function AdminUsersPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-200 mb-1">
                         {editingUser ? "Password (leave blank to keep current)" : "Password"}
                       </label>
                       <Input

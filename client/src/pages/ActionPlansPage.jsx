@@ -294,9 +294,9 @@ function ActionPlansPage() {
 
       return (
         <div className="p-4">
-          <table className="w-full table-auto border-collapse">
+          <table className="w-full table-auto border-collapse bg-black/70">
             <thead>
-              <tr className="bg-gray-200 text-left">
+              <tr className=" text-left">
                 <th className="p-2 border">Department</th>
                 <th className="p-2 border">User</th>
                 <th className="p-2 border">Expectations</th>
@@ -305,7 +305,7 @@ function ActionPlansPage() {
             <tbody>
               {categoryData.departments.map((dept, deptIdx) =>
                 dept.users.map((user, userIdx) => (
-                  <tr key={`${deptIdx}-${userIdx}`} className="hover:bg-gray-50">
+                  <tr key={`${deptIdx}-${userIdx}`} >
                     <td className="p-2 border">{capitalizeFirstLetter(dept.name)}</td>
                     <td className="p-2 border">{user.name}</td>
                     <td className="p-2 border">
@@ -325,13 +325,13 @@ function ActionPlansPage() {
     };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-6 px-4">
 
        {["admin", "manager"].includes(currentUser.role) && 
-        <Card className="mb-6">
+        <Card className="mb-6 ">
           <CardHeader >
             <CardTitle className="flex items-center justify-between">
               <span className="cursor-pointer flex items-center" onClick={()=>{setShowTable(prev=>!prev)}}>
@@ -376,16 +376,16 @@ function ActionPlansPage() {
 
         {expModal2 && (
                   <div
-                    className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                    className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black/30 bg-opacity-50"
                   >
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
+                    <div className="bg-black/50 backdrop-blur-3xl rounded-2xl shadow-xl w-full max-w-xl relative ">
+                      <Card className="shadow-none border-none">
                       <button
-                        className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+                        className="absolute top-2 right-2 text-gray-200 hover:text-gray-900 hover:bg-gray-300 p-3 px-4 rounded-[50px]"
                         onClick={() => {setExpModal2(false);setSelectedCategory({});}}
                       >
                         X
                       </button>
-                      <Card className="shadow-none border-none">
                         <CardHeader>
                           <CardTitle>Expectations</CardTitle>
                         </CardHeader>
@@ -397,165 +397,164 @@ function ActionPlansPage() {
                   </div>
                 )}
 
-        <Card className="mb-6">
+             
+                {formModal && (
+                  <div className="font-normal text-sm fixed inset-0 z-50 flex items-center justify-center bg-black/30 bg-opacity-50">
+                    <div className="rounded-2xl shadow-xl w-full backdrop-blur-3xl max-w-xl relative overflow-auto max-h-[95%]">
+
+                      <Card className="shadow-none border-none p-4 bg-black/40">
+                      {/* Close Button */}
+                      <button
+                        className="absolute top-2 right-2 text-gray-300 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[40px]"
+                        onClick={() => setFormModal(false)}
+                      >
+                        X
+                      </button>
+                        <CardHeader>
+                          <CardTitle>Add Action Plan</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <form onSubmit={handleSubmitAdd}>
+                            <div className="space-y-4">
+                              {/* Department */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-200 mb-1">
+                                  Department
+                                </label>
+                                <Input
+                                  disabled
+                                  name="department"
+                                  value={currentUser?.department?.name}
+                                  placeholder="Department"
+                                  required
+                                />
+                              </div>
+
+                              {/* Category */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-200 mb-1">
+                                  Category
+                                </label>
+                                <Select
+                                  value={newEntry.categoryId}
+                                  onValueChange={(value) =>
+                                    handleInputChange("categoryId", value)
+                                  }
+                                  options={allCategories?.map(
+                                    (cat, index) => ({
+                                      value: cat._id,
+                                      label: cat.name,
+                                      key: index,
+                                    })
+                                  )}
+                                  placeholder="Select Category"
+                                />
+                              </div>
+
+                              {/* Actions */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-200 mb-1">
+                                  Actions
+                                </label>
+                                {newEntry.actions?.map((act, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center space-x-2 mb-2"
+                                  >
+                                    <Input
+                                      value={act}
+                                      onChange={(e) =>
+                                        handleActionsChange(
+                                          index,
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder={`Action ${index + 1}`}
+                                      required
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      onClick={() => removeAction(index)}
+                                    >
+                                      X
+                                    </Button>
+                                  </div>
+                                ))}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={addAction}
+                                >
+                                  + Add Action
+                                </Button>
+                              </div>
+
+                                <div>
+                              <label className="block text-sm font-medium text-gray-200 mb-1">
+                                  Target Date
+                                </label>
+                              <input
+                                type="date"
+                                name="targetDate"
+                                className="w-full px-3 py-2 bg-transparent border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+                                value={newEntry?.targetDate ? new Date(newEntry.targetDate).toISOString().split("T")[0] : ""}
+                                min={new Date().toISOString().split("T")[0]}
+                                onChange={(e) => {
+                                  const selectedDate = new Date(e.target.value);
+                                  handleInputChange("targetDate", selectedDate.getTime());
+                                }}
+                                required
+                              />
+
+                              </div>
+
+                              {/* Submit */}
+                              <div className="flex space-x-2">
+                                <Button
+                                  type="submit"
+                                  disabled={isSubmitting}
+                                  className="w-full"
+                                >
+                                  {isSubmitting
+                                    ? "Adding..."
+                                    : "Add Action Plan"}
+                                </Button>
+                              </div>
+                            </div>
+                          </form>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+              
+        <Card className="mb-6 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>
                 Action Plans -{" "}
                 {capitalizeFirstLetter(currentUser?.department?.name)}
               </span>
-              {["admin", "manager"].includes(currentUser.role) && (
-                <>
                   {["admin", "manager"].includes(currentUser?.role) && (
                     <>
                       <Button onClick={() => setFormModal(true)}>
                         Add Action Plan
                       </Button>
-                      {formModal && (
-                        <div className="font-normal text-sm fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4 overflow-auto max-h-[95%]">
-                            {/* Close Button */}
-                            <button
-                              className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[40px]"
-                              onClick={() => setFormModal(false)}
-                            >
-                              X
-                            </button>
-
-                            <Card className="shadow-none border-none">
-                              <CardHeader>
-                                <CardTitle>Add Action Plan</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <form onSubmit={handleSubmitAdd}>
-                                  <div className="space-y-4">
-                                    {/* Department */}
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Department
-                                      </label>
-                                      <Input
-                                        disabled
-                                        name="department"
-                                        value={currentUser?.department?.name}
-                                        placeholder="Department"
-                                        required
-                                      />
-                                    </div>
-
-                                    {/* Category */}
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Category
-                                      </label>
-                                      <Select
-                                        value={newEntry.categoryId}
-                                        onValueChange={(value) =>
-                                          handleInputChange("categoryId", value)
-                                        }
-                                        options={allCategories?.map(
-                                          (cat, index) => ({
-                                            value: cat._id,
-                                            label: cat.name,
-                                            key: index,
-                                          })
-                                        )}
-                                        placeholder="Select Category"
-                                      />
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Actions
-                                      </label>
-                                      {newEntry.actions?.map((act, index) => (
-                                        <div
-                                          key={index}
-                                          className="flex items-center space-x-2 mb-2"
-                                        >
-                                          <Input
-                                            value={act}
-                                            onChange={(e) =>
-                                              handleActionsChange(
-                                                index,
-                                                e.target.value
-                                              )
-                                            }
-                                            placeholder={`Action ${index + 1}`}
-                                            required
-                                          />
-                                          <Button
-                                            type="button"
-                                            variant="destructive"
-                                            onClick={() => removeAction(index)}
-                                          >
-                                            X
-                                          </Button>
-                                        </div>
-                                      ))}
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={addAction}
-                                      >
-                                        + Add Action
-                                      </Button>
-                                    </div>
-
-                                      <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Target Date
-                                      </label>
-                                    <input
-                                      type="date"
-                                      name="targetDate"
-                                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
-                                      value={newEntry?.targetDate ? new Date(newEntry.targetDate).toISOString().split("T")[0] : ""}
-                                      min={new Date().toISOString().split("T")[0]}
-                                      onChange={(e) => {
-                                        const selectedDate = new Date(e.target.value);
-                                        handleInputChange("targetDate", selectedDate.getTime());
-                                      }}
-                                      required
-                                    />
-
-                                    </div>
-
-                                    {/* Submit */}
-                                    <div className="flex space-x-2">
-                                      <Button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full"
-                                      >
-                                        {isSubmitting
-                                          ? "Adding..."
-                                          : "Add Action Plan"}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </form>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </div>
-                      )}
+                      <Button onClick={handleSaveAll} disabled={isLoading}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-2"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                        </svg>
+                        Save Changes
+                      </Button>
+                    
                     </>
                   )}
-                  <Button onClick={handleSaveAll} disabled={isLoading}>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                    </svg>
-                    Save Changes
-                  </Button>
-                </>
-              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
