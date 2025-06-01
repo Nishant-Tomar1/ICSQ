@@ -620,7 +620,9 @@ function ActionPlansPage() {
                       <span
                         onClick={() => {
                           setExpModal(true);
-                          setSelected(plan)
+                          setSelected(plan);
+                          console.log(plan);
+                          
                         }}
                         className="underline cursor-pointer"
                       >
@@ -659,33 +661,33 @@ function ActionPlansPage() {
                             { value: "completed", label: "Completed" },
                           ]}
                           className="h-8"
-                        />
+                          />
+                          {expModal && (
+                            <div
+                              key={plan._id}
+                              className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center backdrop-brightness-25"
+                            >
+                              <div className="rounded-lg shadow-xl w-full max-w-xl relative bg-black/70">
+                                <Card className="shadow-none border-none backdrop-blur-3xl backdrop-brightness-0">
+                                <button
+                                  className="absolute top-2 right-2 text-gray-200 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+                                  onClick={() => {setExpModal(false);setSelected({});}}
+                                >
+                                  X
+                                </button>
+                                  <CardHeader>
+                                    <CardTitle>Expectations</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <ExpectationsTable data={expectationData} categoryName={selected.category?.[0]?.name}/>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            </div>
+                          )}
                       </TableCell>
                     )}
                     {/* Expectations Modal */}
-                    {expModal && (
-                      <div
-                        key={plan._id}
-                        className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                      >
-                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
-                          <button
-                            className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
-                            onClick={() => {setExpModal(false);setSelected({});}}
-                          >
-                            X
-                          </button>
-                          <Card className="shadow-none border-none">
-                            <CardHeader>
-                              <CardTitle>Expectations</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <ExpectationsTable data={expectationData} categoryName={plan.category?.[0]?.name}/>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Actions Modal */}
                     {actionModal && (
@@ -693,14 +695,14 @@ function ActionPlansPage() {
                         key={plan._id}
                         className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
                       >
-                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
+                        <div className=" rounded-2xl shadow-xl w-full max-w-xl relative bg-white/10">
+                          <Card className="shadow-none border-none">
                           <button
-                            className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
+                            className="absolute top-2 right-2 text-gray-200 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
                             onClick={() => {setActionModal(false);setSelected({})}}
                           >
                             X
                           </button>
-                          <Card className="shadow-none border-none">
                             <CardHeader>
                               <CardTitle>Actions</CardTitle>
                             </CardHeader>
