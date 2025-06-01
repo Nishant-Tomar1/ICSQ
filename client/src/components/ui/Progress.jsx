@@ -1,9 +1,10 @@
 function Progress({ value = 0, max = 100, className = "" }) {
   const percentage = Math.min(Math.max(value, 0), max)
+  const color = (value < 23) ? 'bg-red-500' : ((value < 64) ? 'bg-yellow-500' : 'bg-green-500');
 
   return (
     <div className={`w-full bg-gray-200 rounded-full h-2.5 ${className}`}>
-      <div className="bg-[#83725E] h-2.5 rounded-full" style={{ width: `${(percentage / max) * 100}%` }}></div>
+      <div className={`${color} h-2.5 rounded-full`} style={{ width: `${(percentage / max) * 100}%` }}></div>
     </div>
   )
 }

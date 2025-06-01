@@ -74,7 +74,7 @@ function SurveyListPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
@@ -122,10 +122,10 @@ function SurveyListPage() {
                 {departments.map((department) => (
                     <div
                     key={department._id}
-                    className={`rounded-lg backdrop-brightness-105 bg-white/10 shadow-sm cursor-pointer transition-all p-4 text-center ${
+                    className={`rounded-lg backdrop-blur-3xl bg-white/10 shadow-sm cursor-pointer transition-all p-4 text-center ${
                       selectedDepartments.includes(department._id)
                         ? "border-2 border-blue-500 shadow-md"
-                        : "hover:border shadow-md hover:border-blue-300"
+                        : "shadow-md hover:bg-white/20"
                     } ${currentUser?.surveyedDepartmentIds.includes(department._id)
                         && "border-2 border-green-600 shadow-md hover:shadow-md hover:border-green-500"
                     } ${currentUser?.department?._id === department?._id

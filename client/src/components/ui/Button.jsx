@@ -9,8 +9,8 @@ function Button({
   ...props
 }) {
   const variantClasses = {
-    default: "bg-[#83725E] hover:bg-[#6f5f4e] text-gray-300 hover:text-white",
-    outline: "bg-transparent border border-[#83725E] text-[#83725E] hover:text-yellow-500 hover:border-yellow-500",
+    default: "bg-[#93725E] hover:bg-[#6f5f4e] text-gray-300 hover:text-white",
+    outline: "bg-transparent border border-[#93725E] text-[#93725E] hover:text-yellow-500 hover:border-yellow-500",
     ghost: "bg-transparent text-[#83725E] hover:bg-white/30 hover:text-yellow-500",
     link: "bg-transparent text-[#83725E] underline hover:text-[#6f5f4e]",
     destructive: "bg-red-600 hover:bg-red-700 text-white",

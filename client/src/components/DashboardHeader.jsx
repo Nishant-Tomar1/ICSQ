@@ -96,16 +96,16 @@ function DashboardHeader() {
 
               {/* Dropdown */}
               {drawerOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-[#5b5058] rounded-md shadow-lg overflow-hidden border border-gray-400 z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-[#29252c] rounded-md shadow-lg overflow-hidden border border-gray-400 z-10">
                   <Link
                     to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-[#72555e]"
+                    className="block px-4 py-2 text-sm text-gray-200 hover:backdrop-brightness-150"
                   >
                     Profile
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#72555e] hover:text-red-600"
+                    className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:backdrop-brightness-150 hover:text-red-600"
                   >
                     Logout
                   </button>

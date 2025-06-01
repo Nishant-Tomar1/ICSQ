@@ -258,104 +258,109 @@ export async function getActionPlanStats(req, res) {
 export async function getExpectationData(req, res) {
   const toDepartment  = req.params
   try {
-    const data = await Survey.aggregate([
-                  {
-                    $match: {
-                      toDepartment: new mongoose.Types.ObjectId(toDepartment)
-                    }
-                  },
-                  {
-                    $project: {
-                      userId: 1,
-                      fromDepartment: 1,
-                      responses: { $objectToArray: "$responses" }
-                    }
-                  },
+   const data = await Survey.aggregate([
+  {
+    $match: {
+      toDepartment: new mongoose.Types.ObjectId(toDepartment)
+    }
+  },
+  {
+    $project: {
+      userId: 1,
+      fromDepartment: 1,
+      responses: { $objectToArray: "$responses" }
+    }
+  },
+  { $unwind: "$responses" },
+  {
+    $project: {
+      userId: 1,
+      fromDepartment: 1,
+      category: "$responses.k",
+      expectations: "$responses.v.expectations"
+    }
+  },
+  { $unwind: "$expectations" },
 
-                  { $unwind: "$responses" },
+  // Filter out empty expectations
+  {
+    $match: {
+      expectations: { $ne: "" }
+    }
+  },
 
-                  {
-                    $project: {
-                      userId: 1,
-                      fromDepartment: 1,
-                      category: "$responses.k",
-                      expectations: "$responses.v.expectations"
-                    }
-                  },
+  {
+    $group: {
+      _id: {
+        category: "$category",
+        fromDepartment: "$fromDepartment",
+        userId: "$userId"
+      },
+      expectations: { $push: "$expectations" },
+      expectationCount: { $sum: 1 }  // Count non-empty expectations
+    }
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "_id.userId",
+      foreignField: "_id",
+      as: "user"
+    }
+  },
+  {
+    $lookup: {
+      from: "departments",
+      localField: "_id.fromDepartment",
+      foreignField: "_id",
+      as: "dept"
+    }
+  },
+  {
+    $addFields: {
+      user: { $arrayElemAt: ["$user", 0] },
+      dept: { $arrayElemAt: ["$dept", 0] }
+    }
+  },
+  {
+    $group: {
+      _id: {
+        category: "$_id.category",
+        fromDepartment: "$dept.name"
+      },
+      users: {
+        $push: {
+          name: "$user.name",
+          expectations: "$expectations",
+          expectationCount: "$expectationCount"
+        }
+      },
+      departmentExpectationCount: { $sum: "$expectationCount" }
+    }
+  },
+  {
+    $group: {
+      _id: "$_id.category",
+      departments: {
+        $push: {
+          name: "$_id.fromDepartment",
+          users: "$users",
+          expectationCount: "$departmentExpectationCount"
+        }
+      },
+      categoryExpectationCount: { $sum: "$departmentExpectationCount" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      category: "$_id",
+      departments: 1,
+      totalExpectationCount: "$categoryExpectationCount"
+    }
+  }
+]);
 
-                  { $unwind: "$expectations" },
-
-                  {
-                    $group: {
-                      _id: {
-                        category: "$category",
-                        fromDepartment: "$fromDepartment",
-                        userId: "$userId"
-                      },
-                      expectations: { $push: "$expectations" }
-                    }
-                  },
-
-                  {
-                    $lookup: {
-                      from: "users",
-                      localField: "_id.userId",
-                      foreignField: "_id",
-                      as: "user"
-                    }
-                  },
-
-                  {
-                    $lookup: {
-                      from: "departments",
-                      localField: "_id.fromDepartment",
-                      foreignField: "_id",
-                      as: "dept"
-                    }
-                  },
-
-                  {
-                    $addFields: {
-                      user: { $arrayElemAt: ["$user", 0] },
-                      dept: { $arrayElemAt: ["$dept", 0] }
-                    }
-                  },
-
-                  {
-                    $group: {
-                      _id: {
-                        category: "$_id.category",
-                        fromDepartment: "$dept.name"
-                      },
-                      users: {
-                        $push: {
-                          name: "$user.name",
-                          expectations: "$expectations"
-                        }
-                      }
-                    }
-                  },
-
-                  {
-                    $group: {
-                      _id: "$_id.category",
-                      departments: {
-                        $push: {
-                          name: "$_id.fromDepartment",
-                          users: "$users"
-                        }
-                      }
-                    }
-                  },
-
-                  {
-                    $project: {
-                      _id: 0,
-                      category: "$_id",
-                      departments: 1
-                    }
-                  }
-                ])
 
     return res.status(200).json(data)
 

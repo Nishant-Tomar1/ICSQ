@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react"
-import { useParams, useNavigate, useLocation } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
 import DashboardHeader from "../components/DashboardHeader"
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
+import { Card, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Textarea from "../components/ui/Textarea"
-import { RadioGroup, RadioItem } from "../components/ui/RadioGroup"
 import { capitalizeFirstLetter,getDepartmentName, Server } from "../Constants"
 import axios from "axios"
 
@@ -17,7 +16,6 @@ function SurveyPage() {
   const [categories, setCategories] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({})
-  const [currentExpectations, setCurrentExpectations] = useState({});
 
   const navigate = useNavigate()
   const { toast } = useToast()
