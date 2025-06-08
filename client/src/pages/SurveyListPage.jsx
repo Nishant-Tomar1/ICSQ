@@ -5,7 +5,8 @@ import { useToast } from "../contexts/ToastContext"
 import DashboardHeader from "../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
-import { capitalizeFirstLetter, Server } from "../Constants"
+import Badge from "../components/ui/Badge"
+import { capitalizeFirstLetter, getDepartmentIcon, Server } from "../Constants"
 import axios from "axios"
 
 function SurveyListPage() {
@@ -122,7 +123,7 @@ function SurveyListPage() {
                 {departments.map((department) => (
                     <div
                     key={department._id}
-                    className={`rounded-lg backdrop-blur-3xl bg-white/10 shadow-sm cursor-pointer transition-all p-4 text-center ${
+                    className={`rounded-lg flex flex-col justify-center items-center backdrop-blur-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-sm cursor-pointer transition-all p-4 text-center ${
                       selectedDepartments.includes(department._id)
                         ? "border-2 border-blue-500 shadow-md"
                         : "shadow-md hover:bg-white/20"
@@ -132,11 +133,13 @@ function SurveyListPage() {
                         && "border-2 border-yellow-500 shadow-md hover:shadow-md hover:border-yellow-400"
                     }`}
                     onClick={() => handleDepartmentClick(department)}
-                  >
+                  > 
+                   <div className="absolute top-2 right-1.5 text-xs"> {currentUser?.surveyedDepartmentIds.includes(department._id) && <Badge className="text-green-600 rounded-sm" variant="success">Surveyed</Badge>}</div>
                     <div className="h-16 flex items-center justify-center">
-                      <span className="font-medium">{capitalizeFirstLetter(department.name)}</span>
+                      <span className="font-medium text-sm">{getDepartmentIcon(department.name?.toUpperCase())} {department.name?.toUpperCase()}</span>
                     </div>
                   </div>
+
                 ))}
               </div>
 

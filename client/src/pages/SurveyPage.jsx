@@ -3,10 +3,10 @@ import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
 import DashboardHeader from "../components/DashboardHeader"
-import { Card, CardContent } from "../components/ui/Card"
+import { Card, CardContent, CardHeader } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Textarea from "../components/ui/Textarea"
-import { capitalizeFirstLetter,getDepartmentName, Server } from "../Constants"
+import { capitalizeFirstLetter,getDepartmentIcon,getDepartmentName, Server } from "../Constants"
 import axios from "axios"
 
 function SurveyPage() {
@@ -174,12 +174,12 @@ function SurveyPage() {
                   className={` border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
                     dept === departmentId
                     ? "border-2 border-yellow-500 shadow-md"
-                    : "hover:shadow-md hover:border-yellow-500"
+                    : "hover:shadow-md hover:bg-white/5"
                   }`}
                   onClick={() => navigate(`/survey/${dept}`, {replace :true})}
                   >
                     <div className="h-16 flex items-center justify-center">
-                      <span className="font-medium">{capitalizeFirstLetter(getDepartmentName(dept, departments))}</span>
+                      <span className="font-medium text-sm">{getDepartmentIcon(getDepartmentName(dept, departments)?.toUpperCase())}{getDepartmentName(dept, departments)?.toUpperCase()}</span>
                     </div>
                   </div>
                 ))}
@@ -199,7 +199,9 @@ function SurveyPage() {
           
         :
       <main className="container mx-auto py-4 px-4 text-gray-200">
-
+      <Card className="rounded-b-none text-center text-yellow-500 text-md">
+        <CardHeader className="bg-black/20 border-b py-6 border-b-gray-400 text-xl font-semibold">ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
+     
         <div className="overflow-x-auto bg-black/20">
           <table className="min-w-full border border-gray-700 rounded-lg overflow-hidden">
             <thead className="bg-black/10 text-left">
@@ -213,31 +215,40 @@ function SurveyPage() {
               {categories.map((category) => 
               {if ( ((!category.department) || (String(category.department) === String(departmentId)) ) )
               return (
-                <tr key={category.name} className="border-t border-gray-200">
+                <tr key={category.name} className="border-t border-gray-500 text-left">
                   {/* Category Name */}
-                  <td className="px-4 py-4 align-center font-medium text-gray-200">
+                  <td className="px-4 py-4 align-top font-medium text-gray-200 max-w-60">
                     {capitalizeFirstLetter(category.name)}
+                    <div className="text-xs font-light text-gray-400"> {capitalizeFirstLetter(category.description)}</div>
                   </td>
+                 
+
 
                   {/* Ratings with Emojis */}
                   <td className="px-4 py-4 align-middle">
                   <div className="flex flex-row items-center justify-center gap-4">
                     {[20, 40, 60, 80, 100].map((value, index) => {
                       const emojiList = ["😞", "😕", "😐", "🙂", "🤩"];
-                      const titles = ["Poor", "Below Avg", "Average", "Good", "Very Impressive"];
+                      const titles = ["Poor", "Below Avg", "Average", "Good", " Impressive"];
                       const isSelected = formData[category.name]?.rating === value;
 
                       return (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => handleRatingChange(category.name, value)}
-                          title={titles[index]}
-                          className={`text-2xl p-2 rounded-full border transition 
-                            ${isSelected ? "bg-green-700 border-green-500" : "border-transparent hover:border-gray-300"}`}
-                        >
-                          {emojiList[index]}
-                        </button>
+                        <div className="flex flex-col mr-2">
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => handleRatingChange(category.name, value)}
+                            title={titles[index]}
+                            className={`text-2xl p-2 rounded-full border transition 
+                              ${isSelected ? "bg-green-700 border-green-500" : "border-transparent hover:border-gray-300"}`}
+                          >
+                            {emojiList[index]}
+                          </button>
+                          
+                        
+                            <span className="text-gray-400 text-[12px] text-center font-thin">{titles[index]}</span>
+                        
+                        </div>
                       );
                     })}
                   </div>
@@ -257,7 +268,7 @@ function SurveyPage() {
                             placeholder="Your expectations..."
                             value={formData[category.name]?.expectations || ''}
                             onChange={(e) => handleExpectationChange(category.name, e.target.value)}
-                            className="flex-grow h-16"
+                            className="flex-grow h-16 text-gray-200 placeholder-gray-500"
                           />
                         </div>
                       </div>
@@ -268,6 +279,7 @@ function SurveyPage() {
             </tbody>
           </table>
         </div>
+         </Card>
 
 
         <div className="flex justify-end gap-4 mt-8">

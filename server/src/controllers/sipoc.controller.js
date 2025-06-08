@@ -70,7 +70,7 @@ export async function createSIPOC(req, res) {
       processFile = await uploadOnCloudinary(processLocalPath);
     }
     entries = JSON.parse(entries);
-    entries = {...entries, process : {...entries.process , file : processFile.url, input : entries.process?.input || entries?.process || ""} };
+    entries = {...entries, process : {...entries.process , file : processFile.url, input : entries?.process?.input || ""} };
     
     const sipoc = await SIPOC.create({ department : new mongoose.Types.ObjectId(departmentId), entries })
 

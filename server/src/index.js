@@ -49,7 +49,7 @@ redisClient.on('error', (err) => {
   console.error('Redis Connection error : ',err);
 });
 
-await redisClient.connect();
+// await redisClient.connect();
 
 process.on("unhandledRejection", (err) => {
   console.log("UNHANDLED REJECTION! 💥 Shutting down...");

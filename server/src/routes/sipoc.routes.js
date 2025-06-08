@@ -34,6 +34,6 @@ router.put("/:id", requireManager,
     updateSIPOC)
 
 // Delete SIPOC
-router.delete("/", requireAdmin, deleteSIPOC)
+router.delete("/", requireManager, deleteSIPOC)
 
 export default router
