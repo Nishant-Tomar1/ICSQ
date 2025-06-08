@@ -133,7 +133,7 @@ function DashboardPage() {
                       {capitalizeFirstLetter(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName)} ICSQ <br />
                       <span className="text-teal-400 text-xl">{(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.toFixed(2) || 0} %</span>
                     </div>
-                    <div className="text-yellow-500">
+                    <div className="text-[goldenrod]">
                       {getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.tag} <br />
                       <span className="text-3xl flex justify-center">{getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.emoji}</span>
                     </div>
@@ -149,7 +149,7 @@ function DashboardPage() {
           <div className="flex flex-col gap-2 ">
             <Card>
               <CardHeader>
-                  <CardTitle className="text-yellow-500 text-xl -mb-2">Your Department's average ICSQ</CardTitle>
+                  <CardTitle className="text-[goldenrod] text-xl -mb-2">Your Department's average ICSQ</CardTitle>
                 </CardHeader>
             <CardContent>
                   <div className="grid grid-cols-1 gap-6">
@@ -179,7 +179,7 @@ function DashboardPage() {
             {isAdmin() ? (
               <Card className="mb-8 overflow-y-scroll backdrop-brightness-75">
                 <CardHeader>
-                  <CardTitle className="text-yellow-500 text-xl">Department ICSQ Scores</CardTitle>
+                  <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-6">
@@ -211,7 +211,7 @@ function DashboardPage() {
             ) : (
               <Card className="mb-8 overflow-y-scroll backdrop-brightness-75">
                 <CardHeader>
-                  <CardTitle className="text-yellow-500">
+                  <CardTitle className="text-[goldenrod]">
                     Scores Given to Your Department ({capitalizeFirstLetter(currentUser.department?.name)})
                   </CardTitle>
                 </CardHeader>

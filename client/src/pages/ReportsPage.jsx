@@ -125,7 +125,7 @@ function ReportsPage() {
                               <div className="flex-1 mx-2">
                                 <div className="bg-gray-200 h-4 rounded-full overflow-hidden">
                                   <div
-                                    className="bg-blue-600 h-full rounded-full"
+                                    className="bg-emerald-600 h-full rounded-full"
                                     style={{ width: `${dept.score}%` }}
                                   ></div>
                                 </div>
@@ -153,7 +153,7 @@ function ReportsPage() {
                               <div className="flex-1 mx-2">
                                 <div className="bg-gray-200 h-4 rounded-full overflow-hidden">
                                   <div
-                                    className="bg-green-600 h-full rounded-full"
+                                    className="bg-teal-600 h-full rounded-full"
                                     style={{ width: `${cat.score}%` }}
                                   ></div>
                                 </div>

@@ -497,7 +497,7 @@ function ActionPlansPage() {
                               <input
                                 type="date"
                                 name="targetDate"
-                                className="w-full px-3 py-2 bg-transparent border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+                                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-gray-300 bg-white/10"
                                 value={newEntry?.targetDate ? new Date(newEntry.targetDate).toISOString().split("T")[0] : ""}
                                 min={new Date().toISOString().split("T")[0]}
                                 onChange={(e) => {

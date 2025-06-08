@@ -130,7 +130,7 @@ function SurveyListPage() {
                     } ${currentUser?.surveyedDepartmentIds.includes(department._id)
                         && "border-2 border-green-600 shadow-md hover:shadow-md hover:border-green-500"
                     } ${currentUser?.department?._id === department?._id
-                        && "border-2 border-yellow-500 shadow-md hover:shadow-md hover:border-yellow-400"
+                        && "border-2 border-[goldenrod] shadow-md hover:shadow-md hover:border-yellow-400"
                     }`}
                     onClick={() => handleDepartmentClick(department)}
                   > 

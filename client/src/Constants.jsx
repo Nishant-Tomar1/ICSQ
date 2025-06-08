@@ -60,14 +60,14 @@ export const getDepartmentIcon = (deptName) => {
     "FINANCE & ACCOUNTS": <FaDollarSign className="inline-block mr-2 text-green-500" />,
     "PEOPLE DEVELOPMENT": <FaUserCog className="inline-block mr-2 text-pink-500" />,
     "MD OFFICE": <FaBriefcase className="inline-block mr-2 text-gray-300" />,
-    "PROCUREMENT": <FaBoxOpen className="inline-block mr-2 text-yellow-500" />,
+    "PROCUREMENT": <FaBoxOpen className="inline-block mr-2 text-[goldenrod]" />,
     "PUBLIC RELATIONS": <FaMicrophone className="inline-block mr-2 text-red-400" />,
     "PROCESS IMPROVEMENT & BUSINESS EXCELLENCE": <FaCog className="inline-block mr-2 text-blue-500" />,
     "DEVELOPMENT": <FaBuilding className="inline-block mr-2 text-gray-400" />,
     "SOBHAPMC LLC": <FaTools className="inline-block mr-2 text-indigo-500" />,
     "SOBHA ENERGY SOLUTION": <FaBatteryHalf className="inline-block mr-2 text-green-400" />,
     "LATINEM FACILITIES MANAGEMENT": <FaHome className="inline-block mr-2 text-blue-400" />,
-    "PNCA": <FaDraftingCompass className="inline-block mr-2 text-yellow-500" />,
+    "PNCA": <FaDraftingCompass className="inline-block mr-2 text-[goldenrod]" />,
     "SOBHA COMMUNITY MANAGEMENT LLC": <FaUserFriends className="inline-block mr-2 text-purple-400" />,
   };
   return (departmentIcons[deptName.toUpperCase()] || <FaBuilding className="inline-block mr-2 text-gray-400"/>);

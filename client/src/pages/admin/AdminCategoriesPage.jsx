@@ -230,7 +230,7 @@ function AdminCategoriesPage() {
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-yellow-500">
+          <h1 className="text-2xl font-bold text-[goldenrod]">
             Manage Survey Categories
           </h1>
           <p className="text-gray-200">
