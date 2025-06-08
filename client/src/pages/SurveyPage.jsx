@@ -173,7 +173,7 @@ function SurveyPage() {
                   key={dept}
                   className={` border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
                     dept === departmentId
-                    ? "border-2 border-yellow-500 shadow-md"
+                    ? "border-2 border-[goldenrod] shadow-md"
                     : "hover:shadow-md hover:bg-white/5"
                   }`}
                   onClick={() => navigate(`/survey/${dept}`, {replace :true})}
@@ -199,8 +199,8 @@ function SurveyPage() {
           
         :
       <main className="container mx-auto py-4 px-4 text-gray-200">
-      <Card className="rounded-b-none text-center text-yellow-500 text-md">
-        <CardHeader className="bg-black/20 border-b py-6 border-b-gray-400 text-xl font-semibold">ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
+      <Card className="rounded-b-none text-center text-[goldenrod] text-md">
+        <CardHeader className="bg-black/20 border-b py-6 border-b-gray-400 text-xl font-semibold">{getDepartmentIcon(getDepartmentName(departmentId, departments))} ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
      
         <div className="overflow-x-auto bg-black/20">
           <table className="min-w-full border border-gray-700 rounded-lg overflow-hidden">
@@ -217,9 +217,9 @@ function SurveyPage() {
               return (
                 <tr key={category.name} className="border-t border-gray-500 text-left">
                   {/* Category Name */}
-                  <td className="px-4 py-4 align-top font-medium text-gray-200 max-w-60">
+                  <td className="px-4 py-4 align-top font-medium text-slate-200 max-w-60">
                     {capitalizeFirstLetter(category.name)}
-                    <div className="text-xs font-light text-gray-400"> {capitalizeFirstLetter(category.description)}</div>
+                    <div className="text-xs font-light text-gray-500"> {capitalizeFirstLetter(category.description)}</div>
                   </td>
                  
 

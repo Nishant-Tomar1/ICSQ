@@ -56,7 +56,7 @@ function AdminDashboardPage() {
 
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-yellow-500">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold text-[goldenrod]">Admin Dashboard</h1>
           <p className="text-gray-200">Manage departments, categories, users and view system statistics</p>
         </div>
 
@@ -173,7 +173,7 @@ function AdminDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-yellow-500">Manage Departments</CardTitle>
+              <CardTitle className="text-[goldenrod]">Manage Departments</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-300 mb-4">Add, edit, or remove departments in the system.</p>
@@ -185,7 +185,7 @@ function AdminDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-yellow-500">Manage Categories</CardTitle>
+              <CardTitle className="text-[goldenrod]">Manage Categories</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-300 mb-4">Configure survey categories and questions. Add, edit or remove categories.</p>
@@ -197,7 +197,7 @@ function AdminDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-yellow-500">Manage Users</CardTitle>
+              <CardTitle className="text-[goldenrod]">Manage Users</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-300 mb-4">Add, edit, or remove users and set permissions.</p>
