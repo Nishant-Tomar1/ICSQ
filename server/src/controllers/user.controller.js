@@ -33,7 +33,7 @@ export async function getUserById(req, res) {
 
 export async function addUser(req, res) {
   try {
-    const { name, email, password, department, role = "user" } = req.body
+    const { name, email, password, department, role = "user", surveyedDepartmentIds = [] } = req.body
 
     if (!name || !email || !password || !department) {
       return res.status(400).json({ message: "All fields are required" })
@@ -50,13 +50,22 @@ export async function addUser(req, res) {
       return res.status(404).json({message : "Invalid Department Id"})
     }
 
+    // Validate surveyed departments
+    if (surveyedDepartmentIds.length > 0) {
+      const validDepartments = await Department.find({ _id: { $in: surveyedDepartmentIds } });
+      if (validDepartments.length !== surveyedDepartmentIds.length) {
+        return res.status(400).json({ message: "One or more surveyed department IDs are invalid" });
+      }
+    }
+
     // Create new user
     const user = new User({
       name,
       email,
       password,
       department : new mongoose.Types.ObjectId(department),
-      role, 
+      role,
+      surveyedDepartmentIds
     })
 
     await user.save()
@@ -75,7 +84,7 @@ export async function addUser(req, res) {
 // Update a user
 export async function updateUser(req, res) {
   try {
-    const { name, email,department: departmentId, role, password } = req.body
+    const { name, email, department: departmentId, role, password, surveyedDepartmentIds } = req.body
     
     const user = await User.findById(req.params?.id)
 
@@ -89,15 +98,28 @@ export async function updateUser(req, res) {
     if (role) user.role = role
     if (password) user.password = password
     
+    // Update surveyed departments if provided
+    if (surveyedDepartmentIds) {
+      // Validate surveyed departments
+      if (surveyedDepartmentIds.length > 0) {
+        const validDepartments = await Department.find({ _id: { $in: surveyedDepartmentIds } });
+        if (validDepartments.length !== surveyedDepartmentIds.length) {
+          return res.status(400).json({ message: "One or more surveyed department IDs are invalid" });
+        }
+      }
+      user.surveyedDepartmentIds = surveyedDepartmentIds;
+    }
+
     await user.save({validateBeforeSave : false})
-    return res.json(user)
+    const updatedUser = await User.findById(user._id).select("-password")
+    return res.json(updatedUser)
   } catch (error) {
     console.error(`Error updating user ${req.params.id}:`, error)
     return res.status(500).json({ message: "Failed to update user" })
   }
 }
 
-//Delete a user
+// Delete a user
 export async function deleteUser(req, res) {
   try {
     const user = await User.findById(req.params.id)
@@ -107,7 +129,6 @@ export async function deleteUser(req, res) {
     }
 
     await user.deleteOne()
-
     return res.json({ message: "User deleted successfully" })
   } catch (error) {
     console.error(`Error deleting user ${req.params.id}:`, error)

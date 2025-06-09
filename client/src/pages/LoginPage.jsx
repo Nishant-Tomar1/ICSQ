@@ -8,7 +8,7 @@ import Label from "../components/ui/Label"
 import Separator from "../components/ui/Separator"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card"
 import logo from "../assets/logo.png"
-import teamsLogo from "../assets/teamsLogo.png"
+import teamsLogo from "../assets/microsoft.png"
 
 function LoginPage() {
   const [email, setEmail] = useState("")
@@ -114,7 +114,7 @@ function LoginPage() {
                   />
                 </svg> */}
                 <img src={teamsLogo} alt="teams Logo" width={25} />
-                <span>Sign in with Microsoft Teams</span>
+                <span>Sign in with Microsoft</span>
               </Button>
 
               <div className="relative">

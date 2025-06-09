@@ -45,7 +45,7 @@ function DashboardHeader() {
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
               <span className="text-xl font-bold text-gray-200">
-                <span className="hidden lg:block">ICSQ.sobharealty.com </span>
+                <span className="hidden lg:block">Internal Customer Satisfaction Quotient </span>
                 <span className="lg:hidden">ICSQ</span>
               </span>
             </Link>

@@ -185,6 +185,18 @@ function AdminDashboardPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-[goldenrod]">Department Mappings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-300 mb-4">Configure which departments can review other departments.</p>
+              <Link to="/admin/department-mappings">
+                <Button className="w-full">Manage Mappings</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-[goldenrod]">Manage Categories</CardTitle>
             </CardHeader>
             <CardContent>

@@ -9,6 +9,7 @@ import ActionPlansPage from "./pages/ActionPlansPage"
 import ReportsPage from "./pages/ReportsPage"
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage"
 import AdminDepartmentsPage from "./pages/admin/AdminDepartmentsPage"
+import AdminDepartmentMappingsPage from "./pages/admin/AdminDepartmentMappingsPage"
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage"
 import AdminUsersPage from "./pages/admin/AdminUsersPage"
 import ProfilePage from "./pages/ProfilePage"
@@ -122,6 +123,14 @@ function App() {
           element={
             <AdminRoute>
               <AdminDepartmentsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/department-mappings"
+          element={
+            <AdminRoute>
+              <AdminDepartmentMappingsPage />
             </AdminRoute>
           }
         />
