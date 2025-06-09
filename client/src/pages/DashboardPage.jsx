@@ -77,7 +77,7 @@ function DashboardPage() {
 
   const renderCircularProgress = (value) => (
     <Progress 
-    value={value}
+    value={value || 0}
     />
   )
 
@@ -125,8 +125,8 @@ function DashboardPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* left side */}
-           <Card>
-            <CardHeader className="-mb-20 px-6 backdrop-brightness-50">
+           <Card className="h-full bg-[#29252c]/70">
+            <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
                 <CardTitle className="text-lg">
                   <div className="flex items-center justify-between">
                     <div>
@@ -146,22 +146,22 @@ function DashboardPage() {
           </Card>
 
           {/* Right side */}
-          <div className="flex flex-col gap-2 ">
-            <Card>
+          <div className="flex flex-col gap-2 h-full">
+            <Card className="flex-1 max-h-[200px] bg-[#29252c]/70">
               <CardHeader>
                   <CardTitle className="text-[goldenrod] text-xl -mb-2">Your Department's average ICSQ</CardTitle>
                 </CardHeader>
             <CardContent>
                   <div className="grid grid-cols-1 gap-6">
-                        <Card  
+                        {currentUserDept?.score && <Card  
                           className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(modalDept._id === currentUserDept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
                         >
                           <div onClick={() => {
                               setModalDept(currentUserDept);
                             }}>
                           <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
-                             <span> {getDepartmentIcon(currentUserDept.name)}{capitalizeFirstLetter(currentUserDept.name)} </span>
-                            <span className="text-gray-200">{currentUserDept?.score.toFixed(2)} %</span>
+                             <span> {getDepartmentIcon(currentUser.department?.name || "")}{capitalizeFirstLetter(currentUser?.department?.name || "")} </span>
+                            <span className="text-gray-200">{currentUserDept?.score?.toFixed(2)} %</span>
                           </div>
                           <div
                             className="w-full mx-auto"
@@ -169,7 +169,7 @@ function DashboardPage() {
                             {renderCircularProgress(currentUserDept.score)}
                           </div>
                           </div>
-                        </Card>
+                        </Card>}
                   </div>
                 </CardContent>
             
@@ -177,7 +177,7 @@ function DashboardPage() {
 
 
             {isAdmin() ? (
-              <Card className="mb-8 overflow-y-scroll backdrop-brightness-75">
+              <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
                 <CardHeader>
                   <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
                 </CardHeader>
@@ -209,7 +209,7 @@ function DashboardPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="mb-8 overflow-y-scroll backdrop-brightness-75">
+              <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
                 <CardHeader>
                   <CardTitle className="text-[goldenrod]">
                     Scores Given to Your Department ({capitalizeFirstLetter(currentUser.department?.name)})
@@ -252,7 +252,7 @@ function DashboardPage() {
             )}
           </div>
         </div>
-
+        
         <div className="flex justify-center mt-6 gap-4">
           <Button
             onClick={() => navigate("/survey")}

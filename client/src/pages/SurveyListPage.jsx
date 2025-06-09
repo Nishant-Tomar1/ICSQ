@@ -129,7 +129,7 @@ function SurveyListPage() {
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
-        <Card className="mb-6">
+        <Card className="mb-6 bg-[#29252c]/60">
           <CardHeader>
             <CardTitle>Ready for ICSQ Survey</CardTitle>
           </CardHeader>

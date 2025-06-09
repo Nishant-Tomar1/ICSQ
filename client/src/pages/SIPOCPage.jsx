@@ -216,10 +216,10 @@ function SIPOCPage() {
 
     return (
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
+        {/* <div className="flex items-center gap-2 mb-4">
           {icon}
           <h3 className={`text-lg font-semibold ${colorClass}`}>{title}</h3>
-        </div>
+        </div> */}
         <div className="w-full overflow-x-auto">
           <Table className="min-w-[900px] w-full bg-black/20">
             <TableHeader>
@@ -439,14 +439,29 @@ function SIPOCPage() {
               </div>
             )}
 
-            {/* Add/Edit Entry Modal */}
-            {modalOpen && (
-              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg bg-opacity-40 flex justify-center items-center z-50 px-4 animate-fadeIn">
-                <div className="rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative bg-gradient-to-b from-[#1c1c1e] to-[#2a2a2d] text-white transform transition-all duration-300 ease-out animate-slideUp">
+            
+
+            {imageModal.open && (
+              <div className="fixed inset-0 bg-black/10 backdrop-blur-lg bg-opacity-50 flex items-center justify-center z-50">
+                <div className=" rounded-lg p-4 max-w-3xl w-full bg-black/30">
+                  <h3 className="text-lg font-semibold mb-4">Process Image</h3>
+                  <img src={imageModal.src} alt="Process" className="w-full max-h-[60vh] object-contain" />
+                  <div className="mt-4 text-right">
+                    <button onClick={() => setImageModal({ open: false, src: "" })} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Close</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        {/* Add/Edit Entry Modal */}
+        {modalOpen && (
+              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg bg-opacity-40 flex justify-center items-center z-50 px-3 animate-fadeIn max-w-screen h-screen">
+                <div className="rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto relative bg-gradient-to-b from-[#1c1c1e] to-[#2a2a2d] text-white transform transition-all duration-300 ease-out animate-slideUp z-[1000]">
                   {/* Header */}
-                  <div className="sticky top-0 bg-gradient-to-b from-[#1c1c1e] to-[#1c1c1e]/95 px-6 py-4 border-b border-gray-700/50 backdrop-blur-sm">
+                  <div className="sticky top-0 bg-gradient-to-b from-[#1c1c1e] to-[#1c1c1e]/95 px-4 py-3 border-b border-gray-700/50 backdrop-blur-sm">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-semibold bg-gradient-to-r from-amber-200 to-amber-600 bg-clip-text text-transparent">
+                      <h2 className="text-xl font-semibold bg-gradient-to-r from-amber-200 to-amber-600 bg-clip-text text-transparent">
                         {isEditing ? "Edit SIPOC Entry" : "Add New SIPOC Entry"}
                       </h2>
                       <button
@@ -467,122 +482,122 @@ function SIPOCPage() {
                         }}
                         className="text-gray-400 hover:text-white transition-colors"
                       >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
                     </div>
                     {isEditing && (
-                      <p className="mt-2 text-sm text-gray-400">
+                      <p className="mt-1.5 text-xs text-gray-400">
                         Editing entry created on {new Date(editingEntry.createdAt).toLocaleDateString()}
                       </p>
                     )}
                   </div>
 
                   {/* Form */}
-                  <form onSubmit={handleAddOrUpdateEntry} className="p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <form onSubmit={handleAddOrUpdateEntry} className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Left Column */}
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         {/* Supplier */}
                         <div className="form-group">
-                          <label className="block text-sm font-medium mb-2 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
                             Supplier <span className="text-red-400">*</span>
                           </label>
                           <textarea
                             placeholder="Enter suppliers (one per line)..."
                             value={newEntry.supplier}
                             onChange={(e) => handleInputChange("supplier", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-3 rounded-lg text-white placeholder-gray-500
+                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
                               focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
                               transition-all duration-200"
-                            rows={4}
+                            rows={3}
                           />
                         </div>
 
                         {/* Input */}
                         <div className="form-group">
-                          <label className="block text-sm font-medium mb-2 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
                             Input <span className="text-red-400">*</span>
                           </label>
                           <textarea
                             placeholder="Enter inputs (one per line)..."
                             value={newEntry.input}
                             onChange={(e) => handleInputChange("input", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-3 rounded-lg text-white placeholder-gray-500
+                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
                               focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
                               transition-all duration-200"
-                            rows={4}
+                            rows={3}
                           />
                         </div>
 
                         {/* Process */}
                         <div className="form-group">
-                          <label className="block text-sm font-medium mb-2 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
                             Process <span className="text-red-400">*</span>
                           </label>
                           <textarea
                             placeholder="Enter process steps (one per line)..."
                             value={newEntry.process.input}
                             onChange={(e) => handleInputChange("process", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-3 rounded-lg text-white placeholder-gray-500
+                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
                               focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
                               transition-all duration-200"
-                            rows={4}
+                            rows={3}
                           />
                         </div>
                       </div>
 
                       {/* Right Column */}
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         {/* Output */}
                         <div className="form-group">
-                          <label className="block text-sm font-medium mb-2 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
                             Output <span className="text-red-400">*</span>
                           </label>
                           <textarea
                             placeholder="Enter outputs (one per line)..."
                             value={newEntry.output}
                             onChange={(e) => handleInputChange("output", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-3 rounded-lg text-white placeholder-gray-500
+                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
                               focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
                               transition-all duration-200"
-                            rows={4}
+                            rows={3}
                           />
                         </div>
 
                         {/* Customer */}
                         <div className="form-group">
-                          <label className="block text-sm font-medium mb-2 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
                             Customer <span className="text-red-400">*</span>
                           </label>
                           <textarea
                             placeholder="Enter customers (one per line)..."
                             value={newEntry.customer}
                             onChange={(e) => handleInputChange("customer", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-3 rounded-lg text-white placeholder-gray-500
+                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
                               focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
                               transition-all duration-200"
-                            rows={4}
+                            rows={3}
                           />
                         </div>
 
                         {/* Process Diagram */}
                         <div className="form-group">
-                          <label className="block text-sm font-medium mb-2 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
                             Process Diagram
                           </label>
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {isEditing && editingEntry?.entries?.process?.file && (
-                              <div className="p-3 bg-[#2a2a2d]/30 rounded-lg border border-gray-600/30">
+                              <div className="p-2 bg-[#2a2a2d]/30 rounded-md border border-gray-600/30">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm text-gray-400">Current Image:</span>
+                                  <span className="text-xs text-gray-400">Current Image:</span>
                                   <button
                                     type="button"
                                     onClick={() => setImageModal({ open: true, src: editingEntry.entries.process.file })}
-                                    className="text-amber-400 hover:text-amber-300 text-sm font-medium flex items-center gap-2 transition-colors"
+                                    className="text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
                                   >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
@@ -641,7 +656,7 @@ function SIPOCPage() {
                       <button
                         type="submit"
                         disabled={isAdding}
-                        className={`px-6 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600
+                        className={`px-4 py-1 text-sm rounded-lg bg-gradient-to-r from-amber-500 to-amber-600
                           text-white font-medium shadow-lg shadow-amber-500/20
                           hover:shadow-amber-500/30 hover:from-amber-600 hover:to-amber-700
                           focus:ring-2 focus:ring-amber-500/50 focus:outline-none
@@ -665,20 +680,6 @@ function SIPOCPage() {
                 </div>
               </div>
             )}
-
-            {imageModal.open && (
-              <div className="fixed inset-0 bg-black/10 backdrop-blur-lg bg-opacity-50 flex items-center justify-center z-50">
-                <div className=" rounded-lg p-4 max-w-3xl w-full bg-black/30">
-                  <h3 className="text-lg font-semibold mb-4">Process Image</h3>
-                  <img src={imageModal.src} alt="Process" className="w-full max-h-[60vh] object-contain" />
-                  <div className="mt-4 text-right">
-                    <button onClick={() => setImageModal({ open: false, src: "" })} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Close</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </main>
     </div>
   );

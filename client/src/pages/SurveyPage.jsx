@@ -164,7 +164,7 @@ function SurveyPage() {
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-2 px-4">
-        <Card className="mb-2">
+        <Card className="mb-2 bg-black/40">
           <CardContent>
             <div className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -200,86 +200,82 @@ function SurveyPage() {
         :
       <main className="container mx-auto py-4 px-4 text-gray-200">
       <Card className="rounded-b-none text-center text-[goldenrod] text-md">
-        <CardHeader className="bg-black/20 border-b py-6 border-b-gray-400 text-xl font-semibold">{getDepartmentIcon(getDepartmentName(departmentId, departments))} ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
+        <CardHeader className="bg-black/40 border-b py-6 border-b-gray-400 text-xl font-semibold">{getDepartmentIcon(getDepartmentName(departmentId, departments))} ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
      
-        <div className="overflow-x-auto bg-black/20">
+        <div className="overflow-x-auto bg-black/40">
           <table className="min-w-full border border-gray-700 rounded-lg overflow-hidden">
-            <thead className="bg-black/10 text-left">
-              <tr>
+            <thead className="bg-black/20 text-left hidden md:table-header-group">
+              <tr className="md:table-row flex flex-col md:flex-row">
                 <th className="px-4 py-3 text-sm font-semibold text-gray-200">Category</th>
                 <th className="px-4 py-3 text-sm font-semibold text-gray-200 text-center">Rating</th>
                 <th className="px-4 py-3 text-sm font-semibold text-gray-200">Expectations</th>
               </tr>
             </thead>
-            <tbody>
+            
+            <tbody className="divide-y divide-gray-700">
               {categories.map((category) => 
               {if ( ((!category.department) || (String(category.department) === String(departmentId)) ) )
               return (
-                <tr key={category.name} className="border-t border-gray-500 text-left">
+                <tr key={category.name} className="border-t border-gray-500 text-left md:table-row flex flex-col md:flex-row">
                   {/* Category Name */}
                   <td className="px-4 py-4 align-top font-medium text-slate-200 max-w-60">
                     {capitalizeFirstLetter(category.name)}
                     <div className="text-xs font-light text-gray-500"> {capitalizeFirstLetter(category.description)}</div>
                   </td>
                  
-
-
                   {/* Ratings with Emojis */}
                   <td className="px-4 py-4 align-middle">
-                  <div className="flex flex-row items-center justify-center gap-4">
-                    {[20, 40, 60, 80, 100].map((value, index) => {
-                      const emojiList = ["😞", "😕", "😐", "🙂", "🤩"];
-                      const titles = ["Poor", "Below Avg", "Average", "Good", " Impressive"];
-                      const isSelected = formData[category.name]?.rating === value;
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+                      {[20, 40, 60, 80, 100].map((value, index) => {
+                        const emojiList = ["😞", "😕", "😐", "🙂", "🤩"];
+                        const titles = ["Poor", "Below Avg", "Average", "Good", "Impressive"];
+                        const isSelected = formData[category.name]?.rating === value;
 
-                      return (
-                        <div className="flex flex-col mr-2">
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handleRatingChange(category.name, value)}
-                            title={titles[index]}
-                            className={`text-2xl p-2 rounded-full border transition 
-                              ${isSelected ? "bg-green-700 border-green-500" : "border-transparent hover:border-gray-300"}`}
-                          >
-                            {emojiList[index]}
-                          </button>
-                          
-                        
-                            <span className="text-gray-400 text-[12px] text-center font-thin">{titles[index]}</span>
-                        
-                        </div>
-                      );
-                    })}
-                  </div>
-                </td>
-
+                        return (
+                          <div className="flex flex-col items-center">
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => handleRatingChange(category.name, value)}
+                              title={titles[index]}
+                              className={`text-xl sm:text-3xl p-1.5 sm:p-2 rounded-full border transition 
+                                ${isSelected ? "bg-green-700 border-green-500" : "border-transparent hover:border-gray-300"}`}
+                            >
+                              {emojiList[index]}
+                            </button>
+                            <span className="text-gray-400 text-[10px] sm:text-[12px] text-center font-thin mt-1">{titles[index]}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </td>
 
                   {/* Expectations Section */}
                   <td className="px-4 py-4 align-top">
-                    {(formData[category.name]?.rating !== 100) && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-300 mb-1">
-                          Reason for the score and your expectations:
-                        </p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-300 mb-1">
+                        {formData[category.name]?.rating <= 60 ? "* Required - " : ""} 
+                        Reason for the score and your expectations:
+                      </p>
 
-                        <div className="flex gap-2">
-                          <Textarea
-                            placeholder="Your expectations..."
-                            value={formData[category.name]?.expectations || ''}
-                            onChange={(e) => handleExpectationChange(category.name, e.target.value)}
-                            className="flex-grow h-16 text-gray-200 placeholder-gray-500"
-                          />
-                        </div>
+                      <div className="flex gap-2">
+                        <Textarea
+                          placeholder="Your expectations..."
+                          value={formData[category.name]?.expectations || ''}
+                          onChange={(e) => handleExpectationChange(category.name, e.target.value)}
+                          className="flex-grow h-16 text-gray-200 placeholder-gray-500"
+                          required={formData[category.name]?.rating <= 60}
+                          maxLength={300}
+                        />
                       </div>
-                    )}
+                    </div>
                   </td>
                 </tr>
               )})}
             </tbody>
           </table>
         </div>
-         </Card>
+      </Card>
 
 
         <div className="flex justify-end gap-4 mt-8">
