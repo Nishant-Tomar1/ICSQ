@@ -11,6 +11,7 @@ import axios from "axios"
 
 function SurveyListPage() {
   const [departments, setDepartments] = useState([])
+  const [mappedDepartments, setMappedDepartments] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedDepartments, setSelectedDepartments] = useState([])
   const navigate = useNavigate()
@@ -20,58 +21,95 @@ function SurveyListPage() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await axios.get(`${Server}/departments`, { withCredentials: true });
-        const data = response.data;
-        
-        // Filter out user's own department
-        const filteredDepartments = data.filter((dept) => dept.name !== currentUser?.department)
-        setDepartments(filteredDepartments)
+        // Get all departments and department mappings
+        const [departmentsRes, mappingsRes] = await Promise.all([
+          axios.get(`${Server}/departments`, { withCredentials: true }),
+          axios.get(`${Server}/department-mappings`, { withCredentials: true })
+        ]);
+
+        const allDepartments = departmentsRes.data;
+        const mappings = mappingsRes.data;
+
+        // Find departments that the current user's department can review
+        const allowedDepartmentIds = new Set();
+        mappings.forEach(mapping => {
+          const reviewerDepts = mapping.reviewerDepartments || [];
+          const canReview = reviewerDepts.some(dept => {
+            const deptId = dept._id || dept;
+            return deptId === currentUser?.department?._id;
+          });
+
+          if (canReview) {
+            const mappedDeptId = mapping.department?._id || mapping.department;
+            allowedDepartmentIds.add(mappedDeptId);
+          }
+        });
+
+        // Filter out user's own department from allowed departments
+        if (currentUser?.department?._id) {
+          allowedDepartmentIds.delete(currentUser.department._id);
+        }
+
+        setMappedDepartments(Array.from(allowedDepartmentIds));
+        setDepartments(allDepartments);
       } catch (error) {
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
           description: "Failed to load departments",
           variant: "destructive",
-        })
+        });
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchDepartments()
-  }, [toast, currentUser])
+    fetchDepartments();
+  }, [toast, currentUser]);
 
   const handleDepartmentClick = (department) => {
-    if (department._id === currentUser.department?._id){
+    // Only allow selection of mapped departments
+    if (!mappedDepartments.includes(department._id)) {
       toast({
-        title : "Selection not Allowed",
-        description : "Cannot survey for your own department",
-      })
-      return
-    } else if (currentUser?.surveyedDepartmentIds.includes(department._id) ){
+        title: "Selection not Allowed",
+        description: "Your department is not mapped to review this department",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (department._id === currentUser.department?._id) {
       toast({
-        title : "Selection not Allowed",
-        description : "You already added survey for this department"
-      })
-      return
+        title: "Selection not Allowed",
+        description: "Cannot survey for your own department",
+      });
+      return;
+    } else if (currentUser?.surveyedDepartmentIds.includes(department._id)) {
+      toast({
+        title: "Selection not Allowed",
+        description: "You already added survey for this department"
+      });
+      return;
     }
-    if (selectedDepartments.includes(department._id)){
-      setSelectedDepartments(prev => prev.filter(dept => dept !== department._id ));
+    
+    if (selectedDepartments.includes(department._id)) {
+      setSelectedDepartments(prev => prev.filter(dept => dept !== department._id));
     }
-    else setSelectedDepartments(prev => [...prev,department._id])
-  }
+    else setSelectedDepartments(prev => [...prev, department._id]);
+  };
 
   const handleStartSurvey = () => {
     if (selectedDepartments.length) {
       localStorage.setItem("selectedDepartments", JSON.stringify(selectedDepartments));
-      navigate(`/survey/${selectedDepartments[0]}`)
+      navigate(`/survey/${selectedDepartments[0]}`);
     } else {
       toast({
         title: "Selection Required",
         description: "Please select a department to proceed",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -79,11 +117,11 @@ function SurveyListPage() {
         <DashboardHeader />
         <div className="container mx-auto py-8 px-4">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[goldenrod]"></div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -98,53 +136,79 @@ function SurveyListPage() {
           <CardContent>
             <p className="mb-6 text-gray-300">
               Select departments to evaluate. Your feedback helps improve internal customer satisfaction.
+              {mappedDepartments.length === 0 && (
+                <span className="block mt-2 text-yellow-500">
+                  Note: Your department is not currently mapped to review any other departments. Please contact your administrator.
+                </span>
+              )}
             </p>
 
             {/* Legend */}
-          <div className="flex flex-wrap justify-center items-center gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-900" />
-              <span className="text-sm text-gray-300">Already Surveyed</span>
+            <div className="flex flex-wrap justify-center items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-900" />
+                <span className="text-sm text-gray-300">Already Surveyed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-yellow-400 bg-yellow-800" />
+                <span className="text-sm text-gray-300">Your Department</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-900" />
+                <span className="text-sm text-gray-300">Selected Department(s)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-gray-500 bg-gray-800" />
+                <span className="text-sm text-gray-300">Not Eligible</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-yellow-400 bg-yellow-800" />
-              <span className="text-sm text-gray-300">Your Department</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-900" />
-              <span className="text-sm text-gray-300">Selected Department(s)</span>
-            </div>
-          </div>
-
-
 
             <div className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {departments.map((department) => (
-                    <div
-                    key={department._id}
-                    className={`rounded-lg flex flex-col justify-center items-center backdrop-blur-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-sm cursor-pointer transition-all p-4 text-center ${
-                      selectedDepartments.includes(department._id)
-                        ? "border-2 border-blue-500 shadow-md"
-                        : "shadow-md hover:bg-white/20"
-                    } ${currentUser?.surveyedDepartmentIds.includes(department._id)
-                        && "border-2 border-green-600 shadow-md hover:shadow-md hover:border-green-500"
-                    } ${currentUser?.department?._id === department?._id
-                        && "border-2 border-[goldenrod] shadow-md hover:shadow-md hover:border-yellow-400"
-                    }`}
-                    onClick={() => handleDepartmentClick(department)}
-                  > 
-                   <div className="absolute top-2 right-1.5 text-xs"> {currentUser?.surveyedDepartmentIds.includes(department._id) && <Badge className="text-green-600 rounded-sm" variant="success">Surveyed</Badge>}</div>
-                    <div className="h-16 flex items-center justify-center">
-                      <span className="font-medium text-sm">{getDepartmentIcon(department.name?.toUpperCase())} {department.name?.toUpperCase()}</span>
-                    </div>
-                  </div>
+                {departments.map((department) => {
+                  const isMapped = mappedDepartments.includes(department._id);
+                  const isSurveyed = currentUser?.surveyedDepartmentIds.includes(department._id);
+                  const isOwnDepartment = currentUser?.department?._id === department._id;
+                  const isSelected = selectedDepartments.includes(department._id);
 
-                ))}
+                  return (
+                    <div
+                      key={department._id}
+                      className={`
+                        relative rounded-lg flex flex-col justify-center items-center backdrop-blur-3xl 
+                        bg-gradient-to-br from-gray-800 to-gray-900 shadow-sm p-4 text-center
+                        transition-all duration-300
+                        ${!isMapped && !isOwnDepartment ? 'opacity-50 cursor-not-allowed border border-gray-700' : 'cursor-pointer'}
+                        ${isSelected ? "border-2 border-blue-500 shadow-md" : "shadow-md hover:bg-white/20"}
+                        ${isSurveyed && "border-2 border-green-600 shadow-md hover:shadow-md hover:border-green-500"}
+                        ${isOwnDepartment && "border-2 border-[goldenrod] shadow-md hover:shadow-md hover:border-yellow-400"}
+                      `}
+                      onClick={() => handleDepartmentClick(department)}
+                    > 
+                      <div className="absolute top-2 right-1.5 text-xs space-y-1">
+                        {isSurveyed && (
+                          <Badge className="text-green-600 rounded-sm" variant="success">Surveyed</Badge>
+                        )}
+                        {!isMapped && !isOwnDepartment && (
+                          <Badge className="text-gray-400 rounded-sm" variant="secondary">Not Eligible</Badge>
+                        )}
+                      </div>
+                      <div className="h-16 flex items-center justify-center">
+                        <span className={`font-medium text-sm ${!isMapped && !isOwnDepartment ? 'text-gray-400' : 'text-gray-200'}`}>
+                          {getDepartmentIcon(department.name?.toUpperCase())} {department.name?.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="flex justify-center mt-8">
-                <Button onClick={handleStartSurvey} disabled={!selectedDepartments.length} className="px-8 py-3 text-lg">
+                <Button 
+                  onClick={handleStartSurvey} 
+                  disabled={!selectedDepartments.length}
+                  className="px-8 py-3 text-lg"
+                >
                   Start Survey
                 </Button>
               </div>
@@ -153,7 +217,7 @@ function SurveyListPage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }
 
-export default SurveyListPage
+export default SurveyListPage;
