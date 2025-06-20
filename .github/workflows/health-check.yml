@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CLIENT_URL: https://icsq-client-app.vercel.app
+      CLIENT_URL: https://icsq-client.vercel.app
       SERVER_URL: https://icsq.onrender.com/health
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
