@@ -1,0 +1,17 @@
+# Ignore local dependencies and build output
+node_modules
+dist
+build
+
+# Ignore environment and config files
+.git
+.env
+.env.local
+.env.*.local
+
+# Logs and debug files
+*.log
+npm-debug.log*
+
+# Misc
+.DS_Store

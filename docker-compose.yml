@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  server:
+    image: nishant910/icsq-server:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./server/.env
+
+  client:
+    image: nishant910/icsq-client:latest
+    ports:
+      - "5173:5173"
