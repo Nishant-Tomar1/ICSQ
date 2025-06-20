@@ -5,7 +5,8 @@ import {
   FaBuilding, FaTools, FaBatteryHalf, FaHome, FaDraftingCompass, FaUserFriends
 } from "react-icons/fa";
 
-export const Server = "http://localhost:8080/api/v1"
+// export const Server = "http://localhost:8080/api/v1"
+export const Server = "https://icsq.onrender.com/api/v1"
 
 export const capitalizeFirstLetter = (string) => {
     return (string?.charAt(0)?.toUpperCase() + string?.slice(1)) || string;

@@ -24,8 +24,8 @@ app.use(
   bodyParser.json()
 );
 
-app.get('/', ( _ , res) => {
-  res.send("Server Working Successfully!");
+app.get('/health', ( _ , res) => {
+  res.status(200).json({"message" : "Server Working Successfully!"});
 })
 
 // Import routes
