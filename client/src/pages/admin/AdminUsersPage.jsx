@@ -246,7 +246,7 @@ function AdminUsersPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{getDepartmentName(user.department, departments)}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === "admin" ? "success" : user.role === "manager" ? "primary" : "default"}>
+                          <Badge variant={user.role === "admin" ? "success" : user.role === "hod" ? "primary" : "default"}>
                             {capitalizeFirstLetter(user.role)}
                           </Badge>
                         </TableCell>
@@ -320,7 +320,7 @@ function AdminUsersPage() {
                         onValueChange={(value) => handleSelectChange("role", value)}
                         options={[
                           { value: "user", label: "User" },
-                          { value: "manager", label: "Manager" },
+                          { value: "hod", label: "HOD" },
                           { value: "admin", label: "Admin" },
                         ]}
                       />

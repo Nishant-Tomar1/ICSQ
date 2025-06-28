@@ -2,6 +2,7 @@ import mongoose from "mongoose"
 import { Department } from "../models/Department.model.js"
 import {SIPOC} from "../models/SIPOC.model.js"
 import { deleteFileFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
+import { logSIPOCEvent } from "../utils/logger.js"
 
 // Get SIPOC by department
 export async function getSIPOCByDepartment(req, res) {
@@ -27,9 +28,14 @@ export async function getSIPOCByDepartment(req, res) {
       return res.status(404).json({ message: "SIPOC not found for this department" })
     }
 
+    // Log the view action
+    await logSIPOCEvent('SIPOC_VIEWED', { department: departmentId }, req.user, req)
+
     return res.json(sipoc)
   } catch (error) {
     console.error("Error fetching SIPOC:", error)
+    // Log the error
+    await logSIPOCEvent('SIPOC_VIEWED', { department: req.query.departmentId }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to fetch SIPOC data" })
   }
 }
@@ -42,9 +48,14 @@ export async function getSIPOCById(req, res) {
       return res.status(404).json({ message: "SIPOC not found" })
     }
 
+    // Log the view action
+    await logSIPOCEvent('SIPOC_VIEWED', sipoc, req.user, req)
+
     return res.json(sipoc)
   } catch (error) {
     console.error("Error fetching SIPOC:", error)
+    // Log the error
+    await logSIPOCEvent('SIPOC_VIEWED', { _id: req.params.id }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to fetch SIPOC data" })
   }
 }
@@ -53,6 +64,8 @@ export async function getSIPOCById(req, res) {
 export async function createSIPOC(req, res) {
   try {
     let { departmentId, entries } = req.body
+
+    console.log('Received SIPOC data:', { departmentId, entries });
 
     if (!departmentId || !entries) {
       return res.status(400).json({ message: "DepartmentId and entries are required" })
@@ -70,13 +83,29 @@ export async function createSIPOC(req, res) {
       processFile = await uploadOnCloudinary(processLocalPath);
     }
     entries = JSON.parse(entries);
-    entries = {...entries, process : {...entries.process , file : processFile.url, input : entries?.process?.input || ""} };
+    console.log('Parsed entries:', entries);
+    
+    entries = {
+      ...entries, 
+      process: {
+        ...entries.process,
+        file: processFile.url || "",
+        input: entries?.process?.input || ""
+      }
+    };
+    
+    console.log('Final entries to save:', entries);
     
     const sipoc = await SIPOC.create({ department : new mongoose.Types.ObjectId(departmentId), entries })
 
+    // Log the creation
+    await logSIPOCEvent('SIPOC_CREATED', sipoc, req.user, req, 'SUCCESS')
+
     return res.json(sipoc)
   } catch (error) {
-    console.error("Error updating SIPOC:", error)
+    console.error("Error creating SIPOC:", error)
+    // Log the error
+    await logSIPOCEvent('SIPOC_CREATED', { department: req.body.departmentId }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to create SIPOC data" })
   }
 }
@@ -100,15 +129,20 @@ export async function updateSIPOC(req, res) {
         await deleteFileFromCloudinary(entries?.process?.file)
       }
       const newProcessFile = await uploadOnCloudinary(newProcessLocalPath);
-      entries = {...entries, process : {...entries.process , file : newProcessFile.url, input : entries.process?.text} };
+      entries = {...entries, process : {...entries.process , file : newProcessFile.url, input : entries.process?.input} };
     }
 
     sipoc.entries = entries;
     await sipoc.save()
 
+    // Log the update
+    await logSIPOCEvent('SIPOC_UPDATED', sipoc, req.user, req, 'SUCCESS')
+
     return res.json(sipoc)
   } catch (error) {
     console.error("Error updating SIPOC:", error)
+    // Log the error
+    await logSIPOCEvent('SIPOC_UPDATED', { _id: req.params.id }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to update SIPOC data" })
   }
 }
@@ -137,9 +171,14 @@ export async function deleteSIPOC(req, res) {
       return res.status(404).json({ message: "SIPOC not found for this department" })
     }
 
+    // Log the deletion
+    await logSIPOCEvent('SIPOC_DELETED', sipoc, req.user, req, 'SUCCESS')
+
     return res.json({ message: "SIPOC deleted successfully" })
   } catch (error) {
     console.error("Error deleting SIPOC:", error)
+    // Log the error
+    await logSIPOCEvent('SIPOC_DELETED', { _id: req.query.id }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to delete SIPOC data" })
   }
 }

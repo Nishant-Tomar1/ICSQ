@@ -93,7 +93,7 @@ export default function DepartmentMappingModal({
                           Department Mapping
                         </h3>
                         <p className="mt-2 text-sm text-gray-400">
-                          Configure which departments can review <span className="text-[goldenrod] font-medium">{capitalizeFirstLetter(department?.name || '')}</span>
+                          Configure which departments can review <span className="text-[goldenrod] font-medium">{(department?.name || '').toUpperCase()}</span>
                         </p>
                       </div>
                       <button
@@ -186,7 +186,7 @@ export default function DepartmentMappingModal({
                                       ? 'text-[goldenrod]'
                                       : 'text-gray-100 group-hover:text-[goldenrod]'
                                   }`}>
-                                    {capitalizeFirstLetter(dept.name)}
+                                    {dept.name.toUpperCase()}
                                   </span>
                                 </div>
                               </motion.div>

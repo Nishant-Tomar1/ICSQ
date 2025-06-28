@@ -20,10 +20,15 @@ function DashboardPage() {
   const [currentUserDept, setCurrentUserDept] = useState({})
   const [departmentScores, setDepartmentScores] = useState([])
   const [departmetnScoresToParticaular, setDepartmentScoresToParticular] = useState([])
-  const [expData, setExpData] = useState(0);
+  const [expData, setExpData] = useState([])
+  const [hasSurveys, setHasSurveys] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
   const { currentUser, isAdmin } = useAuth()
+
+  useEffect(() => {
+    // No multi-department logic, just use currentUser.department
+  }, [currentUser])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,20 +38,34 @@ function DashboardPage() {
 
         let filteredScores = data
         if (!isAdmin()) {
-          filteredScores = data.filter((dept) => {dept.name === currentUser?.department?.name})
+          filteredScores = data.filter((dept) => dept.name === currentUser?.department?.name)
         }
 
-        data.map((dept) => {if (dept.name === currentUser?.department?.name){setModalDept(dept);setCurrentUserDept(dept); return;}})
-        
+        const hasDepartmentSurveys = data.some(dept => 
+          dept.name === currentUser?.department?.name && dept.score !== undefined && dept.score !== null
+        )
+        setHasSurveys(hasDepartmentSurveys)
+
+        data.forEach((dept) => {
+          if (dept.name === currentUser?.department?.name) {
+            setModalDept(dept)
+            setCurrentUserDept(dept)
+          }
+        })
         setDepartmentScores(filteredScores)
 
-        if (["manager", "user"].includes(currentUser.role)) {
+        if (["hod", "user"].includes(currentUser.role)) {
           const partresponse = await axios.get(`${Server}/analytics/department-scores/${currentUser.department?._id}`, { withCredentials: true })
           setDepartmentScoresToParticular(partresponse.data)
         }
 
-        const expresponse = await axios.get(`${Server}/analytics/expectation-data/${currentUser?.department?._id}`, {withCredentials: true})
-        setExpData(expresponse.data)
+        try {
+          const expresponse = await axios.get(`${Server}/analytics/expectation-data/${currentUser?.department?._id}`, {withCredentials: true})
+          setExpData(expresponse.data || [])
+        } catch (error) {
+          console.error("Failed to fetch expectation data:", error)
+          setExpData([])
+        }
 
       } catch (error) {
         toast({
@@ -59,7 +78,9 @@ function DashboardPage() {
       }
     }
 
-    fetchData()
+    if (currentUser?.department?._id) {
+      fetchData()
+    }
   }, [currentUser])
 
   if (isLoading) {
@@ -81,23 +102,24 @@ function DashboardPage() {
     />
   )
 
-  const calculateCourseOfAction = (deptname)=> {
-      let count = 0;
-      if ((currentUser?.role === "admin") ||(deptname === currentUser?.department?.name)){
-        expData.map((exp)=> {
-          count += exp.totalExpectationCount;
-        })
-      }
-      else{
-        expData.map((exp)=> {
-          exp?.departments?.map((deptExp)=>{
-            if (deptExp?.name === deptname){
-              count+=deptExp.expectationCount
-            }
-          })
-        })
-      }
-      return count;
+  const calculateCourseOfAction = (deptname) => {
+    let count = 0;
+    if (!Array.isArray(expData)) return 0;
+
+    if ((currentUser?.role === "admin") || (deptname === currentUser?.department?.name)) {
+      expData.forEach((exp) => {
+        count += exp.totalExpectationCount || 0;
+      });
+    } else {
+      expData.forEach((exp) => {
+        exp?.departments?.forEach((deptExp) => {
+          if (deptExp?.name === deptname) {
+            count += deptExp.expectationCount || 0;
+          }
+        });
+      });
+    }
+    return count;
   }
 
   return (
@@ -111,7 +133,7 @@ function DashboardPage() {
               Welcome,<span className="text-teal-400"> {currentUser?.name} </span>
             </h1>
             <p className="text-gray-100">
-              Here's an overview of your ICSQ performance
+              {hasSurveys ? "Here's an overview of your ICSQ performance" : "Your ICSQ performance overview will appear here once surveys are completed"}
             </p>
           </div>
 
@@ -122,136 +144,160 @@ function DashboardPage() {
           </div>
         </div>
 
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* left side */}
-           <Card className="h-full bg-[#29252c]/70">
-            <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
-                <CardTitle className="text-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      {capitalizeFirstLetter(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName)} ICSQ <br />
-                      <span className="text-teal-400 text-xl">{(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.toFixed(2) || 0} %</span>
-                    </div>
-                    <div className="text-[goldenrod]">
-                      {getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.tag} <br />
-                      <span className="text-3xl flex justify-center">{getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.emoji}</span>
-                    </div>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-            <CardContent>
-            <WebChart detailedScores={modalDept?.detailedScores || {}} />
+        {!hasSurveys && (
+          <Card className="mb-8 bg-gradient-to-r from-amber-500/10 to-amber-500/5 border border-amber-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-amber-500/20">
+                  <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-amber-400 mb-2">No Surveys Yet</h3>
+                  <p className="text-gray-300">
+                    Your department hasn't been surveyed yet. The ICSQ scores and insights will appear here once surveys are completed.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Right side */}
-          <div className="flex flex-col gap-2 h-full">
-            <Card className="flex-1 max-h-[200px] bg-[#29252c]/70">
-              <CardHeader>
-                  <CardTitle className="text-[goldenrod] text-xl -mb-2">Your Department's average ICSQ</CardTitle>
-                </CardHeader>
-            <CardContent>
-                  <div className="grid grid-cols-1 gap-6">
-                        {currentUserDept?.score && <Card  
-                          className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(modalDept._id === currentUserDept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
-                        >
-                          <div onClick={() => {
-                              setModalDept(currentUserDept);
-                            }}>
-                          <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
-                             <span> {getDepartmentIcon(currentUser.department?.name || "")}{capitalizeFirstLetter(currentUser?.department?.name || "")} </span>
-                            <span className="text-gray-200">{currentUserDept?.score?.toFixed(2)} %</span>
-                          </div>
-                          <div
-                            className="w-full mx-auto"
-                          >
-                            {renderCircularProgress(currentUserDept.score)}
-                          </div>
-                          </div>
-                        </Card>}
-                  </div>
-                </CardContent>
-            
-            </Card>
-
-
-            {isAdmin() ? (
-              <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
-                <CardHeader>
-                  <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-6">
-                    {departmentScores.length > 0 &&
-                      departmentScores.map((dept) => (
-                       (currentUser?.department?._id !== dept._id) &&  
-                        <Card  
-                          key={dept._id}
-                          className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(modalDept._id === dept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
-                        >
-                          <div onClick={() => {
-                              setModalDept(dept);
-                            }}>
-                          <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
-                            <span> {getDepartmentIcon(dept.name)} {capitalizeFirstLetter(dept.name)} </span>
-                            <span className="text-gray-200">{dept?.score.toFixed(2)} %</span>
-                          </div>
-                          <div
-                            className="w-full mx-auto"
-                          >
-                            {renderCircularProgress(dept.score)}
-                          </div>
-                          </div>
-                        </Card>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
-                <CardHeader>
-                  <CardTitle className="text-[goldenrod]">
-                    Scores Given to Your Department ({capitalizeFirstLetter(currentUser.department?.name)})
+        )}
+        
+        {hasSurveys && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* left side */}
+             <Card className="h-full bg-[#29252c]/70">
+              <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
+                  <CardTitle className="text-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {capitalizeFirstLetter(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName).toUpperCase()} ICSQ <br />
+                        <span className="text-teal-400 text-xl">{(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.toFixed(2) || 0} %</span>
+                      </div>
+                      <div className="text-[goldenrod]">
+                        {getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.tag} <br />
+                        <span className="text-3xl flex justify-center">{getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.emoji}</span>
+                      </div>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                {departmetnScoresToParticaular.length === 0 ? (
-                  <p className="text-gray-600 text-center my-4">
-                    No surveys happened for your department yet!
-                  </p>
-                ) : (
-                  <CardContent>
+              <CardContent>
+              <WebChart detailedScores={modalDept?.detailedScores || {}} />
+              </CardContent>
+            </Card>
+
+            {/* Right side */}
+            <div className="flex flex-col gap-2 h-full">
+              <Card className="flex-1 max-h-[200px] bg-[#29252c]/70">
+                <CardHeader>
+                    <CardTitle className="text-[goldenrod] text-xl -mb-2">
+                      {currentUser?.department?.name ? `${capitalizeFirstLetter(currentUser?.department?.name)} Department's average ICSQ` : "Department's average ICSQ"}
+                    </CardTitle>
+                  </CardHeader>
+              <CardContent>
                     <div className="grid grid-cols-1 gap-6">
-                      {departmetnScoresToParticaular.map((dept, index) => (
-                        <Card  
-                          key={index}
-                          className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(String(modalDept?.fromDepartmentId) === String(dept?.fromDepartmentId)) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
-                        >
-                          <div onClick={() => {
-                              setModalDept(dept);
-                            }}>
-                          <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
-                            <span> 
-                              {getDepartmentIcon(dept.fromDepartmentName)} 
-                              {capitalizeFirstLetter(dept.fromDepartmentName)} 
-                            </span>
-                            <span className="text-gray-200">{dept?.averageScore.toFixed(2)} %</span>
-                          </div>
-                          <div
-                            className="w-full mx-auto"
+                          {currentUserDept?.score && <Card  
+                            className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(currentUser?.department?._id === currentUserDept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
                           >
-                            {renderCircularProgress(dept.averageScore)}
-                          </div>
-                          </div>
-                        </Card>
-                      ))}
+                            <div onClick={() => {
+                                setModalDept(currentUserDept);
+                              }}>
+                              <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
+                                 <span> {getDepartmentIcon(currentUser?.department?.name || "")}{(currentUser?.department?.name || "").toUpperCase()} </span>
+                                <span className="text-gray-200">{currentUserDept?.score?.toFixed(2)} %</span>
+                              </div>
+                              <div
+                                className="w-full mx-auto"
+                              >
+                                {renderCircularProgress(currentUserDept.score)}
+                              </div>
+                              </div>
+                            </Card>}
                     </div>
                   </CardContent>
-                )}
+              
               </Card>
-            )}
+
+
+              {isAdmin() ? (
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
+                  <CardHeader>
+                    <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div
+                      className={`grid grid-cols-1 gap-6 ${departmentScores.length > 4 ? 'max-h-96 overflow-y-auto pr-2' : ''}`}
+                      style={{ minHeight: 0 }}
+                    >
+                      {departmentScores.length > 0 &&
+                        departmentScores.map((dept) => (
+                          (currentUser?.department?._id !== dept._id) &&
+                          <Card
+                            key={dept._id}
+                            className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(currentUser?.department?._id === dept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
+                          >
+                            <div onClick={() => {
+                                setModalDept(dept);
+                              }}>
+                              <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
+                                <span> {getDepartmentIcon(dept.name)} {dept.name.toUpperCase()} </span>
+                                <span className="text-gray-200">{dept?.score.toFixed(2)} %</span>
+                              </div>
+                              <div className="w-full mx-auto">
+                                {renderCircularProgress(dept.score)}
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
+                  <CardHeader>
+                    <CardTitle className="text-[goldenrod]">
+                      Scores Given to Your Department ({capitalizeFirstLetter(currentUser?.department?.name)})
+                    </CardTitle>
+                  </CardHeader>
+                  {departmetnScoresToParticaular.length === 0 ? (
+                    <p className="text-gray-600 text-center my-4">
+                      No surveys happened for your department yet!
+                    </p>
+                  ) : (
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-6">
+                        {departmetnScoresToParticaular.map((dept, index) => (
+                          <Card  
+                            key={index}
+                            className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(String(currentUser?.department?._id) === String(dept?.fromDepartmentId)) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
+                          >
+                            <div onClick={() => {
+                                setModalDept(dept);
+                              }}>
+                              <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
+                                <span> 
+                                  {getDepartmentIcon(dept.fromDepartmentName)} 
+                                  {capitalizeFirstLetter(dept.fromDepartmentName).toUpperCase()} 
+                                </span>
+                                <span className="text-gray-200">{dept?.averageScore.toFixed(2)} %</span>
+                              </div>
+                              <div
+                                className="w-full mx-auto"
+                              >
+                                {renderCircularProgress(dept.averageScore)}
+                              </div>
+                              </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         
         <div className="flex justify-center mt-6 gap-4">
           <Button

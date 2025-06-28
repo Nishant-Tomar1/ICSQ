@@ -1,7 +1,7 @@
 import { Router } from "express"
 const router = Router()
 import { getActionPlans, getActionPlanById, createActionPlan, updateActionPlan, updateActionPlans, deleteActionPlan} from "../controllers/actionPlan.controller.js"
-import { requireAdmin, requireAuth, requireManager } from "../middleware/auth.js"
+import { requireAdmin, requireAuth, requireHOD } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
 router.use(requireAuth)
@@ -13,13 +13,13 @@ router.get("/", getActionPlans)
 router.get("/:id", getActionPlanById)
 
 // Create a new action plan
-router.post("/", requireManager, createActionPlan)
+router.post("/", requireHOD, createActionPlan)
 
 // Update an action plan
-router.put("/:id",requireManager, updateActionPlan)
+router.put("/:id",requireHOD, updateActionPlan)
 
 // Update multiple action plans
-router.put("/",requireManager, updateActionPlans)
+router.put("/",requireHOD, updateActionPlans)
 
 // Delete an action plan
 router.delete("/:id", requireAdmin, deleteActionPlan)

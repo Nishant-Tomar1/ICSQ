@@ -4,6 +4,7 @@ import {
   FaDollarSign, FaUserCog, FaBriefcase, FaBoxOpen, FaMicrophone, FaCog,
   FaBuilding, FaTools, FaBatteryHalf, FaHome, FaDraftingCompass, FaUserFriends
 } from "react-icons/fa";
+import Select from 'react-select';
 
 export const Server = "http://localhost:8080/api/v1"
 
@@ -23,13 +24,13 @@ export const getCategoryName = (id, categoryData)=>{
 }
 
 export const getTagandEmoji = (score)=>{
-  if (score < 23){
+  if (score < 60){
     return {
       tag : "Detractor",
       emoji :"😞"
     }
   }
-  if (score < 64){
+  if (score < 80){
     return {
       tag : "Passive",
       emoji :"😐"

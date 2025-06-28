@@ -202,7 +202,7 @@ function SurveyPage() {
       <Card className="rounded-b-none text-center text-[goldenrod] text-md">
         <CardHeader className="bg-black/40 border-b py-6 border-b-gray-400 text-xl font-semibold">{getDepartmentIcon(getDepartmentName(departmentId, departments))} ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
      
-        <div className="overflow-x-auto bg-black/40">
+        <div className="overflow-x-auto bg-black/60">
           <table className="min-w-full border border-gray-700 rounded-lg overflow-hidden">
             <thead className="bg-black/20 text-left hidden md:table-header-group">
               <tr className="md:table-row flex flex-col md:flex-row">
@@ -218,57 +218,73 @@ function SurveyPage() {
               return (
                 <tr key={category.name} className="border-t border-gray-500 text-left md:table-row flex flex-col md:flex-row">
                   {/* Category Name */}
-                  <td className="px-4 py-4 align-top font-medium text-slate-200 max-w-60">
-                    {capitalizeFirstLetter(category.name)}
-                    <div className="text-xs font-light text-gray-500"> {capitalizeFirstLetter(category.description)}</div>
+                  <td className="px-2 sm:px-4 py-4 align-top font-medium text-slate-200 w-full md:w-1/5">
+                    <div className="mb-3 text-base sm:text-lg font-semibold text-[goldenrod] border-b border-gray-700/50 pb-2">
+                      {capitalizeFirstLetter(category.name)}
+                    </div>
+                    <div className="text-xs sm:text-sm bg-white/5 p-2 sm:p-3 rounded-lg border border-gray-700/50 hover:bg-white/10 transition-all duration-200 cursor-help break-words">
+                      <span className="text-gray-300 whitespace-pre-wrap">
+                        {capitalizeFirstLetter(category.description).split('?').map((part, index, array) => 
+                          index < array.length - 1 ? 
+                            <span key={index}>
+                              {part}?<br />
+                            </span> 
+                          : part
+                        )}
+                      </span>
+                    </div>
                   </td>
                  
                   {/* Ratings with Emojis */}
-                  <td className="px-4 py-4 align-middle">
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+                  <td className="px-2 sm:px-4 py-4 align-middle w-full md:w-2/5">
+                    <div className="grid grid-cols-5 sm:flex sm:flex-wrap items-center justify-center gap-2 sm:gap-4">
                       {[20, 40, 60, 80, 100].map((value, index) => {
                         const emojiList = ["😞", "😕", "😐", "🙂", "🤩"];
                         const titles = ["Poor", "Below Avg", "Average", "Good", "Impressive"];
                         const isSelected = formData[category.name]?.rating === value;
 
                         return (
-                          <div className="flex flex-col items-center">
+                          <div key={value} className="flex flex-col items-center">
                             <button
-                              key={value}
                               type="button"
                               onClick={() => handleRatingChange(category.name, value)}
                               title={titles[index]}
-                              className={`text-xl sm:text-3xl p-1.5 sm:p-2 rounded-full border transition 
-                                ${isSelected ? "bg-green-700 border-green-500" : "border-transparent hover:border-gray-300"}`}
+                              className={`w-10 h-10 sm:w-14 sm:h-12 rounded-lg flex items-center justify-center text-lg sm:text-[2.25rem] transition-all duration-200 ${
+                                isSelected
+                                  ? "bg-[#93725E] text-white scale-110"
+                                  : "bg-white/5 hover:bg-white/10"
+                              }`}
                             >
                               {emojiList[index]}
                             </button>
-                            <span className="text-gray-400 text-[10px] sm:text-[12px] text-center font-thin mt-1">{titles[index]}</span>
+                            <span className="mt-1 text-[10px] sm:text-xs text-gray-400">{value}%</span>
                           </div>
                         );
                       })}
                     </div>
                   </td>
 
-                  {/* Expectations Section */}
-                  <td className="px-4 py-4 align-top">
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-300 mb-1">
-                        {formData[category.name]?.rating <= 60 ? "* Required - " : ""} 
-                        Reason for the score and your expectations:
-                      </p>
-
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder="Your expectations..."
-                          value={formData[category.name]?.expectations || ''}
-                          onChange={(e) => handleExpectationChange(category.name, e.target.value)}
-                          className="flex-grow h-16 text-gray-200 placeholder-gray-500"
-                          required={formData[category.name]?.rating <= 60}
-                          maxLength={300}
-                        />
+                  {/* Expectations Input */}
+                  <td className="px-2 sm:px-4 py-4 w-full md:w-2/5">
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Enter your expectations here..."
+                        value={formData[category.name]?.expectations || ""}
+                        onChange={(e) => handleExpectationChange(category.name, e.target.value)}
+                        maxLength={300}
+                        className={`w-full min-h-[100px] text-sm sm:text-base bg-white/5 border border-gray-700/50 rounded-lg focus:ring-1 focus:ring-[#93725E] ${
+                          formData[category.name]?.rating <= 60 ? "border-red-500" : ""
+                        }`}
+                      />
+                      <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                        {(formData[category.name]?.expectations || "").length}/300
                       </div>
                     </div>
+                    {formData[category.name]?.rating <= 60 && (
+                      <p className="mt-2 text-xs sm:text-sm text-red-500">
+                        *Required for ratings 60% or below
+                      </p>
+                    )}
                   </td>
                 </tr>
               )})}

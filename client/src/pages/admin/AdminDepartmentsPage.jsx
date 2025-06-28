@@ -198,7 +198,7 @@ function AdminDepartmentsPage() {
                   <TableBody>
                     {departments.map((department) => (
                       <TableRow key={department._id}>
-                        <TableCell className="font-medium">{capitalizeFirstLetter(department.name)}</TableCell>
+                        <TableCell className="font-medium">{department.name.toUpperCase()}</TableCell>
                         <TableCell>{department.description}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">

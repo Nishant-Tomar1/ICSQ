@@ -9,7 +9,8 @@ import Separator from "../components/ui/Separator"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card"
 import logo from "../assets/logo.png"
 import teamsLogo from "../assets/microsoft.png"
-import bg from "../assets/bg-image.jpg"
+import bg from "../assets/bg-image.png"
+import bgImage from "../assets/bg-image.png";
 
 function LoginPage() {
   const [email, setEmail] = useState("")
@@ -30,10 +31,15 @@ function LoginPage() {
   useEffect(() => {
     const fetchMicrosoftLoginUrl = async () => {
       try {
+        console.log("Frontend: Attempting to fetch Microsoft login URL...");
         const url = await getMicrosoftLoginUrl()
+        console.log("Frontend: Successfully got Microsoft login URL:", url);
         setMicrosoftLoginUrl(url)
       } catch (error) {
-        console.error("Error fetching Microsoft login URL:", error)
+        console.error("Frontend: Error fetching Microsoft login URL:", error);
+        console.error("Frontend: Error response:", error.response);
+        console.error("Frontend: Error status:", error.response?.status);
+        console.error("Frontend: Error data:", error.response?.data);
       }
     }
 
@@ -77,14 +83,23 @@ function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Side Content */}
-      <div className={`bg-[#93725E] lg:w-1/2 text-white flex flex-col justify-center items-start p-8 space-y-3 bg-cover bg-center bg-no-repeat`}>
-        <h1 className="text-3xl font-bold">THE SOBHA WAY</h1>
-        <p className="max-w-lg text-base leading-relaxed">
-          SOBHA project excellence is powered by strong backward integration, enabling seamless
-          collaboration across all internal divisions. This unified expertise should be ensured
-          that every aspect of a project is executed with precision, quality, and accountability —
-          ultimately driving internal customer satisfaction.
-        </p>
+      <div 
+        className="lg:w-1/2 text-white flex flex-col justify-center items-start p-12 space-y-4 relative overflow-hidden"
+        style={{
+          backgroundImage: `url(${bgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: '80% center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold">THE SOBHA WAY</h1>
+          <p className="max-w-xl text-lg leading-relaxed mt-4">
+          It aligns internal efforts with SOBHA's customer-centric values and ultimately
+          contributes to delivering excellence to our Internal and external customers.
+          </p>
+        </div>
+        <div className="absolute -inset-4 bg-black bg-opacity-30"></div>
       </div>
 
       {/* Right Side Login */}
@@ -108,7 +123,7 @@ function LoginPage() {
                 onClick={handleMicrosoftLogin}
               >
                 <img src={teamsLogo} alt="teams Logo" width={20} />
-                <span>Sign in with Microsoft</span>
+                <span>Microsoft Single Sign-On</span>
               </Button>
 
               <div className="relative">

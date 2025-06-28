@@ -31,11 +31,14 @@ function DashboardHeader() {
 
   const getInitials = (name) => {
     if (!name) return "U"
-    return name
+    const initials = name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
+    
+    // Return only the first two initials
+    return initials.slice(0, 2)
   }
 
   return (
@@ -67,9 +70,9 @@ function DashboardHeader() {
             </Link> */}
             {isAdmin() &&(
               <>
-              <Link to="/reports" className="text-gray-200 hover:text-orange-300 font-medium">
+              {/* <Link to="/reports" className="text-gray-200 hover:text-orange-300 font-medium">
               Reports
-            </Link>
+            </Link> */}
              
               <Link to="/admin" className="text-orange-300 hover:text-orange-300 font-medium">
                 Admin

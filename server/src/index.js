@@ -1,12 +1,7 @@
-import dotenv from 'dotenv'
 import http from 'http'
 import connectDB from './db/index.js';
 import { app } from './app.js';
 import redis from 'redis'
-
-dotenv.config({
-    path:".env"
-})
 
 const server = http.createServer(app);
 

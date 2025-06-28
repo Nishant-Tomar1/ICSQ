@@ -2,18 +2,44 @@ import {User} from "../models/User.model.js"
 import { generateToken, setAuthCookie, clearAuthCookie } from "../middleware/auth.js"
 import { ConfidentialClientApplication } from "@azure/msal-node"
 import { Department } from "../models/Department.model.js"
+import { logAuthEvent } from "../utils/logger.js"
 
 // Microsoft Teams SSO Configuration
 const msalConfig = {
   auth: {
     clientId: process.env.MICROSOFT_CLIENT_ID || "",
-    authority: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}`,
+    authority: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID || ""}`,
     clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "",
   },
 }
 
-// Create MSAL application
-const msalClient = new ConfidentialClientApplication(msalConfig)
+// Create MSAL application only if credentials are provided
+let msalClient = null;
+try {
+  // Ensure all necessary MSAL config values are present from environment variables
+  if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_TENANT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+    msalClient = new ConfidentialClientApplication(msalConfig);
+    console.log("Azure MSAL client initialized successfully");
+  } else {
+    console.log("Azure MSAL credentials not provided, Microsoft Teams SSO disabled");
+  }
+} catch (error) {
+  console.log("Failed to initialize Azure MSAL client:", error.message);
+  console.log("Microsoft Teams SSO will be disabled");
+}
+
+// Helper function to get the correct redirect URI based on environment
+function getRedirectUri(req) {
+  const host = req.get("host");
+
+  // If the request is coming to the production domain, always use the canonical production URL.
+  if (host === "icsq.sobhaapps.com") {
+    return "https://icsq.sobhaapps.com/api/v1/auth/microsoft/callback";
+  }
+
+  // For development (e.g., localhost, internal IPs), build the URL dynamically.
+  return `${req.protocol}://${host}/api/v1/auth/microsoft/callback`;
+}
 
 // Login with email and password
 export async function login(req, res) {
@@ -28,11 +54,14 @@ export async function login(req, res) {
     const user = await User.findOne({ email })
 
     if (!user) {
+      // Log failed login attempt
+      await logAuthEvent('LOGIN_FAILED', null, req, 'FAILURE', 'User not found')
       return res.status(401).json({ message: "Invalid credentials" })
     }
 
     // If user has no password (SSO only), reject login
     if (!user.password) {
+      await logAuthEvent('LOGIN_FAILED', user, req, 'FAILURE', 'SSO only user')
       return res.status(401).json({ message: "Please use Microsoft Teams to login" })
     }
 
@@ -40,6 +69,7 @@ export async function login(req, res) {
     const isMatch = await user.comparePassword(password)
 
     if (!isMatch) {
+      await logAuthEvent('LOGIN_FAILED', user, req, 'FAILURE', 'Invalid password')
       return res.status(401).json({ message: "Invalid credentials" })
     }
 
@@ -48,6 +78,9 @@ export async function login(req, res) {
 
     // Set auth cookie
     setAuthCookie(res, token)
+
+    // Log successful login
+    await logAuthEvent('LOGIN', user, req, 'SUCCESS')
 
     return res.json({
       message: "Login successful",
@@ -62,6 +95,8 @@ export async function login(req, res) {
     })
   } catch (error) {
     console.error("Login error:", error)
+    // Log login error
+    await logAuthEvent('LOGIN', null, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "An error occurred during login" })
   }
 }
@@ -72,9 +107,14 @@ export async function logout(req, res) {
     // Clear auth cookie
     clearAuthCookie(res)
 
+    // Log logout
+    await logAuthEvent('LOGOUT', req.user, req, 'SUCCESS')
+
     return res.json({ message: "Logged out successfully" })
   } catch (error) {
     console.error("Logout error:", error)
+    // Log logout error
+    await logAuthEvent('LOGOUT', req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "An error occurred during logout" })
   }
 }
@@ -99,20 +139,37 @@ export async function getCurrentUser(req, res) {
 // Get Microsoft Teams login URL
 export async function getMicrosoftLoginUrl(req, res) {
   try {
-    const redirectUri =
-      req.query.redirectUri || `${req.protocol}://${req.get("host")}/api/auth/microsoft/callback`
+    console.log("=== Microsoft Login URL Request ===");
+    console.log("MSAL Client initialized:", !!msalClient);
+    console.log("Environment variables:");
+    console.log("- MICROSOFT_CLIENT_ID:", process.env.MICROSOFT_CLIENT_ID ? "SET" : "NOT SET");
+    console.log("- MICROSOFT_TENANT_ID:", process.env.MICROSOFT_TENANT_ID ? "SET" : "NOT SET");
+    console.log("- MICROSOFT_CLIENT_SECRET:", process.env.MICROSOFT_CLIENT_SECRET ? "SET" : "NOT SET");
+    console.log("- NODE_ENV:", process.env.NODE_ENV);
+    
+    if (!msalClient) {
+      console.log("MSAL client not available, returning 503");
+      return res.status(503).json({ message: "Microsoft Teams SSO is not configured" });
+    }
+
+    const redirectUri = getRedirectUri(req)
+    console.log("Generated redirect URI:", redirectUri);
 
     const authCodeUrlParameters = {
       scopes: ["user.read"],
       redirectUri,
     }
 
+    console.log("Auth code URL parameters:", authCodeUrlParameters);
+
     const loginUrl = await msalClient.getAuthCodeUrl(authCodeUrlParameters)
-    // console.log("Generated Microsoft login URL:", loginUrl)
+    console.log("Generated Microsoft login URL:", loginUrl);
+    console.log("=== End Microsoft Login URL Request ===");
 
     return res.json({ loginUrl })
   } catch (error) {
     console.error("Microsoft login error:", error)
+    console.error("Error stack:", error.stack);
     return res.status(500).json({ message: "Failed to generate Microsoft login URL" })
   }
 }
@@ -120,12 +177,18 @@ export async function getMicrosoftLoginUrl(req, res) {
 // Handle Microsoft Teams authentication callback
 export async function handleMicrosoftCallback(req, res) {
   try {
+    if (!msalClient) {
+      return res.redirect(`${process.env.CLIENT_URL}/login?error=not_configured`);
+    }
+
     const code = req.query.code
-    const redirectUri = `${req.protocol}://${req.get("host")}/api/auth/microsoft/callback`
+    const redirectUri = getRedirectUri(req)
 
     if (!code) {
       return res.redirect(`${process.env.CLIENT_URL}/login?error=no_code`)
     }
+
+    console.log("Processing Microsoft callback with redirect URI:", redirectUri)
 
     // Exchange code for token
     const tokenResponse = await msalClient.acquireTokenByCode({
@@ -160,6 +223,9 @@ export async function handleMicrosoftCallback(req, res) {
       })
 
       await user.save()
+      
+      // Log user registration
+      await logAuthEvent('REGISTER', user, req, 'SUCCESS')
     }
 
     // Generate JWT token
@@ -168,10 +234,15 @@ export async function handleMicrosoftCallback(req, res) {
     // Set auth cookie
     setAuthCookie(res, token)
 
+    // Log successful Microsoft login
+    await logAuthEvent('LOGIN', user, req, 'SUCCESS')
+
     // Redirect to dashboard
     return res.redirect(`${process.env.CLIENT_URL}/dashboard`)
   } catch (error) {
     console.error("Microsoft callback error:", error)
+    // Log Microsoft login failure
+    await logAuthEvent('LOGIN', null, req, 'FAILURE', error.message)
     return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`)
   }
 }

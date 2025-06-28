@@ -61,7 +61,7 @@ function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -88,7 +88,7 @@ function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -115,7 +115,7 @@ function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -142,7 +142,7 @@ function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -171,7 +171,7 @@ function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardHeader>
               <CardTitle className="text-[goldenrod]">Manage Departments</CardTitle>
             </CardHeader>
@@ -183,7 +183,7 @@ function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardHeader>
               <CardTitle className="text-[goldenrod]">Department Mappings</CardTitle>
             </CardHeader>
@@ -195,7 +195,7 @@ function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardHeader>
               <CardTitle className="text-[goldenrod]">Manage Categories</CardTitle>
             </CardHeader>
@@ -207,7 +207,7 @@ function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-[#1a1a1f]">
             <CardHeader>
               <CardTitle className="text-[goldenrod]">Manage Users</CardTitle>
             </CardHeader>
@@ -215,6 +215,18 @@ function AdminDashboardPage() {
               <p className="text-gray-300 mb-4">Add, edit, or remove users and set permissions.</p>
               <Link to="/admin/users">
                 <Button className="w-full">Manage Users</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1f]">
+            <CardHeader>
+              <CardTitle className="text-[goldenrod]">Survey Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-300 mb-4">View detailed survey responses, feedback, and department-wise analytics.</p>
+              <Link to="/admin/survey-analytics">
+                <Button className="w-full">View Analytics</Button>
               </Link>
             </CardContent>
           </Card>

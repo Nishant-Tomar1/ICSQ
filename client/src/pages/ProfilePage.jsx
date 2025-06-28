@@ -10,11 +10,14 @@ function ProfilePage() {
 
   const getInitials = (name) => {
     if (!name) return "U"
-    return name
+    const initials = name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
+    
+    // Return only the first two initials
+    return initials.slice(0, 2)
   }
 
   return (

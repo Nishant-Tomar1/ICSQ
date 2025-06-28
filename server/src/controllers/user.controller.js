@@ -2,6 +2,7 @@ import { User } from "../models/User.model.js"
 import { Department } from "../models/Department.model.js"
 import mongoose from "mongoose"
 import { generateToken, setAuthCookie } from "../middleware/auth.js"
+import { logUserEvent } from "../utils/logger.js"
 
 // Get all users
 export async function getUsers(req, res) {
@@ -71,12 +72,17 @@ export async function addUser(req, res) {
     await user.save()
     const resUser = await User.findById(user._id).select("-password")
 
+    // Log user creation
+    await logUserEvent('USER_CREATED', resUser, req.user, req, 'SUCCESS')
+
     return res.status(201).json({ 
       message: "Registration successful",
       user : resUser
     })
   } catch (error) {
     console.error("Registration error:", error)
+    // Log user creation error
+    await logUserEvent('USER_CREATED', { email: req.body.email, name: req.body.name }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "An error occurred during registration" })
   }
 }
@@ -91,6 +97,10 @@ export async function updateUser(req, res) {
     if (!user) {
       return res.status(404).json({ message: "User not found" })
     }
+
+    // Store original values for logging
+    const originalRole = user.role
+    const originalDepartment = user.department
 
     if (name) user.name = name
     if (email) user.email = email
@@ -112,9 +122,20 @@ export async function updateUser(req, res) {
 
     await user.save({validateBeforeSave : false})
     const updatedUser = await User.findById(user._id).select("-password")
+
+    // Log user update
+    await logUserEvent('USER_UPDATED', updatedUser, req.user, req, 'SUCCESS')
+
+    // Log role change if role was updated
+    if (role && role !== originalRole) {
+      await logUserEvent('USER_ROLE_CHANGED', updatedUser, req.user, req, 'SUCCESS')
+    }
+
     return res.json(updatedUser)
   } catch (error) {
     console.error(`Error updating user ${req.params.id}:`, error)
+    // Log user update error
+    await logUserEvent('USER_UPDATED', { _id: req.params.id }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to update user" })
   }
 }
@@ -129,9 +150,15 @@ export async function deleteUser(req, res) {
     }
 
     await user.deleteOne()
+
+    // Log user deletion
+    await logUserEvent('USER_DELETED', user, req.user, req, 'SUCCESS')
+
     return res.json({ message: "User deleted successfully" })
   } catch (error) {
     console.error(`Error deleting user ${req.params.id}:`, error)
+    // Log user deletion error
+    await logUserEvent('USER_DELETED', { _id: req.params.id }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to delete user" })
   }
 }

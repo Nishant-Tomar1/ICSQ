@@ -250,7 +250,7 @@ export default function AdminDepartmentMappingsPage() {
                                     key={deptId}
                                     className="bg-gradient-to-r from-[#b8860b]/80 to-[#daa520]/80 text-black font-medium px-3 py-1 rounded-md shadow-sm hover:shadow-md transition-all duration-200 border border-[#ffd700]/30"
                                   >
-                                    {capitalizeFirstLetter(deptName)}
+                                    {deptName.toUpperCase()}
                                   </Badge>
                                 );
                               })

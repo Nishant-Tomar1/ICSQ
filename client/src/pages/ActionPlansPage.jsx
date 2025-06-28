@@ -330,7 +330,7 @@ function ActionPlansPage() {
 
       <main className="container mx-auto py-6 px-4">
 
-       {["admin", "manager"].includes(currentUser.role) && 
+       {["admin", "hod"].includes(currentUser.role) && 
         <Card className="mb-6 ">
           <CardHeader >
             <CardTitle className="flex items-center justify-between">
@@ -536,7 +536,7 @@ function ActionPlansPage() {
                 Action Plans -{" "}
                 {capitalizeFirstLetter(currentUser?.department?.name)}
               </span>
-                  {["admin", "manager"].includes(currentUser?.role) && (
+                  {["admin", "hod"].includes(currentUser?.role) && (
                     <>
                       <Button onClick={() => setFormModal(true)}>
                         Add Action Plan

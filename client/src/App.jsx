@@ -12,6 +12,7 @@ import AdminDepartmentsPage from "./pages/admin/AdminDepartmentsPage"
 import AdminDepartmentMappingsPage from "./pages/admin/AdminDepartmentMappingsPage"
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage"
 import AdminUsersPage from "./pages/admin/AdminUsersPage"
+import SurveyAnalyticsPage from "./pages/admin/SurveyAnalyticsPage"
 import ProfilePage from "./pages/ProfilePage"
 import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
@@ -20,6 +21,7 @@ import loaderImage from "./assets/icsq-loader.jpg"
 import bgImage from "./assets/bg-image.jpg"
 import {useState, useEffect} from 'react'
 import Terms from "./pages/Terms"
+import DepartmentSurveyDetailsPage from "./pages/admin/DepartmentSurveyDetailsPage"
 
 function App() {
   const { loading } = useAuth()
@@ -154,6 +156,22 @@ function App() {
           element={
             <AdminRoute>
               <AdminUsersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/survey-analytics"
+          element={
+            <AdminRoute>
+              <SurveyAnalyticsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/survey-analytics/:departmentId"
+          element={
+            <AdminRoute>
+              <DepartmentSurveyDetailsPage />
             </AdminRoute>
           }
         />

@@ -92,11 +92,25 @@ function SIPOCPage() {
   }, [currentUser])
 
   const handleInputChange = (field, value) => {
-    setNewEntry((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
+    setNewEntry((prev) => {
+      // Handle nested fields like "process.input"
+      if (field.includes('.')) {
+        const [parent, child] = field.split('.');
+        return {
+          ...prev,
+          [parent]: {
+            ...prev[parent],
+            [child]: value,
+          },
+        };
+      }
+      // Handle simple fields
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
+  };
 
   const handleEditEntry = (entry) => {
     setEditingEntry(entry);
@@ -116,14 +130,16 @@ function SIPOCPage() {
 
   const handleAddOrUpdateEntry = async (e) => {
     e.preventDefault();
-    if (!Object.values(newEntry).every((value) => typeof value === 'string' ? value.trim() : true)) {
-      toast({
-        title: "Incomplete Entry",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    
+    // Remove mandatory validation - allow empty fields
+    // if (!Object.values(newEntry).every((value) => typeof value === 'string' ? value.trim() : true)) {
+    //   toast({
+    //     title: "Incomplete Entry",
+    //     description: "Please fill in all fields",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     const fileInput = document.getElementById("processPicture");
     const file = fileInput?.files[0];
@@ -221,7 +237,7 @@ function SIPOCPage() {
           <h3 className={`text-lg font-semibold ${colorClass}`}>{title}</h3>
         </div> */}
         <div className="w-full overflow-x-auto">
-          <Table className="min-w-[900px] w-full bg-black/20">
+                            <Table className="min-w-[900px] w-full bg-black/80">
             <TableHeader>
               <TableRow className="bg-[#29252c]/50 border-b-2 border-gray-300/70 overflow-auto">
                 <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Supplier</TableHead>
@@ -229,7 +245,7 @@ function SIPOCPage() {
                 <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[220px]">Process</TableHead>
                 <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Output</TableHead>
                 <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Customer</TableHead>
-                {(["admin", "manager"].includes(currentUser?.role)) && (
+                {(["admin", "hod"].includes(currentUser?.role)) && (
                   <TableHead className="w-[140px] text-gray-200 font-bold text-center py-5 px-2 min-w-[120px]">Actions</TableHead>
                 )}
               </TableRow>
@@ -239,7 +255,7 @@ function SIPOCPage() {
                 <TableRow
                   key={index}
                   className={`border-b-2 border-gray-200/70 transition-all duration-200 group
-                    ${index % 2 === 0 ? 'bg-[#83725E]/5' : 'bg-white/5'}
+                    ${index % 2 === 0 ? 'bg-[#83725E]/15' : 'bg-white/15'}
                   `}
                 >
                   <TableCell className="text-gray-200 align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
@@ -343,7 +359,7 @@ function SIPOCPage() {
                       ))}
                     </div>
                   </TableCell>
-                  {(["admin", "manager"].includes(currentUser?.role)) && (
+                  {(["admin", "hod"].includes(currentUser?.role)) && (
                     <TableCell className="align-top transition-all duration-200 p-2 sm:p-4">
                       <div className="flex items-center justify-center gap-2">
                         <Button
@@ -398,7 +414,7 @@ function SIPOCPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>SIPOC Management - {capitalizeFirstLetter(currentUser?.department?.name)}</span>
-              {(["admin", "manager"].includes(currentUser?.role)) && (
+              {(["admin", "hod"].includes(currentUser?.role)) && (
                 <Button onClick={() => { setModalOpen(true) }} disabled={isLoading}>
                   <FaPlus className="mr-2" />
                   Add Entry
@@ -502,7 +518,7 @@ function SIPOCPage() {
                         {/* Supplier */}
                         <div className="form-group">
                           <label className="block text-xs font-medium mb-1.5 text-amber-300">
-                            Supplier <span className="text-red-400">*</span>
+                            Supplier
                           </label>
                           <textarea
                             placeholder="Enter suppliers (one per line)..."
@@ -518,7 +534,7 @@ function SIPOCPage() {
                         {/* Input */}
                         <div className="form-group">
                           <label className="block text-xs font-medium mb-1.5 text-amber-300">
-                            Input <span className="text-red-400">*</span>
+                            Input
                           </label>
                           <textarea
                             placeholder="Enter inputs (one per line)..."
@@ -534,12 +550,12 @@ function SIPOCPage() {
                         {/* Process */}
                         <div className="form-group">
                           <label className="block text-xs font-medium mb-1.5 text-amber-300">
-                            Process <span className="text-red-400">*</span>
+                            Process
                           </label>
                           <textarea
                             placeholder="Enter process steps (one per line)..."
                             value={newEntry.process.input}
-                            onChange={(e) => handleInputChange("process", e.target.value)}
+                            onChange={(e) => handleInputChange("process.input", e.target.value)}
                             className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
                               focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
                               transition-all duration-200"
@@ -553,7 +569,7 @@ function SIPOCPage() {
                         {/* Output */}
                         <div className="form-group">
                           <label className="block text-xs font-medium mb-1.5 text-amber-300">
-                            Output <span className="text-red-400">*</span>
+                            Output
                           </label>
                           <textarea
                             placeholder="Enter outputs (one per line)..."
@@ -569,7 +585,7 @@ function SIPOCPage() {
                         {/* Customer */}
                         <div className="form-group">
                           <label className="block text-xs font-medium mb-1.5 text-amber-300">
-                            Customer <span className="text-red-400">*</span>
+                            Customer
                           </label>
                           <textarea
                             placeholder="Enter customers (one per line)..."
