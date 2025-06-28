@@ -1,0 +1,54 @@
+name: Health Check After Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  health-check:
+    name: Wait & Verify Deployments
+    runs-on: ubuntu-latest
+
+    env:
+      CLIENT_URL: https://icsq-client.vercel.app
+      SERVER_URL: https://icsq.onrender.com/health
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+    steps:
+      - name: Wait for Deployments (Vercel + Render)
+        run: sleep 120
+
+      - name: Health Check - Client
+        id: client
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CLIENT_URL)
+          echo "Client status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Client health check failed"
+            exit 1
+          fi
+
+      - name: Health Check - Server
+        id: server
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" $SERVER_URL)
+          echo "Server status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Server health check failed"
+            exit 1
+          fi
+
+      - name: ✅ Send Success Notification
+        if: success()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ ICSQ deployed and passed health checks.\n🌐 Client: $CLIENT_URL\n🧠 Server: $SERVER_URL\"}" \
+            $DISCORD_WEBHOOK
+
+      - name: ❌ Send Failure Notification
+        if: failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ ICSQ failed health checks after deployment.\nCheck Vercel and Render dashboards.\"}" \
+            $DISCORD_WEBHOOK
