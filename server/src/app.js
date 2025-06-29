@@ -65,8 +65,12 @@ app.get('/', ( _ , res) => {
 })
 
 // Special admin dashboard route
-app.get('/admin-logs', (req, res) => {
+app.get('/admin-logs', (_, res) => {
   res.sendFile(path.join(__dirname, '../public/admin-dashboard.html'))
+})
+
+app.get('/health', (_, res) => {
+  res.json({"message" : "Server is healthy"})
 })
 
 // Import routes
