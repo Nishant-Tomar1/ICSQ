@@ -103,7 +103,7 @@ function LoginPage() {
       </div>
 
       {/* Right Side Login */}
-      <div className="lg:w-1/2 w-full bg-[#29252c] flex items-center justify-center p-4 relative">
+      <div className="lg:w-1/2 w-full bg-white flex items-center justify-center p-4 relative">
         <div className="w-full max-w-sm">
           <div className="text-center mb-4">
             <img src={logo} alt="SOBHA Logo" width={50} className="mx-auto mb-2" />
@@ -111,14 +111,14 @@ function LoginPage() {
             <p className="text-xs text-gray-400">Understanding Within, Delight Beyond</p>
           </div>
 
-          <Card className="bg-[#29252c]/70 shadow-none text-gray-200 border border-gray-700">
+          <Card className="bg-white shadow-none text-gray-200 border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-gray-200 text-lg">Login</CardTitle>
+              <CardTitle className="text-gray-800 text-lg">Login</CardTitle>
               <CardDescription className="text-sm text-gray-400">Enter your credentials to access the ICSQ system</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 shadow-b-none">
               <Button
-                className="w-full flex items-center justify-center gap-2 text-sm bg-[#93725E] text-white hover:bg-[goldenrod] border-none"
+                className="w-full flex items-center justify-center gap-2 text-sm bg-[#93725E]/90 text-white hover:bg-[#93725E]/150 border-none"
                 variant="default"
                 onClick={handleMicrosoftLogin}
               >
@@ -131,7 +131,7 @@ function LoginPage() {
                   <Separator />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[#29252c]/70 px-2 text-gray-400">Or continue with</span>
+                  <span className="px-2 bg-white text-gray-400">Or continue with</span>
                 </div>
               </div>
 
@@ -160,7 +160,7 @@ function LoginPage() {
                       className="bg-white/10 text-gray-200 border border-gray-600 focus:border-[goldenrod]"
                     />
                   </div>
-                  <Button type="submit" className="w-full text-sm bg-[#93725E] text-white hover:bg-[goldenrod] border-none" disabled={isLoading}>
+                  <Button type="submit" className="w-full text-sm bg-[#93725E]/90 text-white hover:bg-[#93725E]/150 border-none" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
                   <div className="text-[12px] text-gray-400 text-center w-full">By logging here, you agree to our <span onClick={()=>{navigate('/terms')}} className="cursor-pointer text-[goldenrod] hover:underline">terms and conditions</span></div>
