@@ -124,11 +124,32 @@ function SurveyListPage() {
     );
   }
 
+  const sortedDepartments = [...departments].sort((a, b) => {
+    // User's department first
+    if (a._id === currentUser?.department?._id) return -1;
+    if (b._id === currentUser?.department?._id) return 1;
+    
+    // Surveyed departments second
+    const aIsSurveyed = currentUser?.surveyedDepartmentIds?.includes(a._id);
+    const bIsSurveyed = currentUser?.surveyedDepartmentIds?.includes(b._id);
+    if (aIsSurveyed && !bIsSurveyed) return -1;
+    if (!aIsSurveyed && bIsSurveyed) return 1;
+
+    // Mapped departments third
+    const aIsMapped = mappedDepartments.includes(a._id);
+    const bIsMapped = mappedDepartments.includes(b._id);
+    if (aIsMapped && !bIsMapped) return -1;
+    if (!aIsMapped && bIsMapped) return 1;
+
+    // Keep original order for remaining departments
+    return 0;
+  });
+
   return (
     <div className="min-h-screen">
       <DashboardHeader />
 
-      <main className="container mx-auto py-8 px-4">
+      <main className="container mx-auto py-8 px-4 overflow-hidden">
         <Card className="mb-6 bg-[#29252c]/60">
           <CardHeader>
             <CardTitle>Ready for ICSQ Survey</CardTitle>
@@ -157,15 +178,11 @@ function SurveyListPage() {
                 <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-900" />
                 <span className="text-sm text-gray-300">Selected Department(s)</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border-2 border-gray-500 bg-gray-800" />
-                <span className="text-sm text-gray-300">Not Eligible</span>
-              </div>
             </div>
 
             <div className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {departments.map((department) => {
+                {sortedDepartments.map((department) => {
                   const isMapped = mappedDepartments.includes(department._id);
                   const isSurveyed = currentUser?.surveyedDepartmentIds.includes(department._id);
                   const isOwnDepartment = currentUser?.department?._id === department._id;
@@ -176,21 +193,29 @@ function SurveyListPage() {
                       key={department._id}
                       className={`
                         relative rounded-lg flex flex-col justify-center items-center backdrop-blur-3xl 
-                        bg-gradient-to-br from-gray-800 to-gray-900 shadow-sm p-4 text-center
+                        bg-gradient-to-br from-gray-800 to-gray-950 shadow-sm p-4 text-center
                         transition-all duration-300
-                        ${!isMapped && !isOwnDepartment ? 'opacity-50 cursor-not-allowed border border-gray-700' : 'cursor-pointer'}
-                        ${isSelected ? "border-2 border-blue-500 shadow-md" : "shadow-md hover:bg-white/20"}
-                        ${isSurveyed && "border-2 border-green-600 shadow-md hover:shadow-md hover:border-green-500"}
-                        ${isOwnDepartment && "border-2 border-[goldenrod] shadow-md hover:shadow-md hover:border-yellow-400"}
+                        ${!isMapped && !isOwnDepartment ? 'opacity-40 cursor-not-allowed border border-gray-700' : 'cursor-pointer'}
+                        ${isSelected ? "border-[1.5px] border-blue-500 shadow-md" : "shadow-md hover:bg-white/20"}
+                        ${isSurveyed && "border-[1.5px] border-green-600 shadow-md hover:shadow-md hover:border-green-500"}
+                        ${isOwnDepartment && "border-[1.5px] border-[goldenrod] shadow-md hover:shadow-md hover:border-yellow-400"}
                       `}
                       onClick={() => handleDepartmentClick(department)}
                     > 
                       <div className="absolute top-2 right-1.5 text-xs space-y-1">
+                      {isOwnDepartment && (
+                          <Badge className="text-green-600 rounded-sm" variant="warning">Your Dept</Badge>
+                        )}
                         {isSurveyed && (
                           <Badge className="text-green-600 rounded-sm" variant="success">Surveyed</Badge>
                         )}
                         {!isMapped && !isOwnDepartment && (
-                          <Badge className="text-gray-400 rounded-sm" variant="secondary">Not Eligible</Badge>
+                          <div className="group relative">
+                            <Badge className="text-blue-600 rounded-sm" variant="info">i</Badge>
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black/80 text-white text-xs p-1 rounded whitespace-nowrap">
+                              Not mapped to survey
+                            </div>
+                          </div>
                         )}
                       </div>
                       <div className="h-16 flex items-center justify-center">

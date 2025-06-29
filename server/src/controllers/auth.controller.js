@@ -82,6 +82,9 @@ export async function login(req, res) {
     // Log successful login
     await logAuthEvent('LOGIN', user, req, 'SUCCESS')
 
+    // Populate headedDepartments
+    const headedDepartments = await Department.find({ _id: { $in: user.headedDepartments || [] } });
+
     return res.json({
       message: "Login successful",
       user: {
@@ -90,7 +93,8 @@ export async function login(req, res) {
         email: user.email,
         department: await Department.findById(user.department),
         role: user.role,
-        surveyedDepartmentIds : user.surveyedDepartmentIds
+        surveyedDepartmentIds : user.surveyedDepartmentIds,
+        headedDepartments: headedDepartments
       },
     })
   } catch (error) {
@@ -122,13 +126,15 @@ export async function logout(req, res) {
 // Get current user
 export async function getCurrentUser(req, res) {
   try {
+    const headedDepartments = await Department.find({ _id: { $in: req.user.headedDepartments || [] } });
     return res.json({
       _id: req.user._id,
       name: req.user.name,
       email: req.user.email,
       department: await Department.findById(req.user.department),
       role: req.user.role,
-      surveyedDepartmentIds : req.user.surveyedDepartmentIds
+      surveyedDepartmentIds : req.user.surveyedDepartmentIds,
+      headedDepartments: headedDepartments
     })
   } catch (error) {
     console.error("Get current user error:", error)

@@ -21,7 +21,7 @@ function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#29252c] py-12 px-4 sm:px-6 lg:px-8 text-gray-200">
       <div className="max-w-3xl mx-auto">
         {/* Back to Home Button */}
         <motion.button
@@ -49,7 +49,7 @@ function ProfilePage() {
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-[goldenrod] via-amber-500 to-[goldenrod] bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-[goldenrod]">
             My Profile
           </h1>
           <p className="mt-2 text-gray-400">
@@ -62,7 +62,7 @@ function ProfilePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 rounded-2xl shadow-xl border border-gray-700 overflow-hidden"
+          className="bg-[#29252c]/70 rounded-2xl shadow-xl border border-gray-700 overflow-hidden"
         >
           {/* Profile Banner */}
           <div className="h-32 bg-gradient-to-r from-[goldenrod]/20 via-amber-500/20 to-[goldenrod]/20" />
@@ -121,19 +121,19 @@ function ProfilePage() {
               {/* Additional Info */}
               <div className="mt-8 pt-8 border-t border-gray-700">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                  <div className="p-4 rounded-lg bg-gray-800/50">
+                  <div className="p-4 rounded-lg bg-[#29252c]/70">
                     <div className="text-2xl font-bold text-[goldenrod]">12</div>
                     <div className="text-sm text-gray-400">Surveys Completed</div>
                   </div>
-                  <div className="p-4 rounded-lg bg-gray-800/50">
+                  <div className="p-4 rounded-lg bg-[#29252c]/70">
                     <div className="text-2xl font-bold text-[goldenrod]">5</div>
                     <div className="text-sm text-gray-400">Departments Reviewed</div>
                   </div>
-                  <div className="p-4 rounded-lg bg-gray-800/50">
+                  <div className="p-4 rounded-lg bg-[#29252c]/70">
                     <div className="text-2xl font-bold text-[goldenrod]">98%</div>
                     <div className="text-sm text-gray-400">Response Rate</div>
                   </div>
-                  <div className="p-4 rounded-lg bg-gray-800/50">
+                  <div className="p-4 rounded-lg bg-[#29252c]/70">
                     <div className="text-2xl font-bold text-[goldenrod]">4.8</div>
                     <div className="text-sm text-gray-400">Avg. Rating</div>
                   </div>
@@ -150,11 +150,11 @@ function ProfilePage() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4"
         >
-          <button className="p-4 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700 hover:border-[goldenrod]/30 transition-all duration-300 group">
+          <button className="p-4 rounded-xl bg-[#29252c]/70 border border-gray-700 hover:border-[goldenrod]/30 transition-all duration-300 group">
             <h3 className="text-lg font-semibold text-gray-200 group-hover:text-[goldenrod]">My Surveys</h3>
             <p className="mt-1 text-sm text-gray-400">View your survey history and responses</p>
           </button>
-          <button className="p-4 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700 hover:border-[goldenrod]/30 transition-all duration-300 group">
+          <button className="p-4 rounded-xl bg-[#29252c]/70 border border-gray-700 hover:border-[goldenrod]/30 transition-all duration-300 group">
             <h3 className="text-lg font-semibold text-gray-200 group-hover:text-[goldenrod]">Department Reports</h3>
             <p className="mt-1 text-sm text-gray-400">Access detailed department performance reports</p>
           </button>

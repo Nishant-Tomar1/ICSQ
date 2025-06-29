@@ -22,12 +22,18 @@ function DashboardPage() {
   const [departmetnScoresToParticaular, setDepartmentScoresToParticular] = useState([])
   const [expData, setExpData] = useState([])
   const [hasSurveys, setHasSurveys] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedDeptId, setSelectedDeptId] = useState(null)
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { currentUser, isAdmin } = useAuth()
+  const { currentUser, isAdmin, isHod, getHodDepartments } = useAuth()
 
   useEffect(() => {
-    // No multi-department logic, just use currentUser.department
+    if (isHod() && getHodDepartments().length > 0) {
+      setSelectedDeptId(getHodDepartments()[0]._id)
+    } else if (currentUser?.department?._id) {
+      setSelectedDeptId(currentUser.department._id)
+    }
   }, [currentUser])
 
   useEffect(() => {
@@ -37,30 +43,32 @@ function DashboardPage() {
         const data = response.data
 
         let filteredScores = data
-        if (!isAdmin()) {
+        if (isAdmin()) {
+          // all departments
+        } else if (isHod() && selectedDeptId) {
+          filteredScores = data.filter((dept) => dept._id === selectedDeptId)
+        } else {
           filteredScores = data.filter((dept) => dept.name === currentUser?.department?.name)
         }
 
-        const hasDepartmentSurveys = data.some(dept => 
-          dept.name === currentUser?.department?.name && dept.score !== undefined && dept.score !== null
-        )
-        setHasSurveys(hasDepartmentSurveys)
-
-        data.forEach((dept) => {
-          if (dept.name === currentUser?.department?.name) {
-            setModalDept(dept)
-            setCurrentUserDept(dept)
-          }
-        })
+        let deptToShow = null;
+        if (isHod() && selectedDeptId) {
+          deptToShow = data.find((dept) => dept._id === selectedDeptId)
+        } else {
+          deptToShow = data.find((dept) => dept.name === currentUser?.department?.name)
+        }
+        setModalDept(deptToShow || {})
+        setCurrentUserDept(deptToShow || {})
         setDepartmentScores(filteredScores)
+        setHasSurveys(!!(deptToShow && (deptToShow.score !== undefined && deptToShow.score !== null)))
 
         if (["hod", "user"].includes(currentUser.role)) {
-          const partresponse = await axios.get(`${Server}/analytics/department-scores/${currentUser.department?._id}`, { withCredentials: true })
+          const partresponse = await axios.get(`${Server}/analytics/department-scores/${selectedDeptId || currentUser.department?._id}`, { withCredentials: true })
           setDepartmentScoresToParticular(partresponse.data)
         }
 
         try {
-          const expresponse = await axios.get(`${Server}/analytics/expectation-data/${currentUser?.department?._id}`, {withCredentials: true})
+          const expresponse = await axios.get(`${Server}/analytics/expectation-data/${selectedDeptId || currentUser?.department?._id}`, {withCredentials: true})
           setExpData(expresponse.data || [])
         } catch (error) {
           console.error("Failed to fetch expectation data:", error)
@@ -78,10 +86,10 @@ function DashboardPage() {
       }
     }
 
-    if (currentUser?.department?._id) {
+    if (selectedDeptId) {
       fetchData()
     }
-  }, [currentUser])
+  }, [currentUser, selectedDeptId])
 
   if (isLoading) {
     return (
@@ -122,11 +130,19 @@ function DashboardPage() {
     return count;
   }
 
+  const filteredDepartments = departmentScores.filter(dept =>
+    dept.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredDepartmentScores = departmetnScoresToParticaular.filter(dept =>
+    dept.fromDepartmentName.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
     <div className="min-h-screen">
       <DashboardHeader />
 
-      <main className="container mx-auto py-8 px-4">
+      <main className="container mx-auto py-8 px-4 lg:px-10">
         <div className="flex flex-col lg:flex-row justify-between">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-200">
@@ -143,6 +159,21 @@ function DashboardPage() {
             </h1>
           </div>
         </div>
+
+        {isHod() && getHodDepartments().length > 1 && (
+          <div className="mb-4 flex items-center gap-2">
+            <label className="text-gray-200 font-medium">Select Department:</label>
+            <select
+              className="p-2 rounded-md bg-white/10 text-gray-200 border border-gray-600 focus:outline-none focus:border-[goldenrod]"
+              value={selectedDeptId}
+              onChange={e => setSelectedDeptId(e.target.value)}
+            >
+              {getHodDepartments().map(dept => (
+                <option key={dept._id} className="bg-[#29252c] text-gray-200" value={dept._id}>{capitalizeFirstLetter(dept.name)}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {!hasSurveys && (
           <Card className="mb-8 bg-gradient-to-r from-amber-500/10 to-amber-500/5 border border-amber-500/20">
@@ -165,10 +196,10 @@ function DashboardPage() {
         )}
         
         {hasSurveys && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 overflow-auto">
             {/* left side */}
              <Card className="h-full bg-[#29252c]/70">
-              <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
+              <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-100">
                   <CardTitle className="text-lg">
                     <div className="flex items-center justify-between">
                       <div>
@@ -188,14 +219,14 @@ function DashboardPage() {
             </Card>
 
             {/* Right side */}
-            <div className="flex flex-col gap-2 h-full">
-              <Card className="flex-1 max-h-[200px] bg-[#29252c]/70">
-                <CardHeader>
-                    <CardTitle className="text-[goldenrod] text-xl -mb-2">
-                      {currentUser?.department?.name ? `${capitalizeFirstLetter(currentUser?.department?.name)} Department's average ICSQ` : "Department's average ICSQ"}
-                    </CardTitle>
-                  </CardHeader>
-              <CardContent>
+            <div className="flex flex-col gap-2 max-h-full overflow-auto">
+              <Card className="flex-1 max-h-[160px] bg-[#29252c]/70">
+                    <CardHeader>
+                        <CardTitle className="text-[goldenrod] text-xl -mb-2">
+                          {currentUser?.department?.name ? `${capitalizeFirstLetter(currentUser?.department?.name)} Department's average ICSQ` : "Department's average ICSQ"}
+                        </CardTitle>
+                      </CardHeader>
+                  <CardContent>
                     <div className="grid grid-cols-1 gap-6">
                           {currentUserDept?.score && <Card  
                             className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(currentUser?.department?._id === currentUserDept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
@@ -221,17 +252,24 @@ function DashboardPage() {
 
 
               {isAdmin() ? (
-                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-[600px]">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
+                    <input
+                      type="text"
+                      placeholder="Search departments..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full p-2 mt-2 rounded-md bg-white/10 text-gray-200 border border-gray-600 focus:outline-none focus:border-[goldenrod]"
+                    />
                   </CardHeader>
                   <CardContent>
                     <div
-                      className={`grid grid-cols-1 gap-6 ${departmentScores.length > 4 ? 'max-h-96 overflow-y-auto pr-2' : ''}`}
+                      className={`grid grid-cols-1 gap-6 ${filteredDepartments.length > 4 ? 'max-h-96 overflow-y-auto pr-2' : ''}`}
                       style={{ minHeight: 0 }}
                     >
-                      {departmentScores.length > 0 &&
-                        departmentScores.map((dept) => (
+                      {filteredDepartments.length > 0 &&
+                        filteredDepartments.map((dept) => (
                           (currentUser?.department?._id !== dept._id) &&
                           <Card
                             key={dept._id}
@@ -249,25 +287,33 @@ function DashboardPage() {
                               </div>
                             </div>
                           </Card>
-                        ))}
+                        ))
+                        }
                     </div>
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70">
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-[600px]">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod]">
                       Scores Given to Your Department ({capitalizeFirstLetter(currentUser?.department?.name)})
                     </CardTitle>
+                    <input
+                      type="text"
+                      placeholder="Search departments..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full p-2 mt-2 rounded-md bg-white/10 text-gray-200 border border-gray-600 focus:outline-none focus:border-[goldenrod]"
+                    />
                   </CardHeader>
-                  {departmetnScoresToParticaular.length === 0 ? (
+                  {filteredDepartmentScores.length === 0 ? (
                     <p className="text-gray-600 text-center my-4">
                       No surveys happened for your department yet!
                     </p>
                   ) : (
                     <CardContent>
                       <div className="grid grid-cols-1 gap-6">
-                        {departmetnScoresToParticaular.map((dept, index) => (
+                        {filteredDepartmentScores.map((dept, index) => (
                           <Card  
                             key={index}
                             className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(String(currentUser?.department?._id) === String(dept?.fromDepartmentId)) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}

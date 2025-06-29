@@ -9,6 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from ".
 import Badge from "../../components/ui/Badge"
 import axios from "axios"
 import { capitalizeFirstLetter, getDepartmentName, Server } from "../../Constants"
+import { useMemo } from "react"
 
 function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -22,6 +23,7 @@ function AdminUsersPage() {
     department: "",
     role: "user",
     password: "",
+    headedDepartments: [],
   })
   const { toast } = useToast()
 
@@ -78,6 +80,20 @@ function AdminUsersPage() {
     }
   }
 
+  const handleHeadedDepartmentsChange = (selected) => {
+    if (editingUser) {
+      setEditingUser({
+        ...editingUser,
+        headedDepartments: selected,
+      })
+    } else {
+      setNewUser({
+        ...newUser,
+        headedDepartments: selected,
+      })
+    }
+  }
+
   const handleAddUser = async (e) => {
     e.preventDefault()
     if (!newUser.name || !newUser.email || !newUser.department || !newUser.password) {
@@ -92,7 +108,9 @@ function AdminUsersPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await axios.post(`${Server}/users`, newUser, { withCredentials: true });
+      const payload = { ...newUser };
+      if (newUser.role !== "hod") delete payload.headedDepartments;
+      const response = await axios.post(`${Server}/users`, payload, { withCredentials: true });
       const addedUser = response.data.user;
       
       setUsers([...users, addedUser])
@@ -102,6 +120,7 @@ function AdminUsersPage() {
         department: "",
         role: "user",
         password: "",
+        headedDepartments: [],
       })
 
       toast({
@@ -140,6 +159,7 @@ function AdminUsersPage() {
     try {
       const payload = { ...editingUser };
       if (!editingUser.password) delete payload.password;
+      if (editingUser.role !== "hod") delete payload.headedDepartments;
       await axios.put(`${Server}/users/${editingUser._id}`, payload, { withCredentials: true });
 
       setUsers(
@@ -325,6 +345,29 @@ function AdminUsersPage() {
                         ]}
                       />
                     </div>
+                    {(editingUser ? editingUser.role : newUser.role) === "hod" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-200 mb-1">Departments this HOD will head (other than their own)</label>
+                        <select
+                          multiple
+                          className="w-full p-2 rounded-md bg-white/10 text-gray-200 border border-gray-600 focus:outline-none focus:border-[goldenrod]"
+                          value={editingUser ? (editingUser.headedDepartments || []) : (newUser.headedDepartments || [])}
+                          onChange={e => {
+                            const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                            handleHeadedDepartmentsChange(selected);
+                          }}
+                        >
+                          {departments
+                            .filter(dept => dept._id !== (editingUser ? editingUser.department : newUser.department))
+                            .map(dept => (
+                              <option key={dept._id} value={dept._id}>
+                                {getDepartmentName(dept._id, departments)}
+                              </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-400 mt-1">Hold Ctrl (Windows) or Cmd (Mac) to select multiple.</p>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-200 mb-1">
                         {editingUser ? "Password (leave blank to keep current)" : "Password"}

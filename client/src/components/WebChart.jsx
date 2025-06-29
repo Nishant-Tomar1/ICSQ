@@ -24,8 +24,26 @@ const WebChart = ({ detailedScores }) => {
   const labels = Object.keys(detailedScores || {});
   const dataPoints = Object.values(detailedScores || {});
 
+  // Helper to wrap label text
+  function wrapLabel(label, maxLen = 14) {
+    if (label.length <= maxLen) return capitalizeFirstLetter(label);
+    const words = label.split(' ');
+    let lines = [];
+    let currentLine = '';
+    for (let word of words) {
+      if ((currentLine + ' ' + word).trim().length > maxLen) {
+        if (currentLine) lines.push(currentLine.trim());
+        currentLine = word;
+      } else {
+        currentLine += ' ' + word;
+      }
+    }
+    if (currentLine) lines.push(currentLine.trim());
+    return lines.map(line => capitalizeFirstLetter(line)).join('\n');
+  }
+
   const data = {
-    labels: labels.map((label) => capitalizeFirstLetter(label.slice(0, 18) + "..")),
+    labels: labels.map(wrapLabel),
     datasets: [
       {
         label: 'Score',
@@ -67,6 +85,9 @@ const WebChart = ({ detailedScores }) => {
             weight: '600',
           },
           color: '#fff', // Labels color
+          callback: function(value) {
+            return value.split('\n');
+          }
         },
       },
     },

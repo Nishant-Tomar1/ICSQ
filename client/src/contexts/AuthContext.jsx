@@ -52,9 +52,27 @@ export function AuthProvider({ children }) {
     return currentUser?.role === "admin"
   }
 
+  // Check if user is HOD
+  const isHod = () => {
+    return currentUser?.role === "hod"
+  }
+
+  // Get all departments a HOD can head (including their own)
+  const getHodDepartments = () => {
+    if (!isHod()) return [];
+    // headedDepartments is an array of department objects, department is the main one
+    const depts = [currentUser?.department, ...(currentUser?.headedDepartments || [])];
+    // Remove duplicates by _id
+    const seen = new Set();
+    return depts.filter(d => d && !seen.has(d._id) && seen.add(d._id));
+  }
+
   // Check if user has access to a specific department
   const hasAccessToDepartment = (departmentId) => {
     if (isAdmin()) return true
+    if (isHod()) {
+      return getHodDepartments().some(d => d._id === departmentId)
+    }
     return currentUser?.department === departmentId
   }
 
@@ -66,6 +84,8 @@ export function AuthProvider({ children }) {
     checkAuth,
     getMicrosoftLoginUrl,
     isAdmin,
+    isHod,
+    getHodDepartments,
     hasAccessToDepartment,
   }
 

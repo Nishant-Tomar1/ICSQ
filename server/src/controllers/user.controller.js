@@ -34,7 +34,7 @@ export async function getUserById(req, res) {
 
 export async function addUser(req, res) {
   try {
-    const { name, email, password, department, role = "user", surveyedDepartmentIds = [] } = req.body
+    const { name, email, password, department, role = "user", surveyedDepartmentIds = [], headedDepartments = [] } = req.body
 
     if (!name || !email || !password || !department) {
       return res.status(400).json({ message: "All fields are required" })
@@ -59,6 +59,14 @@ export async function addUser(req, res) {
       }
     }
 
+    // Validate headed departments (if provided)
+    if (headedDepartments.length > 0) {
+      const validHeadedDepartments = await Department.find({ _id: { $in: headedDepartments } });
+      if (validHeadedDepartments.length !== headedDepartments.length) {
+        return res.status(400).json({ message: "One or more headed department IDs are invalid" });
+      }
+    }
+
     // Create new user
     const user = new User({
       name,
@@ -66,11 +74,12 @@ export async function addUser(req, res) {
       password,
       department : new mongoose.Types.ObjectId(department),
       role,
-      surveyedDepartmentIds
+      surveyedDepartmentIds,
+      headedDepartments
     })
 
     await user.save()
-    const resUser = await User.findById(user._id).select("-password")
+    const resUser = await User.findById(user._id).select("-password").populate("headedDepartments")
 
     // Log user creation
     await logUserEvent('USER_CREATED', resUser, req.user, req, 'SUCCESS')
@@ -90,7 +99,7 @@ export async function addUser(req, res) {
 // Update a user
 export async function updateUser(req, res) {
   try {
-    const { name, email, department: departmentId, role, password, surveyedDepartmentIds } = req.body
+    const { name, email, department: departmentId, role, password, surveyedDepartmentIds, headedDepartments } = req.body
     
     const user = await User.findById(req.params?.id)
 
@@ -120,8 +129,20 @@ export async function updateUser(req, res) {
       user.surveyedDepartmentIds = surveyedDepartmentIds;
     }
 
+    // Update headed departments if provided
+    if (headedDepartments) {
+      // Validate headed departments
+      if (headedDepartments.length > 0) {
+        const validHeadedDepartments = await Department.find({ _id: { $in: headedDepartments } });
+        if (validHeadedDepartments.length !== headedDepartments.length) {
+          return res.status(400).json({ message: "One or more headed department IDs are invalid" });
+        }
+      }
+      user.headedDepartments = headedDepartments;
+    }
+
     await user.save({validateBeforeSave : false})
-    const updatedUser = await User.findById(user._id).select("-password")
+    const updatedUser = await User.findById(user._id).select("-password").populate("headedDepartments")
 
     // Log user update
     await logUserEvent('USER_UPDATED', updatedUser, req.user, req, 'SUCCESS')

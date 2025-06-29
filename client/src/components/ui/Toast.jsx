@@ -9,8 +9,8 @@ function Toast() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`bg-white/95 border rounded-lg shadow-lg p-4 flex items-start space-x-3 transform transition-all duration-300 ease-in-out ${
-            toast.variant === "destructive" ? "border-red-500" : "border-gray-200"
+          className={`backdrop-blur-lg bg-black/60 border rounded-lg shadow-lg p-4 flex items-start space-x-3 transform transition-all duration-300 ease-in-out ${
+            toast.variant === "destructive" ? "border-red-500" : "border-gray-400"
           }`}
         >
           {toast.variant === "destructive" && (
@@ -25,10 +25,10 @@ function Toast() {
             </div>
           )}
           <div className="flex-1">
-            {toast.title && <h4 className="font-medium text-gray-900">{toast.title}</h4>}
-            {toast.description && <p className="text-sm text-gray-500 mt-1">{toast.description}</p>}
+            {toast.title && <h4 className="font-medium text-[goldenrod]">{toast.title}</h4>}
+            {toast.description && <p className="text-sm text-gray-300 mt-1">{toast.description}</p>}
           </div>
-          <button onClick={() => dismissToast(toast.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-500">
+          <button onClick={() => dismissToast(toast.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"

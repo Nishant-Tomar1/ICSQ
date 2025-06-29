@@ -27,7 +27,7 @@ function Select({ value, onValueChange, placeholder, options, className = "" }) 
     <div className="relative" ref={selectRef}>
       <button
         type="button"
-        className={`relative w-full border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#a48d6e] focus:border-[#a48d6e] ${className}`}
+        className={`relative w-full border border-gray-700/50 bg-white/5 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#93725E] focus:border-[#93725E] text-gray-200 ${className}`}
         onClick={toggleSelect}
       >
         <span className="block truncate">
@@ -51,12 +51,12 @@ function Select({ value, onValueChange, placeholder, options, className = "" }) 
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+        <div className="absolute z-10 mt-1 w-full bg-[#29252c] shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-gray-400 overflow-auto focus:outline-none sm:text-sm">
           {options.map((option) => (
             <div
               key={option.value}
-              className={`cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-blue-100 ${
-                value === option.value ? "bg-blue-50 text-blue-900" : "text-gray-900"
+              className={`cursor-default select-none relative py-2 pl-3 pr-9 hover:backdrop-brightness-150 ${
+                value === option.value ? "bg-[#93725E] text-white" : "text-gray-200"
               }`}
               onClick={() => {
                 onValueChange(option.value)
@@ -65,7 +65,7 @@ function Select({ value, onValueChange, placeholder, options, className = "" }) 
             >
               <span className="block truncate">{option.label}</span>
               {value === option.value && (
-                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#83725E]">
+                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
                   <svg
                     className="h-5 w-5"
                     xmlns="http://www.w3.org/2000/svg"

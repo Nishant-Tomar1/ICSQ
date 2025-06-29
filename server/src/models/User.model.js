@@ -29,7 +29,11 @@ const UserSchema = new Schema(
     },
     surveyedDepartmentIds : [{
       type : String,
-    }]
+    }],
+    headedDepartments: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Department',
+    }],
   },
   {
     timestamps: true,

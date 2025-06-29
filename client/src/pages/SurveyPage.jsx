@@ -16,6 +16,7 @@ function SurveyPage() {
   const [categories, setCategories] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({})
+  const [isSaving, setIsSaving] = useState(false)
 
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -41,7 +42,14 @@ function SurveyPage() {
           description: deptResponse.data.description,
         }
         setDepartment(userDepartment)
-        initializeFormData();
+
+        // Load saved progress if exists
+        const savedProgress = localStorage.getItem(`survey_progress_${departmentId}`)
+        if (savedProgress) {
+          setFormData(JSON.parse(savedProgress))
+        } else {
+          initializeFormData()
+        }
 
       } catch (error) {
         toast({
@@ -71,23 +79,46 @@ function SurveyPage() {
   }
 
   const handleRatingChange = (categoryName, value) => {
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [categoryName]: {
-        ...prev[categoryName],
+        ...formData[categoryName],
         rating: value,
       },
-    }))
+    }
+    setFormData(newFormData)
+    localStorage.setItem(`survey_progress_${departmentId}`, JSON.stringify(newFormData))
   }
 
   const handleExpectationChange = (categoryName, value) => {
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [categoryName]: {
-        ...prev[categoryName],
+        ...formData[categoryName],
         expectations: value,
       },
-    }))
+    }
+    setFormData(newFormData)
+    localStorage.setItem(`survey_progress_${departmentId}`, JSON.stringify(newFormData))
+  }
+
+  const handleSaveProgress = async () => {
+    setIsSaving(true)
+    try {
+      localStorage.setItem(`survey_progress_${departmentId}`, JSON.stringify(formData))
+      toast({
+        title: "Progress Saved",
+        description: "Your survey progress has been saved",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save progress",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -95,7 +126,7 @@ function SurveyPage() {
 
     try {
       // Validate form data
-        const invalidCategories = categories.filter((category) => {
+      const invalidCategories = categories.filter((category) => {
         const match = ((!category.department) || (String(category.department) === String(departmentId)) )
         const data = formData[category.name];
         const hasRating = data?.rating;
@@ -132,8 +163,23 @@ function SurveyPage() {
         description: `Your feedback for ${department.name} has been recorded`,
       })
       
+      // Clear saved progress for this department
+      localStorage.removeItem(`survey_progress_${departmentId}`)
+      
       checkAuth();
-      navigate("/dashboard")
+
+      // Get selected departments from localStorage
+      const selectedDepartments = JSON.parse(localStorage.getItem("selectedDepartments") || "[]");
+      const currentIndex = selectedDepartments.indexOf(departmentId);
+      
+      // If there's a next department, navigate to it
+      if (currentIndex < selectedDepartments.length - 1) {
+        navigate(`/survey/${selectedDepartments[currentIndex + 1]}`);
+      } else {
+        // If this was the last department, go to dashboard
+        navigate("/dashboard");
+      }
+
     } catch (error) {
       toast({
         title: "Error",
@@ -160,11 +206,11 @@ function SurveyPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#29252c] text-gray-200">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-2 px-4">
-        <Card className="mb-2 bg-black/40">
+        <Card className="mb-2 bg-[#29252c]/70">
           <CardContent>
             <div className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -174,7 +220,7 @@ function SurveyPage() {
                   className={` border rounded-lg shadow-sm cursor-pointer transition-all p-4 text-center ${
                     dept === departmentId
                     ? "border-2 border-[goldenrod] shadow-md"
-                    : "hover:shadow-md hover:bg-white/5"
+                    : "hover:shadow-md hover:bg-white/10"
                   }`}
                   onClick={() => navigate(`/survey/${dept}`, {replace :true})}
                   >
@@ -199,12 +245,12 @@ function SurveyPage() {
           
         :
       <main className="container mx-auto py-4 px-4 text-gray-200">
-      <Card className="rounded-b-none text-center text-[goldenrod] text-md">
-        <CardHeader className="bg-black/40 border-b py-6 border-b-gray-400 text-xl font-semibold">{getDepartmentIcon(getDepartmentName(departmentId, departments))} ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
+      <Card className="rounded-b-none text-center text-[goldenrod] text-md bg-[#29252c]/70">
+        <CardHeader className="bg-[#29252c]/70 border-b py-6 border-b-gray-400 text-xl font-semibold text-[goldenrod]">{getDepartmentIcon(getDepartmentName(departmentId, departments))} ICSQ SURVEY FOR {getDepartmentName(departmentId, departments)?.toUpperCase()}</CardHeader>
      
-        <div className="overflow-x-auto bg-black/60">
+        <div className="overflow-x-auto bg-[#29252c]/70">
           <table className="min-w-full border border-gray-700 rounded-lg overflow-hidden">
-            <thead className="bg-black/20 text-left hidden md:table-header-group">
+            <thead className="bg-[#29252c]/80 text-left hidden md:table-header-group">
               <tr className="md:table-row flex flex-col md:flex-row">
                 <th className="px-4 py-3 text-sm font-semibold text-gray-200">Category</th>
                 <th className="px-4 py-3 text-sm font-semibold text-gray-200 text-center">Rating</th>
@@ -222,7 +268,7 @@ function SurveyPage() {
                     <div className="mb-3 text-base sm:text-lg font-semibold text-[goldenrod] border-b border-gray-700/50 pb-2">
                       {capitalizeFirstLetter(category.name)}
                     </div>
-                    <div className="text-xs sm:text-sm bg-white/5 p-2 sm:p-3 rounded-lg border border-gray-700/50 hover:bg-white/10 transition-all duration-200 cursor-help break-words">
+                    <div className="text-xs sm:text-sm bg-[#29252c]/60 p-2 sm:p-3 rounded-lg border border-gray-700/50 hover:bg-[#29252c]/80 transition-all duration-200 cursor-help break-words">
                       <span className="text-gray-300 whitespace-pre-wrap">
                         {capitalizeFirstLetter(category.description).split('?').map((part, index, array) => 
                           index < array.length - 1 ? 
@@ -252,7 +298,7 @@ function SurveyPage() {
                               className={`w-10 h-10 sm:w-14 sm:h-12 rounded-lg flex items-center justify-center text-lg sm:text-[2.25rem] transition-all duration-200 ${
                                 isSelected
                                   ? "bg-[#93725E] text-white scale-110"
-                                  : "bg-white/5 hover:bg-white/10"
+                                  : "bg-[#29252c]/60 hover:bg-[#93725E]/20"
                               }`}
                             >
                               {emojiList[index]}
@@ -272,8 +318,8 @@ function SurveyPage() {
                         value={formData[category.name]?.expectations || ""}
                         onChange={(e) => handleExpectationChange(category.name, e.target.value)}
                         maxLength={300}
-                        className={`w-full min-h-[100px] text-sm sm:text-base bg-white/5 border border-gray-700/50 rounded-lg focus:ring-1 focus:ring-[#93725E] ${
-                          formData[category.name]?.rating <= 60 ? "border-red-500" : ""
+                        className={`w-full min-h-[100px] text-sm sm:text-base bg-[#29252c]/60 border border-gray-700/50 rounded-lg focus:ring-[0.5px] focus:ring-[#93725E] text-gray-200 ${
+                          formData[category.name]?.rating <= 60 ? "border-orange-400" : ""
                         }`}
                       />
                       <div className="absolute bottom-2 right-2 text-xs text-gray-400">
@@ -281,7 +327,7 @@ function SurveyPage() {
                       </div>
                     </div>
                     {formData[category.name]?.rating <= 60 && (
-                      <p className="mt-2 text-xs sm:text-sm text-red-500">
+                      <p className="mt-2 text-xs sm:text-sm text-orange-400">
                         *Required for ratings 60% or below
                       </p>
                     )}
@@ -295,10 +341,12 @@ function SurveyPage() {
 
 
         <div className="flex justify-end gap-4 mt-8">
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}
+            className="border-[goldenrod] text-[goldenrod] hover:bg-[#93725E]/20">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading}
+            className="bg-[#93725E] text-white hover:bg-[goldenrod]">
             {isLoading ? "Submitting..." : "Submit Survey"}
           </Button>
         </div>
@@ -309,83 +357,3 @@ function SurveyPage() {
 }
 
 export default SurveyPage
-
-
-
-// <div className="space-y-8"> 
-//           {categories.map((category) => (
-//             <Card key={category.name} className="border">
-//               <CardHeader>
-//                 <CardTitle className="text-lg"> {capitalizeFirstLetter(category.name)}</CardTitle>
-//               </CardHeader>
-//               <CardContent className="space-y-4">
-//                 <div>
-//                   <h4 className="font-medium mb-2">Rating</h4>
-//                   <RadioGroup
-//                     value={formData[category.name]?.rating || ""}
-//                     onValueChange={(value) => handleRatingChange(category.name, value)}
-//                     className="flex flex-wrap gap-4"
-//                   >
-//                     <RadioItem value={20} id={`${category.name}-poor`}>
-//                       Poor (20)
-//                     </RadioItem>
-//                     <RadioItem value={40} id={`${category.name}-below-average`}>
-//                       Below Average (40)
-//                     </RadioItem>
-//                     <RadioItem value={60} id={`${category.name}-average`}>
-//                       Average (60)
-//                     </RadioItem>
-//                     <RadioItem value={80} id={`${category.name}-good`}>
-//                       Good (80)
-//                     </RadioItem>
-//                     <RadioItem value={100} id={`${category.name}-impressive`}>
-//                       Very Impressive (100)
-//                     </RadioItem>
-//                   </RadioGroup>
-//                 </div>
-
-//                 {(formData[category.name]?.rating === 20 ||
-//                   formData[category.name]?.rating === 40 ||
-//                   formData[category.name]?.rating === 60) && (
-//                   <div className="mt-4">
-//                     <h4 className="font-medium mb-2">Expectations</h4>
-//                     <p className="text-sm text-gray-500 mb-2">
-//                       Please provide reasons for the low score and your expectations
-//                     </p>
-
-//                     <div className="space-y-2">
-//                       {formData?.[category.name]?.expectations?.map((expectation, index) => (
-//                         <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-//                           <span className="flex-grow">{expectation}</span>
-//                           <Button
-//                             variant="ghost"
-//                             className="p-1"
-//                             onClick={() => handleRemoveExpectation(category.name, index)}
-//                           >
-//                             Remove
-//                           </Button>
-//                         </div>
-//                       ))}
-//                     </div>
-
-//                     <div className="flex gap-2 mt-2">
-//                         <Textarea
-//                           placeholder="Enter your expectation..."
-//                           value={currentExpectations[category.name] || ''}
-//                           onChange={(e) =>
-//                             setCurrentExpectations((prev) => ({
-//                               ...prev,
-//                               [category.name]: e.target.value,
-//                             }))}
-//                           className="flex-grow"
-//                         />
-//                         <Button onClick={() => handleAddExpectation(category.name)} className="self-end">
-//                           Add
-//                         </Button>
-//                     </div>
-//                   </div>
-//                 )}
-//               </CardContent>
-//             </Card>
-//           ))}
-//         </div>
