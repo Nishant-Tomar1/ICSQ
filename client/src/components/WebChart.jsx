@@ -84,8 +84,8 @@ const WebChart = ({ detailedScores }) => {
         },
         pointLabels: {
           font: {
-            size: 16, // Increased font size
-            weight: '700',
+            size: 11, // Increased font size
+            weight: '400',
           },
           color: '#fff',
           callback: function(value) {

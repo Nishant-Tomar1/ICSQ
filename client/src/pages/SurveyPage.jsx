@@ -132,14 +132,14 @@ function SurveyPage() {
         const hasRating = data?.rating;
         const lowRating = hasRating && data.rating <= 60;
         const hasExpectations = data?.expectations
-      
-        return match && (!hasRating || (lowRating && !hasExpectations));
+        const tooShort = lowRating && (!hasExpectations || data.expectations.length < 30);
+        return match && (!hasRating || (lowRating && (!hasExpectations || data.expectations.length < 30)));
       });
       
       if (invalidCategories.length > 0) {
         toast({
           title: "Incomplete Survey",
-          description: "Please provide ratings for all categories. For low ratings (≤ 60), expectations are required.",
+          description: "Please provide ratings for all categories. For low ratings (≤ 60), expectations (min 30 characters) are required.",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -206,7 +206,7 @@ function SurveyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#29252c] text-gray-200">
+    <div className="min-h-screen text-gray-200">
       <DashboardHeader user={currentUser} />
 
       <main className="container mx-auto py-2 px-4">
@@ -327,8 +327,8 @@ function SurveyPage() {
                       </div>
                     </div>
                     {formData[category.name]?.rating <= 60 && (
-                      <p className="mt-2 text-xs sm:text-sm text-orange-400">
-                        *Required for ratings 60% or below
+                      <p className={`mt-2 text-xs sm:text-sm ${((formData[category.name]?.expectations || "").length < 30) ? "text-orange-400" : "text-green-400"}`}>
+                        *Required for ratings 60% or below. Minimum 30 characters.
                       </p>
                     )}
                   </td>
@@ -342,7 +342,7 @@ function SurveyPage() {
 
         <div className="flex justify-end gap-4 mt-8">
           <Button variant="outline" onClick={() => navigate("/dashboard")}
-            className="border-[goldenrod] text-[goldenrod] hover:bg-[#93725E]/20">
+            className="text-[goldenrod] hover:bg-[#93725E]/20">
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}

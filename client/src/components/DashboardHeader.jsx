@@ -44,11 +44,11 @@ function DashboardHeader() {
 
   return (
     <header className="bg-[#29252c] sticky top-0 z-10 shadow-lg">
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
-              <span className="text-xl font-bold text-gray-200">
+              <span className="text-lg font-bold text-gray-200">
                 <span className="hidden lg:block">Internal Customer Satisfaction Quotient </span>
                 <span className="lg:hidden">ICSQ</span>
               </span>
@@ -85,13 +85,13 @@ function DashboardHeader() {
           <div className="flex items-center">
             <div className="relative group">
               <button className="flex items-center space-x-2 focus:outline-none" onClick={() => setDrawerOpen(prev => !prev)}>
-                <div className="h-10 w-10 rounded-full bg-[#f1ece7] flex items-center justify-center text-[#83725E] font-medium overflow-hidden">
-                  <img src={logo} alt="Logo" className="h-8 w-8 object-contain" />
+                <div className="h-8 w-8 rounded-full bg-[#f1ece7] flex items-center justify-center text-[#83725E] font-medium overflow-hidden">
+                  <img src={logo} alt="Logo" className="h-6 w-6 object-contain" />
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
                   <div className="text-xs text-gray-300">
-                    {capitalizeFirstLetter(currentUser.role) || ""}
+                    {(currentUser.role.toUpperCase()) || ""}
                     {currentUser.role !== "admin" ? " - " + (capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}
                   </div>
                 </div>

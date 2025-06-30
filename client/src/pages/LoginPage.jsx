@@ -146,7 +146,7 @@ function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="bg-white/10 text-gray-200 border border-gray-600 focus:border-[goldenrod]"
+                      className="bg-white/10 text-gray-700 border border-gray-600 focus:border-[goldenrod]"
                     />
                   </div>
                   <div className="space-y-1">
@@ -157,7 +157,7 @@ function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="bg-white/10 text-gray-200 border border-gray-600 focus:border-[goldenrod]"
+                      className="bg-white/10 text-gray-700 border border-gray-600 focus:border-[goldenrod]"
                     />
                   </div>
                   <Button type="submit" className="w-full text-sm bg-[#93725E]/90 text-white hover:bg-[#93725E]/150 border-none" disabled={isLoading}>
