@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
 import { capitalizeFirstLetter } from "../Constants"
 import { FaAngleDown, FaAngleUp } from "react-icons/fa"
+import logo from "../assets/logo.png"
 
 function DashboardHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -84,8 +85,8 @@ function DashboardHeader() {
           <div className="flex items-center">
             <div className="relative group">
               <button className="flex items-center space-x-2 focus:outline-none" onClick={() => setDrawerOpen(prev => !prev)}>
-                <div className="h-10 w-10 rounded-full bg-[#f1ece7] flex items-center justify-center text-[#83725E] font-medium">
-                  {getInitials(currentUser?.name)}
+                <div className="h-10 w-10 rounded-full bg-[#f1ece7] flex items-center justify-center text-[#83725E] font-medium overflow-hidden">
+                  <img src={logo} alt="Logo" className="h-8 w-8 object-contain" />
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>

@@ -24,26 +24,29 @@ const WebChart = ({ detailedScores }) => {
   const labels = Object.keys(detailedScores || {});
   const dataPoints = Object.values(detailedScores || {});
 
-  // Helper to wrap label text
-  function wrapLabel(label, maxLen = 14) {
-    if (label.length <= maxLen) return capitalizeFirstLetter(label);
-    const words = label.split(' ');
-    let lines = [];
-    let currentLine = '';
-    for (let word of words) {
-      if ((currentLine + ' ' + word).trim().length > maxLen) {
-        if (currentLine) lines.push(currentLine.trim());
-        currentLine = word;
-      } else {
-        currentLine += ' ' + word;
+  // Helper to wrap label text and add score
+  function wrapLabelWithScore(label, score, maxLen = 14) {
+    let baseLabel = label.length <= maxLen ? capitalizeFirstLetter(label) : (() => {
+      const words = label.split(' ');
+      let lines = [];
+      let currentLine = '';
+      for (let word of words) {
+        if ((currentLine + ' ' + word).trim().length > maxLen) {
+          if (currentLine) lines.push(currentLine.trim());
+          currentLine = word;
+        } else {
+          currentLine += ' ' + word;
+        }
       }
-    }
-    if (currentLine) lines.push(currentLine.trim());
-    return lines.map(line => capitalizeFirstLetter(line)).join('\n');
+      if (currentLine) lines.push(currentLine.trim());
+      return lines.map(line => capitalizeFirstLetter(line)).join('\n');
+    })();
+    // Add score on a new line for clarity
+    return `${baseLabel}\n(${score !== undefined && score !== null ? score.toFixed(2) : 0}%)`;
   }
 
   const data = {
-    labels: labels.map(wrapLabel),
+    labels: labels.map((label, idx) => wrapLabelWithScore(label, dataPoints[idx])),
     datasets: [
       {
         label: 'Score',
@@ -81,10 +84,10 @@ const WebChart = ({ detailedScores }) => {
         },
         pointLabels: {
           font: {
-            size: 11,
-            weight: '600',
+            size: 16, // Increased font size
+            weight: '700',
           },
-          color: '#fff', // Labels color
+          color: '#fff',
           callback: function(value) {
             return value.split('\n');
           }
