@@ -20,7 +20,7 @@ function SurveyPage() {
 
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { currentUser, checkAuth } = useAuth()
+  const { currentUser, checkAuth, getCurrentDepartment } = useAuth()
 
   useEffect(() => {
     const alreadySurveyed = currentUser?.surveyedDepartmentIds.includes(departmentId) || false;
@@ -145,12 +145,15 @@ function SurveyPage() {
         setIsLoading(false);
         return;
       }
+
+      const confirm = window.confirm("Are you sure you want to submit ?");
+      if (!confirm) return
       
       await axios.post(
         `${Server}/surveys`,
         {
           userId : currentUser._id,
-          fromDepartmentId: currentUser.department._id,
+          fromDepartmentId: getCurrentDepartment()?._id,
           toDepartmentId: departmentId,
           responses: formData,
           date: new Date(),

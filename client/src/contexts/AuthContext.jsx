@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import axios from "axios"
+import { Server } from "../Constants"
 
 const AuthContext = createContext()
 
@@ -10,11 +11,10 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const API_URL = "http://localhost:8080/api/v1";
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_URL}/auth/me`, { withCredentials: true })
+      const response = await axios.get(`${Server}/auth/me`, { withCredentials: true })
       setCurrentUser(response.data)
     } catch (error) {
       setCurrentUser(null)
@@ -30,20 +30,20 @@ export function AuthProvider({ children }) {
 
   // Login function
   const login = async (email, password) => {
-    const response = await axios.post(`${API_URL}/auth/login`, { email, password }, { withCredentials: true })
+    const response = await axios.post(`${Server}/auth/login`, { email, password }, { withCredentials: true })
     setCurrentUser(response.data.user)
     return response.data
   }
 
   // Logout function
   const logout = async () => {
-    await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true })
+    await axios.post(`${Server}/auth/logout`, {}, { withCredentials: true })
     setCurrentUser(null)
   }
 
   // Get Microsoft login URL
   const getMicrosoftLoginUrl = async () => {
-    const response = await axios.get(`${API_URL}/auth/microsoft`);
+    const response = await axios.get(`${Server}/auth/microsoft`);
     return response.data.loginUrl;
   }
 
@@ -67,13 +67,18 @@ export function AuthProvider({ children }) {
     return depts.filter(d => d && !seen.has(d._id) && seen.add(d._id));
   }
 
+  // Get the current department (for all logic)
+  const getCurrentDepartment = () => {
+    return currentUser?.currentDepartment || currentUser?.department;
+  }
+
   // Check if user has access to a specific department
   const hasAccessToDepartment = (departmentId) => {
     if (isAdmin()) return true
     if (isHod()) {
       return getHodDepartments().some(d => d._id === departmentId)
     }
-    return currentUser?.department === departmentId
+    return getCurrentDepartment()?._id === departmentId
   }
 
   const value = {
@@ -86,6 +91,7 @@ export function AuthProvider({ children }) {
     isAdmin,
     isHod,
     getHodDepartments,
+    getCurrentDepartment,
     hasAccessToDepartment,
   }
 

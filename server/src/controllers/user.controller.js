@@ -113,7 +113,10 @@ export async function updateUser(req, res) {
 
     if (name) user.name = name
     if (email) user.email = email
-    if (departmentId) user.department = new mongoose.Types.ObjectId(departmentId)
+    if (departmentId){ 
+      user.department = new mongoose.Types.ObjectId(departmentId)
+      user.currentDepartment = new mongoose.Types.ObjectId(departmentId)
+    }
     if (role) user.role = role
     if (password) user.password = password
     
@@ -181,5 +184,47 @@ export async function deleteUser(req, res) {
     // Log user deletion error
     await logUserEvent('USER_DELETED', { _id: req.params.id }, req.user, req, 'FAILURE', error.message)
     return res.status(500).json({ message: "Failed to delete user" })
+  }
+}
+
+// Update only currentDepartment for HODs
+export async function updateCurrentDepartment(req, res) {
+  try {
+    const userId = req.params.id;
+    const { departmentId } = req.body;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.role !== "hod") {
+      return res.status(403).json({ message: "Only HODs can change current department" });
+    }
+    // Check if departmentId is in headedDepartments
+    if (!user.headedDepartments.map(String).includes(String(departmentId)) && (String(user.department) !== String(departmentId) )) {
+      return res.status(400).json({ message: "HOD does not head this department" });
+    }
+    user.currentDepartment = departmentId;
+    await user.save();
+    return res.json({ message: "Current department updated", currentDepartment: user.currentDepartment });
+  } catch (error) {
+    console.error("Error updating current department:", error);
+    return res.status(500).json({ message: "Failed to update current department" });
+  }
+}
+
+// Reset currentDepartment to department (for logout)
+export async function resetCurrentDepartment(req, res) {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.currentDepartment = user.department;
+    await user.save();
+    return res.json({ message: "Current department reset", currentDepartment: user.currentDepartment });
+  } catch (error) {
+    console.error("Error resetting current department:", error);
+    return res.status(500).json({ message: "Failed to reset current department" });
   }
 }

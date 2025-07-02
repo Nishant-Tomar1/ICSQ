@@ -43,10 +43,10 @@ function ActionPlansPage() {
   const [showTable, setShowTable] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { currentUser, getCurrentDepartment } = useAuth();
 
   const [newEntry, setNewEntry] = useState({
-    departmentId: currentUser?.department?._id,
+    departmentId: getCurrentDepartment()?._id,
     categoryId: "",
     actions: [],
     ownerId: currentUser?._id,
@@ -60,7 +60,7 @@ function ActionPlansPage() {
   const fetchData = async () => {
     try {
       const response = await axios.get(`${Server}/action-plans`, {
-        params: { departmentId: currentUser?.department._id },
+        params: { departmentId: getCurrentDepartment()?._id },
         withCredentials: true,
       });
       setActionPlans(response.data);
@@ -76,7 +76,7 @@ function ActionPlansPage() {
       });
       setAllDepartments(depresponse.data);
 
-      const expresponse = await axios.get(`${Server}/analytics/expectation-data/${currentUser?.department?._id}`, {withCredentials: true})
+      const expresponse = await axios.get(`${Server}/analytics/expectation-data/${getCurrentDepartment()?._id}`, {withCredentials: true})
       setExpectationData(expresponse.data)
       
     } catch (error) {
@@ -348,7 +348,7 @@ function ActionPlansPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allCategories.map((category, index) => (!category.department || (String(category.department)===String(currentUser?.department?._id)))&& (
+                {allCategories.map((category, index) => (!category.department || (String(category.department)===String(getCurrentDepartment()?._id)))&& (
                   <TableRow key={index}>
                     <TableCell>
                       {capitalizeFirstLetter(category.name)}
@@ -424,7 +424,7 @@ function ActionPlansPage() {
                                 <Input
                                   disabled
                                   name="department"
-                                  value={currentUser?.department?.name}
+                                  value={getCurrentDepartment()?.name}
                                   placeholder="Department"
                                   required
                                 />
@@ -534,7 +534,7 @@ function ActionPlansPage() {
             <CardTitle className="flex items-center justify-between">
               <span>
                 Action Plans -{" "}
-                {capitalizeFirstLetter(currentUser?.department?.name)}
+                {capitalizeFirstLetter(getCurrentDepartment()?.name)}
               </span>
                   {["admin", "hod"].includes(currentUser?.role) && (
                     <>
@@ -610,7 +610,7 @@ function ActionPlansPage() {
                 {filteredPlans.map((plan, index) => (
                   <TableRow key={plan._id + index}>
                     <TableCell>
-                      {capitalizeFirstLetter(currentUser.department?.name)}
+                      {capitalizeFirstLetter(getCurrentDepartment()?.name)}
                     </TableCell>
                     <TableCell>
                       {capitalizeFirstLetter(plan.category?.[0]?.name)}
@@ -735,70 +735,3 @@ function ActionPlansPage() {
   );
 }
 export default ActionPlansPage;
-
-
-
-            // <Table>
-            //   <TableHeader>
-            //     <TableRow>
-            //       <TableHead>Category</TableHead>
-            //       <TableHead>Expectations</TableHead>
-            //     </TableRow>
-            //   </TableHeader>
-            //   <TableBody>
-            //     {filteredPlans.map((plan, index) => (
-            //       <TableRow key={plan._id + index}>
-            //         <TableCell>
-            //           {capitalizeFirstLetter(plan.category?.[0]?.name)}
-            //         </TableCell>
-            //         <TableCell>
-            //           {" "}
-            //           <span
-            //             onClick={() => {
-            //               setExpModal(true);
-            //               setSelected(plan)
-            //             }}
-            //             className="underline cursor-pointer"
-            //           >
-            //             Click to see
-            //           </span>
-            //         </TableCell>
-            //         {/* Expectations Modal */}
-            //         {expModal && (
-            //           <div
-            //             key={plan._id}
-            //             className="font-normal text-md fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            //           >
-            //             <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl relative p-4">
-            //               <button
-            //                 className="absolute top-2 right-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-3 px-4 rounded-[50px]"
-            //                 onClick={() => {setExpModal(false);setSelected({});}}
-            //               >
-            //                 X
-            //               </button>
-            //               <Card className="shadow-none border-none">
-            //                 <CardHeader>
-            //                   <CardTitle>Expectations</CardTitle>
-            //                 </CardHeader>
-            //                 <CardContent>
-            //                   {selected?.expectations?.map((exp, index) => (
-            //                     <span key={plan._id + index}>
-            //                       {index + 1}. {exp} <br />
-            //                     </span>
-            //                   ))}
-            //                 </CardContent>
-            //               </Card>
-            //             </div>
-            //           </div>
-            //         )}
-            //       </TableRow>
-            //     ))}
-            //     {filteredPlans.length === 0 && currentUser.role === "user" && (
-            //       <TableRow>
-            //         <TableCell colSpan={7} className="text-center py-4">
-            //           No action plans found matching the current filters
-            //         </TableCell>
-            //       </TableRow>
-            //     )}
-            //   </TableBody>
-            // </Table>

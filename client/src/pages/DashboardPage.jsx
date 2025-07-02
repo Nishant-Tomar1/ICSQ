@@ -24,17 +24,8 @@ function DashboardPage() {
   const [hasSurveys, setHasSurveys] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { currentUser, isAdmin, isHod, getHodDepartments } = useAuth()
-  const [selectedDeptId, setSelectedDeptId] = useState(null)
+  const { currentUser, isAdmin, isHod, getCurrentDepartment } = useAuth()
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    if (isHod() && getHodDepartments().length > 0) {
-      setSelectedDeptId(getHodDepartments()[0]._id)
-    } else if (currentUser?.department?._id) {
-      setSelectedDeptId(currentUser.department._id)
-    }
-  }, [currentUser])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,30 +36,22 @@ function DashboardPage() {
         let filteredScores = data
         if (isAdmin()) {
           // all departments
-        } else if (isHod() && selectedDeptId) {
-          filteredScores = data.filter((dept) => dept._id === selectedDeptId)
         } else {
-          filteredScores = data.filter((dept) => dept.name === currentUser?.department?.name)
+          filteredScores = data.filter((dept) => dept.name === getCurrentDepartment()?.name)
         }
 
-        let deptToShow = null;
-        if (selectedDeptId === null) {
-          deptToShow = data.find((dept) => dept.name === currentUser?.department?.name)
-        } else if (isHod() && selectedDeptId) {
-          deptToShow = data.find((dept) => dept._id === selectedDeptId)
-        } else {
-          deptToShow = data.find((dept) => dept.name === currentUser?.department?.name)
-        }
+        const deptToShow = data.find((dept) => dept.name === getCurrentDepartment()?.name)
+        
         setModalDept(deptToShow || {})
         setCurrentUserDept(deptToShow || {})
         setDepartmentScores(filteredScores)
         setHasSurveys(!!(deptToShow && (deptToShow.score !== undefined && deptToShow.score !== null)))
 
-        const partresponse = await axios.get(`${Server}/analytics/department-scores/${selectedDeptId || currentUser.department?._id}`, { withCredentials: true })
+        const partresponse = await axios.get(`${Server}/analytics/department-scores/${getCurrentDepartment()?._id}`, { withCredentials: true })
         setDepartmentScoresToParticular(partresponse.data)
 
         try {
-          const expresponse = await axios.get(`${Server}/analytics/expectation-data/${selectedDeptId || currentUser?.department?._id}`, {withCredentials: true})
+          const expresponse = await axios.get(`${Server}/analytics/expectation-data/${getCurrentDepartment()?._id}`, {withCredentials: true})
           setExpData(expresponse.data || [])
         } catch (error) {
           console.error("Failed to fetch expectation data:", error)
@@ -86,10 +69,8 @@ function DashboardPage() {
       }
     }
 
-    if (selectedDeptId !== undefined && selectedDeptId !== null) {
-      fetchData()
-    }
-  }, [currentUser, selectedDeptId])
+    fetchData()
+  }, [currentUser])
 
   if (isLoading) {
     return (
@@ -112,7 +93,7 @@ function DashboardPage() {
 
   const calculateCourseOfAction = (deptname)=> {
       let count = 0;
-      if ((currentUser?.role === "admin") ||(deptname === currentUser?.department?.name)){
+      if (deptname === getCurrentDepartment()?.name){
         expData.map((exp)=> {
           count += exp.totalExpectationCount;
         })
@@ -151,21 +132,6 @@ function DashboardPage() {
               </h1>
             </div>
           </div>
-
-          {isHod() && getHodDepartments().length > 1 && (
-            <div className="mb-4 flex items-center gap-2">
-              <label className="text-gray-200 font-medium">Select Department:</label>
-              <select
-                className="p-2 rounded-md bg-white/10 text-gray-200 border border-gray-600 focus:outline-none focus:border-[goldenrod]"
-                value={selectedDeptId}
-                onChange={e => setSelectedDeptId(e.target.value)}
-              >
-                {getHodDepartments().map(dept => (
-                  <option key={dept._id} className="bg-[#29252c] text-gray-200" value={dept._id}>{capitalizeFirstLetter(dept.name)}</option>
-                ))}
-              </select>
-            </div>
-          )}
 
           {!hasSurveys && (
             <Card className="mb-6 bg-gradient-to-r from-amber-500/10 to-amber-500/5 border border-amber-500/20 text-sm">
@@ -215,7 +181,7 @@ function DashboardPage() {
                 <Card className="flex-1 bg-[#29252c]/70 max-h-[180px]">
                       <CardHeader>
                           <CardTitle className="text-[goldenrod] text-xl -mb-2">
-                            {currentUser?.department?.name ? `${capitalizeFirstLetter(currentUser?.department?.name)} Department's average ICSQ` : "Department's average ICSQ"}
+                            {getCurrentDepartment()?.name ? `${capitalizeFirstLetter(getCurrentDepartment()?.name)} Department's average ICSQ` : "Department's average ICSQ"}
                           </CardTitle>
                         </CardHeader>
                     <CardContent>
@@ -243,54 +209,10 @@ function DashboardPage() {
                     </CardContent>
                 </Card>
 
-
-              {/* {isAdmin() ? (
-                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-full h-full text-sm">
-                  <CardHeader>
-                    <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
-                    <input
-                      type="text"
-                      placeholder="Search departments..."
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      className="w-full p-2 mt-2 rounded-md bg-white/10 text-gray-200 border border-gray-600 focus:outline-none focus:border-[goldenrod]"
-                    />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6">
-                      {departmentScores.length > 0 &&
-                        departmentScores
-                          .filter(dept => dept.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                          .map((dept) => (
-                            (currentUser?.department?._id !== dept._id) &&  
-                             <Card  
-                               key={dept._id}
-                               className={`shadow-xl cursor-pointer backdrop-brightness-125 ${(modalDept._id === dept._id) ? "bg-[#93725E]/80" :"bg-white/10"} p-4`}
-                             >
-                               <div onClick={() => {
-                                 console.log(dept);
-                                 setModalDept(dept);
-                               }}>
-                               <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
-                                 <span> {getDepartmentIcon(dept.name)} {capitalizeFirstLetter(dept.name)} </span>
-                                 <span className="text-gray-200">{dept?.score.toFixed(2)} %</span>
-                               </div>
-                               <div
-                                 className="w-full mx-auto"
-                               >
-                                 {renderCircularProgress(dept.score)}
-                               </div>
-                               </div>
-                             </Card>
-                          ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : ( */}
                 <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 h-full text-sm min-h-[400px] xl:min-h-[600px] max-h-[600px]">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod]">
-                      Scores Given to Your Department ({capitalizeFirstLetter(currentUser.department?.name)})
+                      Scores Given to Your Department ({capitalizeFirstLetter(getCurrentDepartment()?.name)})
                     </CardTitle>
                     <input
                       type="text"
@@ -334,7 +256,6 @@ function DashboardPage() {
                     </CardContent>
                   )}
                 </Card>
-              {/* )} */}
             </div>
           </div>)}
 

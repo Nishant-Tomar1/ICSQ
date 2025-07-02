@@ -92,6 +92,7 @@ export async function login(req, res) {
         name: user.name,
         email: user.email,
         department: await Department.findById(user.department),
+        currentDepartment: await Department.findById(user.currentDepartment),
         role: user.role,
         surveyedDepartmentIds : user.surveyedDepartmentIds,
         headedDepartments: headedDepartments
@@ -132,6 +133,7 @@ export async function getCurrentUser(req, res) {
       name: req.user.name,
       email: req.user.email,
       department: await Department.findById(req.user.department),
+      currentDepartment: await Department.findById(req.user.currentDepartment),
       role: req.user.role,
       surveyedDepartmentIds : req.user.surveyedDepartmentIds,
       headedDepartments: headedDepartments

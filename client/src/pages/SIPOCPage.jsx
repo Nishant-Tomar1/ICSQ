@@ -36,7 +36,7 @@ function SIPOCPage() {
     customer: "",
   })
   const { toast } = useToast()
-  const { currentUser } = useAuth()
+  const { currentUser, getCurrentDepartment } = useAuth()
 
   const sortEntries = (entries) => {
     const sorted = {
@@ -60,9 +60,9 @@ function SIPOCPage() {
 
   const fetchData = async () => {
     try {
-      if (currentUser?.department?._id) {
+      if (getCurrentDepartment()?._id) {
         try {
-          const response = await axios.get(`${Server}/sipoc?departmentId=${currentUser.department._id}`, {
+          const response = await axios.get(`${Server}/sipoc?departmentId=${getCurrentDepartment()?._id}`, {
             withCredentials: true,
           });
           setSipocEntries(response.data || []);
@@ -147,7 +147,7 @@ function SIPOCPage() {
     try {
       setIsAdding(true);
       const formData = new FormData();
-      formData.append('departmentId', currentUser?.department?._id);
+      formData.append('departmentId', getCurrentDepartment()?._id);
       formData.append('entries', JSON.stringify(newEntry));
       if (file) {
         formData.append('processPicture', file);
@@ -378,7 +378,7 @@ function SIPOCPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>SIPOC Management - {capitalizeFirstLetter(currentUser?.department?.name)}</span>
+              <span>SIPOC Management - {capitalizeFirstLetter(getCurrentDepartment()?.name)}</span>
               {(["admin", "hod"].includes(currentUser?.role)) && (
                 <Button onClick={() => { setModalOpen(true) }} disabled={isLoading}>
                   <FaPlus className="mr-2" />

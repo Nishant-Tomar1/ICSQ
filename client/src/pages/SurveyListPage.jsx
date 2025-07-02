@@ -16,7 +16,7 @@ function SurveyListPage() {
   const [selectedDepartments, setSelectedDepartments] = useState([])
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { currentUser } = useAuth()
+  const { currentUser, getCurrentDepartment } = useAuth()
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -36,7 +36,7 @@ function SurveyListPage() {
           const reviewerDepts = mapping.reviewerDepartments || [];
           const canReview = reviewerDepts.some(dept => {
             const deptId = dept._id || dept;
-            return deptId === currentUser?.department?._id;
+            return deptId === getCurrentDepartment()?._id;
           });
 
           if (canReview) {
@@ -46,8 +46,8 @@ function SurveyListPage() {
         });
 
         // Filter out user's own department from allowed departments
-        if (currentUser?.department?._id) {
-          allowedDepartmentIds.delete(currentUser.department._id);
+        if (getCurrentDepartment()?._id) {
+          allowedDepartmentIds.delete(getCurrentDepartment()?._id);
         }
 
         setMappedDepartments(Array.from(allowedDepartmentIds));
@@ -65,7 +65,7 @@ function SurveyListPage() {
     };
 
     fetchDepartments();
-  }, [toast, currentUser]);
+  }, [toast, getCurrentDepartment]);
 
   const handleDepartmentClick = (department) => {
     // Only allow selection of mapped departments
@@ -78,7 +78,7 @@ function SurveyListPage() {
       return;
     }
 
-    if (department._id === currentUser.department?._id) {
+    if (department._id === getCurrentDepartment()?._id) {
       toast({
         title: "Selection not Allowed",
         description: "Cannot survey for your own department",
@@ -126,8 +126,8 @@ function SurveyListPage() {
 
   const sortedDepartments = [...departments].sort((a, b) => {
     // User's department first
-    if (a._id === currentUser?.department?._id) return -1;
-    if (b._id === currentUser?.department?._id) return 1;
+    if (a._id === getCurrentDepartment()?._id) return -1;
+    if (b._id === getCurrentDepartment()?._id) return 1;
     
     // Surveyed departments second
     const aIsSurveyed = currentUser?.surveyedDepartmentIds?.includes(a._id);
@@ -185,7 +185,7 @@ function SurveyListPage() {
                 {sortedDepartments.map((department) => {
                   const isMapped = mappedDepartments.includes(department._id);
                   const isSurveyed = currentUser?.surveyedDepartmentIds.includes(department._id);
-                  const isOwnDepartment = currentUser?.department?._id === department._id;
+                  const isOwnDepartment = getCurrentDepartment()?._id === department._id;
                   const isSelected = selectedDepartments.includes(department._id);
 
                   return (

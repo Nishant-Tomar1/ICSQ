@@ -34,6 +34,10 @@ const UserSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'Department',
     }],
+    currentDepartment: {
+      type: Schema.Types.ObjectId,
+      ref: 'Department',
+    },
   },
   {
     timestamps: true,
@@ -42,6 +46,9 @@ const UserSchema = new Schema(
 
 // Hash password before saving
 UserSchema.pre("save", async function (next) {
+  if (!this.currentDepartment) {
+    this.currentDepartment = this.department;
+  }
   if (!this.isModified("password") || !this.password) {
     return next()
   }

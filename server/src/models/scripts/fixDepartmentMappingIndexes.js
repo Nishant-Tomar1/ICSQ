@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { DepartmentMapping } from '../models/DepartmentMapping.model.js';
+import { DepartmentMapping } from '../DepartmentMapping.model.js';
 
 const MONGODB_URI = "mongodb://localhost:27017/ICSQ";
 

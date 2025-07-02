@@ -5,7 +5,7 @@ import { capitalizeFirstLetter } from "../Constants"
 import { useNavigate } from "react-router-dom"
 
 function ProfilePage() {
-  const { currentUser } = useAuth()
+  const { currentUser, getCurrentDepartment } = useAuth()
   const navigate = useNavigate()
 
   const getInitials = (name) => {
@@ -100,7 +100,7 @@ function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-400">Department</label>
                     <div className="mt-1 text-lg font-semibold text-[goldenrod]">
-                      {capitalizeFirstLetter(currentUser.department?.name) || "Not assigned"}
+                      {capitalizeFirstLetter(getCurrentDepartment()?.name) || "Not assigned"}
                     </div>
                   </div>
                   <div>

@@ -21,7 +21,7 @@ function LoginPage() {
   const location = useLocation()
   const { login, currentUser, getMicrosoftLoginUrl } = useAuth()
   const { toast } = useToast()
-  const onlyMicrosoftLogin = false;
+  const onlyMicrosoftLogin = 0;
 
   useEffect(() => {
     if (currentUser) {
@@ -118,7 +118,7 @@ function LoginPage() {
               {!onlyMicrosoftLogin  ? 
               <CardDescription className="text-sm text-gray-400">Enter your credentials to access the ICSQ system</CardDescription>
               :
-              <CardDescription className="text-sm text-gray-400">Login using your Microsoft Mail Id given by Sobha</CardDescription>}
+              <CardDescription className="text-sm text-gray-400">Please use the Miscrosoft SSO to login</CardDescription>}
             </CardHeader>
             <CardContent className="space-y-3 shadow-b-none">
               <Button
@@ -169,11 +169,11 @@ function LoginPage() {
                     <Button type="submit" className="w-full text-sm bg-[#93725E]/90 text-white hover:bg-[#93725E]/150 border-none" disabled={isLoading}>
                       {isLoading ? "Logging in..." : "Login"}
                     </Button>
-                    <div className="text-[12px] text-gray-400 text-center w-full">By logging here, you agree to our <span onClick={()=>{navigate('/terms')}} className="cursor-pointer text-[goldenrod] hover:underline">terms and conditions</span></div>
                   </div>
                 </form>
             </>
               }
+              <div className="text-[12px] text-gray-400 text-center w-full">By logging here, you agree to our <span onClick={()=>{navigate('/terms')}} className="cursor-pointer text-[goldenrod] hover:underline">terms and conditions</span></div>
             </CardContent>
           </Card>
         </div>

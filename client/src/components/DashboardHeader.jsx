@@ -2,19 +2,36 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { useToast } from "../contexts/ToastContext"
-import { capitalizeFirstLetter } from "../Constants"
+import { capitalizeFirstLetter, Server } from "../Constants"
 import { FaAngleDown, FaAngleUp } from "react-icons/fa"
 import logo from "../assets/logo.png"
+import Dropdown from "./ui/Dropdown"
+import axios from "axios"
 
 function DashboardHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
-  const { currentUser, logout, isAdmin } = useAuth()
+  const { currentUser, logout, isAdmin, getCurrentDepartment, isHod, getHodDepartments, checkAuth } = useAuth()
   const { toast } = useToast()
 
   const handleLogout = async () => {
     try {
+      if (isHod()) {
+        try {
+          await axios.post(
+            `${Server}/users/${currentUser._id}/reset-current-department`,
+            {},
+            { withCredentials: true }
+          );
+        } catch (err) {
+          toast({
+            title: "Warning",
+            description: "Could not reset department before logout.",
+            variant: "destructive",
+          });
+        }
+      }
       await logout()
       toast({
         title: "Logged out",
@@ -22,6 +39,8 @@ function DashboardHeader() {
       })
       navigate("/login")
     } catch (error) {
+      console.log(error);
+      
       toast({
         title: "Error",
         description: "Failed to log out",
@@ -41,6 +60,29 @@ function DashboardHeader() {
     // Return only the first two initials
     return initials.slice(0, 2)
   }
+
+  // Department switcher for HODs
+  const handleDepartmentSwitch = async (dept) => {
+    if (!dept || dept._id === getCurrentDepartment()?._id) return;
+    try {
+      await axios.patch(
+        `${Server}/users/${currentUser._id}/current-department`,
+        { departmentId: dept._id },
+        { withCredentials: true }
+      );
+      await checkAuth();
+      toast({
+        title: "Department Switched",
+        description: `Now acting as ${dept.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to switch department",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="bg-[#29252c] sticky top-0 z-10 shadow-lg">
@@ -83,6 +125,21 @@ function DashboardHeader() {
           </nav>
 
           <div className="flex items-center">
+            {/* HOD Department Switcher */}
+            {isHod() && getHodDepartments().length > 1 && (
+              <Dropdown
+                trigger={
+                  <div className="mr-4 px-3 py-1 bg-[#1a1a1f] rounded text-[goldenrod] cursor-pointer border border-[goldenrod]">
+                    {capitalizeFirstLetter(getCurrentDepartment()?.name) || "Select Department"}
+                  </div>
+                }
+                items={getHodDepartments().map((dept) => ({
+                  label: capitalizeFirstLetter(dept.name),
+                  onClick: () => handleDepartmentSwitch(dept),
+                }))}
+                align="right"
+              />
+            )}
             <div className="relative group">
               <button className="flex items-center space-x-2 focus:outline-none" onClick={() => setDrawerOpen(prev => !prev)}>
                 <div className="h-8 w-8 rounded-full bg-[#f1ece7] flex items-center justify-center text-[#83725E] font-medium overflow-hidden">
@@ -90,7 +147,7 @@ function DashboardHeader() {
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
-                  <div className="text-xs text-gray-300">
+                  <div title={(currentUser?.role === 'hod') && "Your original department"} className="text-xs text-gray-300">
                     {(currentUser.role.toUpperCase()) || ""}
                     {currentUser.role !== "admin" ? " - " + (capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}
                   </div>
