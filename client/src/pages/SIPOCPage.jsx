@@ -262,15 +262,8 @@ function SIPOCPage() {
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.supplier.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
-                          {line.trim().match(/^\d+\./) ? (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{line.split('.')[0]}.</span>
-                              {line.split('.').slice(1).join('.')}
-                            </span>
-                          ) : line.trim() && (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{i + 1}.</span> {line}
-                            </span>
+                          {line.trim() && (
+                            <span>{line}</span>
                           )}
                         </div>
                       ))}
@@ -280,15 +273,8 @@ function SIPOCPage() {
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.input.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
-                          {line.trim().match(/^\d+\./) ? (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{line.split('.')[0]}.</span>
-                              {line.split('.').slice(1).join('.')}
-                            </span>
-                          ) : line.trim() && (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{i + 1}.</span> {line}
-                            </span>
+                          {line.trim() && (
+                            <span>{line}</span>
                           )}
                         </div>
                       ))}
@@ -298,15 +284,8 @@ function SIPOCPage() {
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.process?.input.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
-                          {line.trim().match(/^\d+\./) ? (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{line.split('.')[0]}.</span>
-                              {line.split('.').slice(1).join('.')}
-                            </span>
-                          ) : line.trim() && (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{i + 1}.</span> {line}
-                            </span>
+                          {line.trim() && (
+                            <span>{line}</span>
                           )}
                         </div>
                       ))}
@@ -327,15 +306,8 @@ function SIPOCPage() {
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.output.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
-                          {line.trim().match(/^\d+\./) ? (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{line.split('.')[0]}.</span>
-                              {line.split('.').slice(1).join('.')}
-                            </span>
-                          ) : line.trim() && (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{i + 1}.</span> {line}
-                            </span>
+                          {line.trim() && (
+                            <span>{line}</span>
                           )}
                         </div>
                       ))}
@@ -345,15 +317,8 @@ function SIPOCPage() {
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.customer.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
-                          {line.trim().match(/^\d+\./) ? (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{line.split('.')[0]}.</span>
-                              {line.split('.').slice(1).join('.')}
-                            </span>
-                          ) : line.trim() && (
-                            <span>
-                              <span className="text-[#93725E] group-hover:font-semibold">{i + 1}.</span> {line}
-                            </span>
+                          {line.trim() && (
+                            <span>{line}</span>
                           )}
                         </div>
                       ))}

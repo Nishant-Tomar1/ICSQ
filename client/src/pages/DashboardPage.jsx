@@ -136,7 +136,7 @@ function DashboardPage() {
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4 lg:px-10">
-        <div style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '117.6%' }}>
+        <div style={{ transform: 'scale(0.7)', transformOrigin: 'top left', width: '142.9%' }}>
           <div className="flex flex-col lg:flex-row justify-between gap-4">
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-gray-200">
@@ -190,9 +190,9 @@ function DashboardPage() {
           )}
           
           {hasSurveys && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 dashboard-grid-responsive" style={{height: "calc(100vh - 120px)"}}>
             {/* left side */}
-             <Card className="h-full bg-[#29252c]/70 text-sm">
+             <Card className="h-full bg-[#29252c]/70 text-sm flex flex-col">
               <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
                   <CardTitle className="text-lg">
                     <div className="flex items-center justify-between">
@@ -207,13 +207,13 @@ function DashboardPage() {
                     </div>
                   </CardTitle>
                 </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 flex flex-col justify-center">
               <WebChart detailedScores={modalDept?.detailedScores || {}} />
               </CardContent>
             </Card>
 
             {/* Right side */}
-              <div className="flex flex-col gap-2 max-h-full overflow-auto">
+              <div className="flex flex-col gap-2 max-h-full h-full overflow-auto">
                 <Card className="flex-1 max-h-[160px] bg-[#29252c]/70">
                       <CardHeader>
                           <CardTitle className="text-[goldenrod] text-xl -mb-2">
@@ -247,7 +247,7 @@ function DashboardPage() {
 
 
               {isAdmin() ? (
-                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-[500px] overflow-auto text-sm">
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-full h-full text-sm">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
                     <input
@@ -289,7 +289,7 @@ function DashboardPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-[500px] overflow-auto text-sm">
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-full h-full text-sm">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod]">
                       Scores Given to Your Department ({capitalizeFirstLetter(currentUser.department?.name)})
@@ -339,17 +339,16 @@ function DashboardPage() {
               )}
             </div>
           </div>)}
-          
-          <div className="flex justify-center mt-4 gap-3 text-sm">
+          <div className="flex justify-center gap-5 text-sm custom-button-spacing">
             <Button
               onClick={() => navigate("/survey")}
-              className="px-8 py-3 text-lg"
+              className="px-6 py-3 text-lg"
             >
               Start ICSQ Survey
             </Button>
             <Button
               onClick={() => navigate("/sipoc")}
-              className="px-8 py-3 text-lg"
+              className="px-6 py-3 text-lg"
             >
               Know Your SIPOC
             </Button>

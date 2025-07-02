@@ -213,7 +213,7 @@ function SurveyListPage() {
                           <div className="group relative">
                             <Badge className="text-blue-600 rounded-sm" variant="info">i</Badge>
                             <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black/80 text-white text-xs p-1 rounded whitespace-nowrap">
-                              Not mapped to survey
+                            As per the SIPOC, your department is not eligible to provide a survey to the selected department.
                             </div>
                           </div>
                         )}

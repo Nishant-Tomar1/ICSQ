@@ -47,18 +47,17 @@ export const getTagandEmoji = (score)=>{
 
 export const getDepartmentIcon = (deptName) => {
   const departmentIcons = {
-    "CRM": (<FaUserCheck className="inline-block mr-2 text-yellow-400" />),
+    "CUSTOMER RELATIONSHIP MANAGEMENT": (<FaUserCheck className="inline-block mr-2 text-yellow-400" />),
     "COLLECTIONS":(<FaWallet className="inline-block mr-2 text-green-400" />),
-    "DLD": (<FaFileSignature className="inline-block mr-2 text-blue-400" />),
+    "DUBAI LAND REGISTRATION DEPARTMENT": (<FaFileSignature className="inline-block mr-2 text-blue-400" />),
     "MARKETING": (<FaBullhorn className="inline-block mr-2 text-pink-400" />),
-    "MARKETING & CHANNEL RELATIONS": (<FaBullhorn className="inline-block mr-2 text-pink-400" />),
     "CHANNEL RELATIONS": (<FaHandshake className="inline-block mr-2 text-indigo-400" />),
     "SALES": (<FaShoppingCart className="inline-block mr-2 text-orange-400" />),
     "SALES OPERATIONS": <FaChartLine className="inline-block mr-2 text-teal-400" />,
-    "HR & ADMINISTRATION": <FaUsers className="inline-block mr-2 text-purple-400" />,
+    "HUMAN RESOURCE & ADMIN": <FaUsers className="inline-block mr-2 text-purple-400" />,
     "LEGAL": <FaGavel className="inline-block mr-2 text-gray-400" />,
-    "AUDIT": <FaClipboardCheck className="inline-block mr-2 text-green-300" />,
-    "IT": <FaServer className="inline-block mr-2 text-blue-300" />,
+    "AUDIT & ASSURANCE": <FaClipboardCheck className="inline-block mr-2 text-green-300" />,
+    "GROUP INFORMATION TECHNOLOGY": <FaServer className="inline-block mr-2 text-blue-300" />,
     "FINANCE & ACCOUNTS": <FaDollarSign className="inline-block mr-2 text-green-500" />,
     "PEOPLE DEVELOPMENT": <FaUserCog className="inline-block mr-2 text-pink-500" />,
     "MD OFFICE": <FaBriefcase className="inline-block mr-2 text-gray-300" />,
@@ -69,7 +68,7 @@ export const getDepartmentIcon = (deptName) => {
     "SOBHAPMC LLC": <FaTools className="inline-block mr-2 text-indigo-500" />,
     "SOBHA ENERGY SOLUTION": <FaBatteryHalf className="inline-block mr-2 text-green-400" />,
     "LATINEM FACILITIES MANAGEMENT": <FaHome className="inline-block mr-2 text-blue-400" />,
-    "PNCA": <FaDraftingCompass className="inline-block mr-2 text-[goldenrod]" />,
+    "PNC ARCHITECTS": <FaDraftingCompass className="inline-block mr-2 text-[goldenrod]" />,
     "SOBHA COMMUNITY MANAGEMENT LLC": <FaUserFriends className="inline-block mr-2 text-purple-400" />,
   };
   return (departmentIcons[deptName.toUpperCase()] || <FaBuilding className="inline-block mr-2 text-gray-400"/>);
