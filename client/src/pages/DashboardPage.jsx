@@ -64,10 +64,8 @@ function DashboardPage() {
         setDepartmentScores(filteredScores)
         setHasSurveys(!!(deptToShow && (deptToShow.score !== undefined && deptToShow.score !== null)))
 
-        if (["hod", "user"].includes(currentUser.role)) {
-          const partresponse = await axios.get(`${Server}/analytics/department-scores/${selectedDeptId || currentUser.department?._id}`, { withCredentials: true })
-          setDepartmentScoresToParticular(partresponse.data)
-        }
+        const partresponse = await axios.get(`${Server}/analytics/department-scores/${selectedDeptId || currentUser.department?._id}`, { withCredentials: true })
+        setDepartmentScoresToParticular(partresponse.data)
 
         try {
           const expresponse = await axios.get(`${Server}/analytics/expectation-data/${selectedDeptId || currentUser?.department?._id}`, {withCredentials: true})
@@ -190,31 +188,31 @@ function DashboardPage() {
           )}
           
           {hasSurveys && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 dashboard-grid-responsive" style={{height: "calc(100vh - 120px)"}}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 dashboard-grid-responsive min-h-[400px] lg:min-h-[600px] 2xl:min-h-[780px]">
             {/* left side */}
              <Card className="h-full bg-[#29252c]/70 text-sm flex flex-col">
-              <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
-                  <CardTitle className="text-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        {capitalizeFirstLetter(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName)} ICSQ <br />
-                        <span className="text-teal-400 text-xl">{(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.toFixed(2) || 0} %</span>
+                <CardHeader className="-mb-20 px-6 backdrop-brightness-25 max-h-full">
+                    <CardTitle className="text-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {capitalizeFirstLetter(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName)} ICSQ <br />
+                          <span className="text-teal-400 text-xl">{(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.toFixed(2) || 0} %</span>
+                        </div>
+                        <div className="text-[goldenrod]">
+                          {getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.tag} <br />
+                          <span className="text-3xl flex justify-center">{getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.emoji}</span>
+                        </div>
                       </div>
-                      <div className="text-[goldenrod]">
-                        {getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.tag} <br />
-                        <span className="text-3xl flex justify-center">{getTagandEmoji(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.emoji}</span>
-                      </div>
-                    </div>
-                  </CardTitle>
+                    </CardTitle>
                 </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-center">
-              <WebChart detailedScores={modalDept?.detailedScores || {}} />
-              </CardContent>
+                <CardContent className="flex-1 flex flex-col justify-center">
+                  <WebChart detailedScores={modalDept?.detailedScores || {}} />
+                </CardContent>
             </Card>
 
             {/* Right side */}
-              <div className="flex flex-col gap-2 max-h-full h-full overflow-auto">
-                <Card className="flex-1 max-h-[160px] bg-[#29252c]/70">
+              <div className="flex flex-col gap-2 max-h-full h-full">
+                <Card className="flex-1 bg-[#29252c]/70 max-h-[180px]">
                       <CardHeader>
                           <CardTitle className="text-[goldenrod] text-xl -mb-2">
                             {currentUser?.department?.name ? `${capitalizeFirstLetter(currentUser?.department?.name)} Department's average ICSQ` : "Department's average ICSQ"}
@@ -243,10 +241,10 @@ function DashboardPage() {
                               </Card>}
                       </div>
                     </CardContent>
-              </Card>
+                </Card>
 
 
-              {isAdmin() ? (
+              {/* {isAdmin() ? (
                 <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-full h-full text-sm">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod] text-xl">Department ICSQ Scores</CardTitle>
@@ -288,8 +286,8 @@ function DashboardPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ) : (
-                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 max-h-full h-full text-sm">
+              ) : ( */}
+                <Card className="flex-1 overflow-y-auto bg-[#29252c]/70 h-full text-sm min-h-[400px] xl:min-h-[600px] max-h-[600px]">
                   <CardHeader>
                     <CardTitle className="text-[goldenrod]">
                       Scores Given to Your Department ({capitalizeFirstLetter(currentUser.department?.name)})
@@ -303,12 +301,12 @@ function DashboardPage() {
                     />
                   </CardHeader>
                   {departmetnScoresToParticaular.length === 0 ? (
-                    <p className="text-gray-600 text-center my-4">
+                    <p className="text-gray-400 text-center text-lg italic my-10">
                       No surveys happened for your department yet!
                     </p>
                   ) : (
                     <CardContent>
-                      <div className="grid grid-cols-1 gap-6">
+                      <div className="grid grid-cols-1 gap-6 ">
                         {departmetnScoresToParticaular
                           .filter(dept => dept.fromDepartmentName.toLowerCase().includes(searchTerm.toLowerCase()))
                           .map((dept, index) => (
@@ -336,10 +334,11 @@ function DashboardPage() {
                     </CardContent>
                   )}
                 </Card>
-              )}
+              {/* )} */}
             </div>
           </div>)}
-          <div className="flex justify-center gap-5 text-sm custom-button-spacing">
+
+          <div className="flex justify-center gap-5 text-sm mt-10">
             <Button
               onClick={() => navigate("/survey")}
               className="px-6 py-3 text-lg"

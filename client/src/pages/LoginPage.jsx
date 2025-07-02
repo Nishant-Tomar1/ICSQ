@@ -21,6 +21,7 @@ function LoginPage() {
   const location = useLocation()
   const { login, currentUser, getMicrosoftLoginUrl } = useAuth()
   const { toast } = useToast()
+  const onlyMicrosoftLogin = false;
 
   useEffect(() => {
     if (currentUser) {
@@ -84,7 +85,7 @@ function LoginPage() {
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#29252c] text-gray-200">
       {/* Left Side Content */}
       <div 
-        className="lg:w-1/2 text-gray-200 flex flex-col justify-center items-start p-12 space-y-4 relative overflow-hidden"
+        className="lg:w-1/2 text-gray-200 flex flex-col justify-center items-start p-12 space-y-4 relative overflow-hidden min-h-[50vh]"
         style={{
           backgroundImage: `url(${bgImage})`,
           backgroundSize: 'cover',
@@ -103,7 +104,7 @@ function LoginPage() {
       </div>
 
       {/* Right Side Login */}
-      <div className="lg:w-1/2 w-full bg-white flex items-center justify-center p-4 relative">
+      <div className="lg:w-1/2 w-full bg-white flex items-center justify-center p-4 relative min-h-[50vh]">
         <div className="w-full max-w-sm">
           <div className="text-center mb-4">
             <img src={logo} alt="SOBHA Logo" width={50} className="mx-auto mb-2" />
@@ -114,7 +115,10 @@ function LoginPage() {
           <Card className="bg-white shadow-none text-gray-200 border">
             <CardHeader className="pb-2">
               <CardTitle className="text-gray-800 text-lg">Login</CardTitle>
+              {!onlyMicrosoftLogin  ? 
               <CardDescription className="text-sm text-gray-400">Enter your credentials to access the ICSQ system</CardDescription>
+              :
+              <CardDescription className="text-sm text-gray-400">Login using your Microsoft Mail Id given by Sobha</CardDescription>}
             </CardHeader>
             <CardContent className="space-y-3 shadow-b-none">
               <Button
@@ -126,46 +130,50 @@ function LoginPage() {
                 <span>Microsoft Single Sign-On</span>
               </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator />
+             {!onlyMicrosoftLogin && 
+            <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="px-2 bg-white text-gray-400">Or continue with</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="px-2 bg-white text-gray-400">Or continue with</span>
-                </div>
-              </div>
 
-              <form onSubmit={handleLogin}>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your.email@sobharealty.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-white/10 text-gray-700 border border-gray-600 focus:border-[goldenrod]"
-                    />
+                <form onSubmit={handleLogin}>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your.email@sobharealty.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="bg-white/10 text-gray-700 border border-gray-600 focus:border-[goldenrod]"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="bg-white/10 text-gray-700 border border-gray-600 focus:border-[goldenrod]"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full text-sm bg-[#93725E]/90 text-white hover:bg-[#93725E]/150 border-none" disabled={isLoading}>
+                      {isLoading ? "Logging in..." : "Login"}
+                    </Button>
+                    <div className="text-[12px] text-gray-400 text-center w-full">By logging here, you agree to our <span onClick={()=>{navigate('/terms')}} className="cursor-pointer text-[goldenrod] hover:underline">terms and conditions</span></div>
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="bg-white/10 text-gray-700 border border-gray-600 focus:border-[goldenrod]"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full text-sm bg-[#93725E]/90 text-white hover:bg-[#93725E]/150 border-none" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Login"}
-                  </Button>
-                  <div className="text-[12px] text-gray-400 text-center w-full">By logging here, you agree to our <span onClick={()=>{navigate('/terms')}} className="cursor-pointer text-[goldenrod] hover:underline">terms and conditions</span></div>
-                </div>
-              </form>
+                </form>
+            </>
+              }
             </CardContent>
           </Card>
         </div>
