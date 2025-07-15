@@ -61,7 +61,7 @@ function LoginPage() {
     } catch (error) {
       toast({
         title: "Login failed",
-        description: error.response?.data?.message || "Invalid credentials",
+        description: error.response?.data?.message || "Something went wrong, please try again",
         variant: "destructive",
       })
     } finally {
