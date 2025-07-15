@@ -37,7 +37,12 @@ function getRedirectUri(req) {
     return "https://icsq.sobhaapps.com/api/v1/auth/microsoft/callback";
   }
 
-  // For development (e.g., localhost, internal IPs), build the URL dynamically.
+  // For localhost development, use localhost
+  if (host.includes("localhost") || host.includes("127.0.0.1")) {
+    return "http://localhost:8080/api/v1/auth/microsoft/callback";
+  }
+
+  // For development (e.g., internal IPs), build the URL dynamically.
   return `${req.protocol}://${host}/api/v1/auth/microsoft/callback`;
 }
 

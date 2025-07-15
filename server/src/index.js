@@ -2,6 +2,7 @@ import http from 'http'
 import connectDB from './db/index.js';
 import { app } from './app.js';
 import redis from 'redis'
+import './config/envLoader.cjs'
 
 const server = http.createServer(app);
 

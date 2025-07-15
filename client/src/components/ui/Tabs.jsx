@@ -4,8 +4,15 @@ import { createContext, useContext, useState } from "react"
 
 const TabsContext = createContext(null)
 
-function Tabs({ defaultValue, children, className = "" }) {
-  const [activeTab, setActiveTab] = useState(defaultValue)
+function Tabs({ defaultValue, value, onValueChange, children, className = "" }) {
+  const [internalActiveTab, setInternalActiveTab] = useState(defaultValue);
+
+  // Use controlled value if provided, otherwise use internal state
+  const activeTab = value !== undefined ? value : internalActiveTab;
+  const setActiveTab = (tab) => {
+    if (onValueChange) onValueChange(tab);
+    if (value === undefined) setInternalActiveTab(tab);
+  };
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
@@ -24,11 +31,7 @@ function TabsTrigger({ value, children, className = "" }) {
 
   return (
     <button
-      className={`px-4 py-2 text-sm font-medium ${
-        isActive
-          ? "text-blue-600 border-b-2 border-blue-600"
-          : "text-gray-200 hover:text-gray-400 hover:border-gray-300"
-      } ${className}`}
+      className={className}
       onClick={() => setActiveTab(value)}
     >
       {children}

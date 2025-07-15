@@ -1,13 +1,16 @@
 import { Router } from "express";
 const router = Router()
 import { requireAdmin, requireAuth, requireHOD } from "../middleware/auth.js"
-import { addUser, deleteUser, getUserById, getUsers, updateUser, updateCurrentDepartment, resetCurrentDepartment } from "../controllers/user.controller.js";
+import { addUser, deleteUser, getUserById, getUsers, getUsersByDepartment, updateUser, updateCurrentDepartment, resetCurrentDepartment } from "../controllers/user.controller.js";
 
 // Apply auth middleware to all routes
 router.use(requireAuth)
 
 // Get all users 
 router.get("/", getUsers)
+
+// Get users by department
+router.get("/department/:departmentId", getUsersByDepartment)
 
 // Get user by ID
 router.get("/:id", getUserById)

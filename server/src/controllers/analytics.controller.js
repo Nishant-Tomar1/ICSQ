@@ -3,6 +3,7 @@ import {User} from "../models/User.model.js"
 import {ActionPlan} from "../models/ActionPlan.model.js"
 import {Department} from "../models/Department.model.js"
 import mongoose from "mongoose"
+import natural from "natural";
 
 export async function getPlatformStats(req, res) {
   try {
@@ -367,5 +368,370 @@ export async function getExpectationData(req, res) {
   } catch (error) {
     console.error("Error fetching expectations data :", error)
     return res.status(500).json({ message: "Failed to fetch Expectations data" })
+  }
+}
+
+// Get all responses for a given category and sentiment
+export async function getSentimentResponses(req, res) {
+  try {
+    const { category, sentiment } = req.query;
+    if (!category || !sentiment) {
+      return res.status(400).json({ message: "Category and sentiment are required" });
+    }
+
+    // Map sentiment to ratings
+    let ratings = [];
+    if (sentiment === "promoter") ratings = [80, 100];
+    else if (sentiment === "passive") ratings = [40, 60];
+    else if (sentiment === "detractor") ratings = [0, 20];
+    else return res.status(400).json({ message: "Invalid sentiment" });
+
+    // Find all surveys where responses[category].rating is in ratings
+    const surveys = await Survey.aggregate([
+      {
+        $project: {
+          userId: 1,
+          fromDepartment: 1,
+          toDepartment: 1,
+          date: 1,
+          response: { $ifNull: [ { $objectToArray: "$responses" }, [] ] }
+        }
+      },
+      { $unwind: "$response" },
+      { $match: { 
+          "response.k": { $regex: new RegExp(`^${category}$`, 'i') }, // case-insensitive match
+          "response.v.rating": { $in: ratings } 
+        } 
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $lookup: {
+          from: "departments",
+          localField: "fromDepartment",
+          foreignField: "_id",
+          as: "fromDepartmentInfo"
+        }
+      },
+      {
+        $lookup: {
+          from: "departments",
+          localField: "toDepartment",
+          foreignField: "_id",
+          as: "toDepartmentInfo"
+        }
+      },
+      {
+        $addFields: {
+          userName: { $arrayElemAt: ["$user.name", 0] },
+          fromDepartmentName: { $arrayElemAt: ["$fromDepartmentInfo.name", 0] },
+          toDepartmentName: { $arrayElemAt: ["$toDepartmentInfo.name", 0] },
+          rating: "$response.v.rating",
+          expectations: "$response.v.expectations"
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          userName: 1,
+          fromDepartmentName: 1,
+          toDepartmentName: 1,
+          rating: 1,
+          expectations: 1,
+          date: 1
+        }
+      },
+      { $sort: { date: -1 } }
+    ]);
+
+    return res.json(surveys);
+  } catch (error) {
+    console.error("Error fetching sentiment responses:", error);
+    return res.status(500).json({ message: "Failed to fetch sentiment responses" });
+  }
+}
+
+// Get sentiment counts for a given category
+export async function getSentimentCounts(req, res) {
+  try {
+    const { category } = req.query;
+    if (!category) {
+      return res.status(400).json({ message: "Category is required" });
+    }
+
+    // Define sentiment rating groups
+    const sentimentGroups = {
+      promoter: [80, 100],
+      passive: [40, 60],
+      detractor: [0, 20],
+    };
+
+    // Aggregate counts for each sentiment
+    const counts = await Survey.aggregate([
+      {
+        $project: {
+          response: { $ifNull: [ { $objectToArray: "$responses" }, [] ] }
+        }
+      },
+      { $unwind: "$response" },
+      { $match: { "response.k": { $regex: new RegExp(`^${category}$`, 'i') } } },
+      {
+        $group: {
+          _id: "$response.v.rating",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Map counts to sentiment
+    const result = { promoter: 0, passive: 0, detractor: 0 };
+    counts.forEach(({ _id, count }) => {
+      if (sentimentGroups.promoter.includes(_id)) result.promoter += count;
+      else if (sentimentGroups.passive.includes(_id)) result.passive += count;
+      else if (sentimentGroups.detractor.includes(_id)) result.detractor += count;
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error("Error fetching sentiment counts:", error);
+    return res.status(500).json({ message: "Failed to fetch sentiment counts" });
+  }
+}
+
+// Cluster similar responses for a given category and sentiment
+export async function getClusteredResponses(req, res) {
+  try {
+    const { category, sentiment } = req.query;
+    if (!sentiment) {
+      return res.status(400).json({ message: "Sentiment is required" });
+    }
+
+    // Map sentiment to ratings
+    let ratings = [];
+    if (sentiment === "promoter") ratings = [80, 100];
+    else if (sentiment === "passive") ratings = [40, 60];
+    else if (sentiment === "detractor") ratings = [0, 20];
+    else return res.status(400).json({ message: "Invalid sentiment" });
+
+    // Build match condition - REMOVED category filter to allow cross-category clustering
+    let matchCondition = {
+      "response.v.rating": { $in: ratings },
+      "response.v.expectations": { $exists: true, $ne: "" }
+    };
+
+    // Fetch all responses for the sentiment across ALL categories
+    const surveys = await Survey.aggregate([
+      {
+        $project: {
+          userId: 1,
+          fromDepartment: 1,
+          toDepartment: 1,
+          date: 1,
+          response: { $ifNull: [ { $objectToArray: "$responses" }, [] ] }
+        }
+      },
+      { $unwind: "$response" },
+      { $match: matchCondition },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $addFields: {
+          userName: { $arrayElemAt: ["$user.name", 0] },
+          expectation: "$response.v.expectations",
+          category: "$response.k"
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          userName: 1,
+          expectation: 1,
+          category: 1
+        }
+      }
+    ]);
+
+    console.log(`Found ${surveys.length} surveys for clustering across all categories`);
+
+    // If no real data, return mock clustered data to demonstrate cross-category clustering
+    if (surveys.length === 0) {
+      console.log('No survey data found, returning mock cross-category clustered data');
+      
+      const mockClusters = [
+        {
+          id: `cluster-1-${sentiment}`,
+          representative: "This is the test 1.This is the first point",
+          category: "collaboration & support", // Primary category
+          sentiment: sentiment,
+          responses: [
+            { text: "This is the test 1.This is the first point", user: "User2", category: "collaboration & support" },
+            { text: "This is the test 1.This is the first point", user: "User3", category: "meeting deadlines and commitments" },
+            { text: "This is the test 1.This is the first point", user: "User4", category: "quality of work" }
+          ]
+        },
+        {
+          id: `cluster-2-${sentiment}`,
+          representative: "Bla Bla Bla ble ble bloooooo blooom",
+          category: "collaboration & support",
+          sentiment: sentiment,
+          responses: [
+            { text: "Bla Bla Bla ble ble bloooooo blooom", user: "Shivanshu", category: "collaboration & support" },
+            { text: "bla ble bla", user: "Shivanshu", category: "quality of work" }
+          ]
+        },
+        {
+          id: `cluster-3-${sentiment}`,
+          representative: "Need to improve in this area",
+          category: "quality of work",
+          sentiment: sentiment,
+          responses: [
+            { text: "Need to improve in this area and increase the Quality", user: "User4", category: "quality of work" },
+            { text: "Need to improve in this area of communication", user: "User5", category: "communication & responsiveness" }
+          ]
+        }
+      ];
+      
+      console.log('Returning mock clusters:', mockClusters);
+      return res.json(mockClusters);
+    }
+
+    // Improved clustering with cross-category similarity detection
+    const clusters = [];
+    const used = new Array(surveys.length).fill(false);
+
+    // Helper function to normalize text for comparison
+    const normalizeText = (text) => {
+      return text.toLowerCase()
+        .replace(/[^\w\s]/g, '') // Remove punctuation
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+    };
+
+    // Helper function to calculate similarity
+    const calculateSimilarity = (text1, text2) => {
+      const normalized1 = normalizeText(text1);
+      const normalized2 = normalizeText(text2);
+      
+      // Check for exact match after normalization
+      if (normalized1 === normalized2) return 1.0;
+      
+      // Check if one contains the other (for partial matches)
+      if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+        return 0.8;
+      }
+      
+      // Use Levenshtein distance for fuzzy matching
+      const maxLength = Math.max(normalized1.length, normalized2.length);
+      const distance = natural.LevenshteinDistance(normalized1, normalized2);
+      const similarity = 1 - (distance / maxLength);
+      
+      return similarity;
+    };
+
+    for (let i = 0; i < surveys.length; i++) {
+      if (used[i]) continue;
+      
+      const cluster = [surveys[i]];
+      used[i] = true;
+      
+      // Ensure expectation is a string
+      const expectation1 = Array.isArray(surveys[i].expectation) 
+        ? surveys[i].expectation.join(' ') 
+        : (surveys[i].expectation || "");
+      
+      for (let j = i + 1; j < surveys.length; j++) {
+        if (used[j]) continue;
+        
+        // Ensure expectation is a string
+        const expectation2 = Array.isArray(surveys[j].expectation) 
+          ? surveys[j].expectation.join(' ') 
+          : (surveys[j].expectation || "");
+        
+        // Calculate similarity - NOW ACROSS ALL CATEGORIES
+        const similarity = calculateSimilarity(expectation1, expectation2);
+        
+        // Group if similarity is high enough (cross-category clustering)
+        if (similarity >= 0.6) {
+          cluster.push(surveys[j]);
+          used[j] = true;
+        }
+      }
+      
+      // Create cluster with improved representative text
+      const representative = Array.isArray(cluster[0].expectation) 
+        ? cluster[0].expectation.join(' ') 
+        : (cluster[0].expectation || "");
+      
+      // Determine primary category (most common in cluster)
+      const categoryCounts = {};
+      cluster.forEach(item => {
+        const cat = item.category;
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      });
+      const primaryCategory = Object.keys(categoryCounts).reduce((a, b) => 
+        categoryCounts[a] > categoryCounts[b] ? a : b
+      );
+      
+      clusters.push({
+        id: `cluster-${clusters.length + 1}-${sentiment}`,
+        representative: representative,
+        category: primaryCategory, // Primary category for the cluster
+        sentiment: sentiment,
+        responses: cluster.map(r => ({ 
+          text: Array.isArray(r.expectation) 
+            ? r.expectation.join(' ') 
+            : (r.expectation || ""), 
+          user: r.userName,
+          category: r.category 
+        }))
+      });
+    }
+
+    console.log(`Created ${clusters.length} cross-category clusters from ${surveys.length} surveys`);
+    return res.json(clusters);
+  } catch (error) {
+    console.error("Error clustering responses:", error);
+    return res.status(500).json({ message: "Failed to cluster responses" });
+  }
+}
+
+// Get assigned patterns for a department
+export async function getAssignedPatterns(req, res) {
+  try {
+    const { departmentId } = req.query;
+    
+    if (!departmentId) {
+      return res.status(400).json({ message: "Department ID is required" });
+    }
+    
+    // For now, return mock assigned patterns
+    // In a real implementation, you would query a PatternAssignment model
+    const mockAssignedPatterns = [
+      {
+        patternId: "cluster-1-detractor",
+        assignedTo: "John Doe",
+        assignedAt: new Date(),
+        departmentId: departmentId
+      }
+      // Removed cluster-2 assignment so "bla bla" text shows up
+    ];
+    
+    return res.json(mockAssignedPatterns);
+  } catch (error) {
+    console.error("Error getting assigned patterns:", error);
+    return res.status(500).json({ message: "Failed to get assigned patterns" });
   }
 }

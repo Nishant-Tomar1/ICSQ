@@ -16,6 +16,27 @@ export async function getUsers(req, res) {
   }
 }
 
+// Get users by department
+export async function getUsersByDepartment(req, res) {
+  try {
+    const { departmentId } = req.params;
+    
+    if (!departmentId) {
+      return res.status(400).json({ message: "Department ID is required" })
+    }
+
+    const users = await User.find({ 
+      department: departmentId,
+      role: { $ne: 'hod' } // Exclude HODs from the list
+    }).select("-password").populate("department", "name")
+
+    return res.json(users)
+  } catch (error) {
+    console.error("Error fetching users by department:", error)
+    return res.status(500).json({ message: "Failed to fetch users by department" })
+  }
+}
+
 // Get user by ID
 export async function getUserById(req, res) {
   try {

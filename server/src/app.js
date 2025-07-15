@@ -30,12 +30,15 @@ const corsOptions = {
         process.env.CLIENT_URL       // From environment variable
       ].filter(Boolean) // Remove undefined values
     : [
-        "http://localhost:5173",     // Development Vite server
+        "http://localhost:5173",     // Development Vite server (primary)
         "http://localhost:3000",     // Development serve
+        "http://127.0.0.1:5173",    // Alternative localhost
+        "http://127.0.0.1:3000",    // Alternative localhost
+        process.env.CLIENT_URL,      // From environment variable
         "http://10.130.18.60:3000",  // Production frontend
         "http://10.130.18.60:5173",  // Production Vite server
         "https://ICSQ.sobhaapps.com" // Custom domain
-      ],
+      ].filter(Boolean), // Remove undefined values
   credentials: true,
 }
 
