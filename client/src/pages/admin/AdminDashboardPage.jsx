@@ -4,7 +4,7 @@ import { useToast } from "../../contexts/ToastContext"
 import DashboardHeader from "../../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/Card"
 import Button from "../../components/ui/Button"
-import { Server } from "../../Constants"
+import { capitalizeFirstLetter, getDepartmentName, Server } from "../../Constants"
 import axios from "axios"
 
 function AdminDashboardPage() {
@@ -37,6 +37,44 @@ function AdminDashboardPage() {
     fetchStats()
   }, [])
 
+  const handleDownloadReport = async () => {
+    try {
+      // Fetch all users
+      const usersResponse = await axios.get(`${Server}/users`, { withCredentials: true });
+      const users = usersResponse.data;
+      // Fetch all departments
+      const departmentsResponse = await axios.get(`${Server}/departments`, { withCredentials: true });
+      const departments = departmentsResponse.data;
+
+      let csv = 'Name,Email,Role,Own Department,Surveyed Departments\n';
+      users.forEach(user => {
+        const ownDept = capitalizeFirstLetter(getDepartmentName(user.department, departments));
+        const surveyedNames = (user.surveyedDepartmentIds || [])
+          .map(id => capitalizeFirstLetter(getDepartmentName(id, departments)))
+          .filter(Boolean)
+          .join('; '); // newline for each department
+        csv += `"${user.name}","${user.email}","${user.role}","${ownDept}","${surveyedNames}"\n`;
+      });
+
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'user-surveyed-departments-report.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download report",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen ">
@@ -55,10 +93,14 @@ function AdminDashboardPage() {
       <DashboardHeader />
 
       <main className="container mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[goldenrod]">Admin Dashboard</h1>
-          <p className="text-gray-200">Manage departments, categories, users and view system statistics</p>
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[goldenrod]">Admin Dashboard</h1>
+            <p className="text-gray-200">Manage departments, categories, users and view system statistics</p>
+          </div>
+          <Button onClick={handleDownloadReport} className=" text-white font-semibold">Download Report as CSV</Button>
         </div>
+        
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-[#1a1a1f]">

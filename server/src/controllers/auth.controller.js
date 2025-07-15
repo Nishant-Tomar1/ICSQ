@@ -61,7 +61,7 @@ export async function login(req, res) {
     if (!user) {
       // Log failed login attempt
       await logAuthEvent('LOGIN_FAILED', null, req, 'FAILURE', 'User not found')
-      return res.status(401).json({ message: "Invalid credentials" })
+      return res.status(401).json({ message: "Invalid Email (User does not exist)" })
     }
 
     // If user has no password (SSO only), reject login
@@ -75,7 +75,7 @@ export async function login(req, res) {
 
     if (!isMatch) {
       await logAuthEvent('LOGIN_FAILED', user, req, 'FAILURE', 'Invalid password')
-      return res.status(401).json({ message: "Invalid credentials" })
+      return res.status(401).json({ message: "Incorrect Password" })
     }
 
     // Generate JWT token
