@@ -108,9 +108,9 @@ function DashboardHeader() {
             <Link to="/sipoc" className="text-gray-200 hover:text-orange-300 font-medium">
               SIPOC
             </Link>
-            {/* <Link to="/action-plans" className="text-gray-200 hover:text-orange-300 font-medium">
+            <Link to="/action-plans" className="text-gray-200 hover:text-orange-300 font-medium">
               Action Plans
-            </Link> */}
+            </Link>
             {isAdmin() &&(
               <>
               {/* <Link to="/reports" className="text-gray-200 hover:text-orange-300 font-medium">
@@ -199,7 +199,7 @@ function DashboardHeader() {
             // "/action-plans",
              "/reports"].map((path, i) => {
               const name = ["Home", "Survey", "SIPOC"
-                //  ,"Action Plans"
+                 ,"Action Plans"
                 ][i]
               return (
                 <Link

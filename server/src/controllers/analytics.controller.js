@@ -277,18 +277,29 @@ export async function getExpectationData(req, res) {
       userId: 1,
       fromDepartment: 1,
       category: "$responses.k",
-      expectations: "$responses.v.expectations"
+      expectations: "$responses.v.expectations",
+      rating: "$responses.v.rating"
     }
   },
-  { $unwind: "$expectations" },
-
+  // If expectations is an array, unwind it; if not, treat as single value
+  {
+    $addFields: {
+      expectationsArray: {
+        $cond: [
+          { $isArray: "$expectations" },
+          "$expectations",
+          ["$expectations"]
+        ]
+      }
+    }
+  },
+  { $unwind: "$expectationsArray" },
   // Filter out empty expectations
   {
     $match: {
-      expectations: { $ne: "" }
+      expectationsArray: { $ne: "" }
     }
   },
-
   {
     $group: {
       _id: {
@@ -296,8 +307,13 @@ export async function getExpectationData(req, res) {
         fromDepartment: "$fromDepartment",
         userId: "$userId"
       },
-      expectations: { $push: "$expectations" },
-      expectationCount: { $sum: 1 }  // Count non-empty expectations
+      expectations: {
+        $push: {
+          text: "$expectationsArray",
+          rating: "$rating"
+        }
+      },
+      expectationCount: { $sum: 1 }
     }
   },
   {
@@ -360,7 +376,6 @@ export async function getExpectationData(req, res) {
     }
   }
 ]);
-
 
     return res.status(200).json(data)
 
