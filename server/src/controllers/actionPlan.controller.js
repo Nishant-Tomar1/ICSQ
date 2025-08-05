@@ -1,5 +1,7 @@
 import mongoose from "mongoose"
 import {ActionPlan} from "../models/ActionPlan.model.js"
+import {User} from "../models/User.model.js"
+import {sendActionPlanAssignmentEmail} from "../utils/emailService.js"
 
 // Get all action plans (admin only, with filters)
 export async function getActionPlansForAdmin(req, res) {
@@ -62,6 +64,7 @@ export async function createActionPlan(req, res) {
     if (!departmentId || !categoryId || !expectations || !assignedTo || !targetDate) {
       return res.status(400).json({ message: "Missing required fields" })
     }
+    
     const plan = new ActionPlan({
       department: new mongoose.Types.ObjectId(departmentId),
       category: new mongoose.Types.ObjectId(categoryId),
@@ -74,6 +77,20 @@ export async function createActionPlan(req, res) {
       status: status || "pending",
     })
     await plan.save()
+    
+    // Send email notification to assigned user
+    try {
+      const assignedUser = await User.findById(assignedTo).select('name email')
+      if (assignedUser) {
+        const assignedByUser = await User.findById(req.user._id).select('name email')
+        await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+        console.log(`Email notification sent to ${assignedUser.email} for action plan assignment`)
+      }
+    } catch (emailError) {
+      console.error("Error sending email notification:", emailError)
+      // Don't fail the request if email fails
+    }
+    
     return res.status(201).json(plan)
   } catch (error) {
     console.error("Error creating action plan:", error)
@@ -89,6 +106,10 @@ export async function updateActionPlan(req, res) {
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
     }
+    
+    // Store the original assignedTo to check if it changed
+    const originalAssignedTo = plan.assignedTo;
+    
     // Authorization: allow HODs, admins, or assigned user (with restrictions)
     const isAdmin = req.user.role === 'admin';
     const isHOD = req.user.role === 'hod';
@@ -96,6 +117,7 @@ export async function updateActionPlan(req, res) {
     if (!isAdmin && !isHOD && !isAssignedUser) {
       return res.status(403).json({ message: "Not authorized to update this action plan" })
     }
+    
     // Only allow assigned user to update 'actions' and 'status'
     if (isAssignedUser && !isAdmin && !isHOD) {
       if (actions !== undefined) plan.actions = actions;
@@ -111,7 +133,24 @@ export async function updateActionPlan(req, res) {
       if (targetDate) plan.targetDate = new Date(targetDate)
       if (status !== undefined) plan.status = status
     }
+    
     await plan.save()
+    
+    // Send email notification if assignment changed and it's a new assignment
+    if (assignedTo && String(originalAssignedTo) !== String(assignedTo)) {
+      try {
+        const assignedUser = await User.findById(assignedTo).select('name email')
+        if (assignedUser) {
+          const assignedByUser = await User.findById(req.user._id).select('name email')
+          await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+          console.log(`Email notification sent to ${assignedUser.email} for action plan reassignment`)
+        }
+      } catch (emailError) {
+        console.error("Error sending email notification for reassignment:", emailError)
+        // Don't fail the request if email fails
+      }
+    }
+    
     return res.json(plan)
   } catch (error) {
     console.error(`Error updating action plan ${req.params.id}:`, error)
@@ -155,5 +194,30 @@ export async function deleteActionPlan(req, res) {
   } catch (error) {
     console.error(`Error deleting action plan ${req.params.id}:`, error)
     return res.status(500).json({ message: "Failed to delete action plan" })
+  }
+}
+
+// Test email configuration (admin only)
+export async function testEmailConfig(req, res) {
+  try {
+    const { testEmailConfiguration } = await import("../utils/emailService.js")
+    const result = await testEmailConfiguration()
+    
+    if (result.success) {
+      return res.json({ message: "Email configuration is valid", success: true })
+    } else {
+      return res.status(500).json({ 
+        message: "Email configuration error", 
+        error: result.error,
+        success: false 
+      })
+    }
+  } catch (error) {
+    console.error("Error testing email configuration:", error)
+    return res.status(500).json({ 
+      message: "Failed to test email configuration", 
+      error: error.message,
+      success: false 
+    })
   }
 }

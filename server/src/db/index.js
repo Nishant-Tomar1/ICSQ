@@ -3,7 +3,7 @@ import { SIPOC } from '../models/SIPOC.model.js'
 
 const connectDB = async () => {
     try {
-        const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}/${process.env.DB_NAME}`, );
+        const connectionInstance = await mongoose.connect(process.env.MONGO_URI);
         console.log(`MongoDB database connected !! DB URL : ${connectionInstance.connection.host}`);
         
         // Drop the unique index on SIPOC collection if it exists

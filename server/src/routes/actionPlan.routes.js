@@ -8,6 +8,7 @@ import {
   updateActionPlan,
   updateActionPlanStatus,
   deleteActionPlan,
+  testEmailConfig,
 } from "../controllers/actionPlan.controller.js"
 import { requireAdmin, requireAuth, requireHOD } from "../middleware/auth.js"
 
@@ -29,5 +30,8 @@ router.put("/:id", updateActionPlan)
 router.patch("/:id/status", updateActionPlanStatus)
 // Delete an action plan (admin only)
 router.delete("/:id", requireAdmin, deleteActionPlan)
+
+// Test email configuration (admin only)
+router.get("/test-email", requireAdmin, testEmailConfig)
 
 export default router
