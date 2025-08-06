@@ -5,7 +5,7 @@ function Toast() {
   const { toasts, dismissToast } = useToast()
 
   return (
-    <div className="fixed bottom-0 right-0 p-4 z-50 flex flex-col space-y-2 max-w-md">
+    <div className="fixed bottom-0 right-0 p-4 z-[9999] flex flex-col space-y-2 max-w-md">
       {toasts.map((toast) => (
         <div
           key={toast.id}

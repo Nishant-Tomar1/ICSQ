@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import DashboardHeader from "../components/DashboardHeader";
@@ -230,7 +230,6 @@ function ActionPlansPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [actionPlans, setActionPlans] = useState([]);
-  const [filteredPlans, setFilteredPlans] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [allDepartments, setAllDepartments] = useState([]);
   const [expectationData, setExpectationData] = useState([]);
@@ -249,6 +248,7 @@ function ActionPlansPage() {
   const [typedSummary, setTypedSummary] = useState("");
   const [selected, setSelected] = useState({});
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategoryForForm, setSelectedCategoryForForm] = useState(""); // For category selection in modal when no category is selected
   const [adminFilters, setAdminFilters] = useState({ departmentId: "", categoryId: "", assignedTo: "", status: "" });
   const [newEntry, setNewEntry] = useState({
     departmentId: getCurrentDepartment()?._id,
@@ -283,6 +283,15 @@ function ActionPlansPage() {
   const [isAllAiSummaryLoading, setIsAllAiSummaryLoading] = useState(false);
   const [selectedAllSummaryPoints, setSelectedAllSummaryPoints] = useState([]);
   const [selectedAllAiPoints, setSelectedAllAiPoints] = useState([]);
+  // State for assignAllSummaryModal form
+  const [assignAllSummaryForm, setAssignAllSummaryForm] = useState({
+    expectations: '',
+    instructions: '',
+    assignedTo: '',
+    targetDate: '',
+    categoryId: '',
+    status: 'pending'
+  });
   // Add these hooks at the top level
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [actionModalPlan, setActionModalPlan] = useState(null);
@@ -321,6 +330,9 @@ function ActionPlansPage() {
     status: 'pending',
     instructions: ''
   });
+  // State for expanded view modal
+  const [expandedViewModal, setExpandedViewModal] = useState(false);
+  const [selectedPlanForExpandedView, setSelectedPlanForExpandedView] = useState(null);
 
   // Open edit modal and prefill form
   const openEditModal = async (plan) => {
@@ -397,16 +409,16 @@ function ActionPlansPage() {
     }
   };
 
-  const statusOptions = [
+  const statusOptions = useMemo(() => [
     { value: "all", label: "All Statuses" },
     { value: "pending", label: "Pending" },
     { value: "in-progress", label: "In Progress" },
     { value: "completed", label: "Completed" },
-  ];
-  const categoryOptions = [
+  ], []);
+  const categoryOptions = useMemo(() => [
     { value: "all", label: "All Categories" },
     ...allCategories.map((cat) => ({ value: cat.name, label: cat.name })),
-  ];
+  ], [allCategories]);
 
   // Fetch action plans based on role
   const fetchData = async () => {
@@ -424,7 +436,6 @@ function ActionPlansPage() {
         response = await axios.get(`${Server}/action-plans/user`, { withCredentials: true });
       }
       setActionPlans(response.data);
-      setFilteredPlans(response.data);
       const catresponse = await axios.get(`${Server}/categories`, { withCredentials: true });
       setAllCategories(catresponse.data);
       const depresponse = await axios.get(`${Server}/departments`, { withCredentials: true });
@@ -440,12 +451,15 @@ function ActionPlansPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line
-  }, [currentUser, JSON.stringify(adminFilters)]);
+  // Memoize adminFilters to prevent unnecessary re-renders
+  const memoizedAdminFilters = useMemo(() => adminFilters, [adminFilters.departmentId, adminFilters.categoryId, adminFilters.assignedTo, adminFilters.status]);
 
   useEffect(() => {
+    fetchData();
+  }, [currentUser, memoizedAdminFilters]);
+
+  // Memoize filtered plans to prevent unnecessary re-computations
+  const filteredPlans = useMemo(() => {
     let filtered = [...actionPlans];
     if (statusFilter !== "all") {
       filtered = filtered.filter((plan) => plan.status === statusFilter);
@@ -464,7 +478,7 @@ function ActionPlansPage() {
           plan.category?.[0]?.name?.toLowerCase().includes(query)
       );
     }
-    setFilteredPlans(filtered);
+    return filtered;
   }, [statusFilter, categoryFilter, searchQuery, actionPlans]);
 
   // Fetch users in department for 'Assigned To' dropdown
@@ -502,13 +516,8 @@ function ActionPlansPage() {
     return () => clearTimeout(timer);
   }, [aiSuggestionDismissed, showAiSuggestion]);
 
-  // Helper functions for AI tooltip
-  const handleAiSectionMouseEnter = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setAiTooltipPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10
-    });
+  // Simplified AI tooltip handler
+  const handleAiSectionMouseEnter = () => {
     setAiTooltipVisible(true);
   };
 
@@ -520,16 +529,31 @@ function ActionPlansPage() {
     setShowAiSuggestion(false);
     setAiSuggestionDismissed(true);
   };
+
+  // Function to open expanded view modal
+  const openExpandedView = (plan) => {
+    setSelectedPlanForExpandedView(plan);
+    setExpandedViewModal(true);
+  };
   
   // Handle create form changes
   const handleCreateFormChange = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handle assignAllSummary form changes
+  const handleAssignAllSummaryFormChange = (field, value) => {
+    setAssignAllSummaryForm((prev) => ({ ...prev, [field]: value }));
   };
   // Handle create action plan submit
   const handleCreateActionPlan = async (e) => {
     e.preventDefault();
     if (!createForm.expectations.trim()) {
       toast({ title: "Error", description: "Expectations are required.", variant: "destructive" });
+      return;
+    }
+    if (!selectedCategoryForForm.trim()) {
+      toast({ title: "Error", description: "Please select or enter a category.", variant: "destructive" });
       return;
     }
     if (!createForm.assignedTo) {
@@ -542,11 +566,15 @@ function ActionPlansPage() {
     }
     setIsSubmitting(true);
     try {
+      // Find existing category or use the category name for new category creation
+      const existingCategory = allCategories.find((c) => c.name.toLowerCase() === selectedCategoryForForm.toLowerCase());
+      
       await axios.post(
         `${Server}/action-plans`,
         {
           departmentId: getCurrentDepartment()?._id,
-          categoryId: allCategories.find((c) => c.name === selectedCategory)?._id,
+          categoryId: existingCategory?._id,
+          categoryName: selectedCategoryForForm, // Send category name for backend to handle
           expectations: createForm.expectations,
           actions: createForm.actions,
           instructions: createForm.instructions,
@@ -558,16 +586,66 @@ function ActionPlansPage() {
       );
       setCreateModalOpen(false);
       setCreateForm({ expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+      setSelectedCategoryForForm(""); // Reset category selection
       fetchData();
       toast({ title: "Success", description: "Action plan created!" });
     } catch (err) {
-      toast({ title: "Error", description: "Failed to create action plan.", variant: "destructive" });
+      console.error("Error creating action plan:", err);
+      toast({ title: "Error", description: err.response?.data?.message || "Failed to create action plan.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getStatusBadge = (status) => {
+  // Handle assignAllSummary action plan submit
+  const handleAssignAllSummaryActionPlan = async (e) => {
+    e.preventDefault();
+    if (!assignAllSummaryForm.expectations.trim()) {
+      toast({ title: "Error", description: "Expectations are required.", variant: "destructive" });
+      return;
+    }
+    if (!assignAllSummaryForm.categoryId) {
+      toast({ title: "Error", description: "Please select a category.", variant: "destructive" });
+      return;
+    }
+    if (!assignAllSummaryForm.assignedTo) {
+      toast({ title: "Error", description: "Please select a user to assign.", variant: "destructive" });
+      return;
+    }
+    if (!assignAllSummaryForm.targetDate) {
+      toast({ title: "Error", description: "Please select a target date.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await axios.post(
+        `${Server}/action-plans`,
+        {
+          departmentId: getCurrentDepartment()?._id,
+          categoryId: assignAllSummaryForm.categoryId,
+          expectations: assignAllSummaryForm.expectations,
+          actions: assignAllSummaryForm.actions || '',
+          instructions: assignAllSummaryForm.instructions,
+          assignedTo: assignAllSummaryForm.assignedTo,
+          targetDate: assignAllSummaryForm.targetDate,
+          status: assignAllSummaryForm.status,
+        },
+        { withCredentials: true }
+      );
+      setAssignAllSummaryModal(false);
+      setAssignAllSummaryForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', status: 'pending' });
+      setAssignAllSummaryData([]);
+      fetchData();
+      toast({ title: "Success", description: "Action plan created!" });
+    } catch (err) {
+      console.error("Error creating action plan:", err);
+      toast({ title: "Error", description: err.response?.data?.message || "Failed to create action plan.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getStatusBadge = useCallback((status) => {
     switch (status) {
       case "pending":
         return <Badge variant="warning">Pending</Badge>;
@@ -578,10 +656,8 @@ function ActionPlansPage() {
       default:
         return <Badge>Unknown</Badge>;
     }
-  };
+  }, []);
 
-  // --- CRUD and modal handlers (add, edit, delete, status update) would go here ---
-  // --- Summarization handlers ---
   const fetchRuleSummary = async (categoryId) => {
     setRuleSummary([]);
     try {
@@ -660,9 +736,22 @@ function ActionPlansPage() {
       return;
     }
     setCreateModalOpen(true);
+    // Set the category for form - use selectedCategory if available, otherwise leave empty for user to select
+    setSelectedCategoryForForm(selectedCategory || "");
+    
+    // Get expectations text based on type
+    let expectationsText = '';
+    if (type === 'rule') {
+      expectationsText = points.map(idx => ruleSummary[idx]?.text).filter(Boolean).join('; ');
+    } else if (type === 'ai') {
+      // aiSummary is a string, need to split it first
+      const aiSummaryArray = aiSummary.split('\n').filter(Boolean);
+      expectationsText = points.map(idx => aiSummaryArray[idx]).filter(Boolean).join('; ');
+    }
+    
     setCreateForm(f => ({
       ...f,
-      expectations: points.map(idx => type === 'rule' ? ruleSummary[idx]?.text : aiSummary[idx]).filter(Boolean).join('; '),
+      expectations: expectationsText,
       actions: '',
       instructions: '',
       assignedTo: '',
@@ -1173,77 +1262,51 @@ function ActionPlansPage() {
   // --- HOD View ---
   if (currentUser.role === "hod") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-[#29252c]">
         <DashboardHeader user={currentUser} />
         
-        {/* AI Suggestion Animation */}
+        {/* Simplified AI Suggestion */}
         {showAiSuggestion && !aiSuggestionDismissed && (
-          <div className="fixed top-20 right-6 z-50 animate-fade-in">
-            <div className="bg-gradient-to-r from-cyan-500/90 to-purple-500/90 backdrop-blur-sm border border-cyan-400/50 rounded-xl p-4 shadow-2xl max-w-sm transform transition-all duration-500 hover:scale-105">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                    <span className="text-xl animate-bounce">🤖</span>
-                  </div>
-                </div>
+          <div className="fixed top-20 right-6 z-50">
+            <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg max-w-xs">
+              <div className="flex items-start gap-2">
+                <span className="text-lg">🤖</span>
                 <div className="flex-1">
-                                       <h3 className="text-white font-semibold mb-1">AI - Agent Assist.</h3>
-                     <p className="text-cyan-100 text-sm mb-3">
-                     Try out this AI feature to help group and merge Action Plans.
-                     </p>
-                  <div className="flex items-center gap-2 text-xs text-cyan-200">
-                    <span className="animate-pulse">✨</span>
-                    <span>Powered by Gemini AI</span>
-                  </div>
+                  <h3 className="text-white font-medium text-sm mb-1">AI Assistant</h3>
+                  <p className="text-slate-300 text-xs">
+                    Use AI to analyze and group action plans
+                  </p>
                 </div>
                 <button
                   onClick={dismissAiSuggestion}
-                  className="flex-shrink-0 text-white/70 hover:text-white transition-colors"
+                  className="text-slate-400 hover:text-white text-sm"
                 >
-                  <span className="text-lg">×</span>
+                  ×
                 </button>
               </div>
-              {/* Animated arrow pointing to AI section */}
-              <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-cyan-500/90 animate-pulse"></div>
             </div>
           </div>
         )}
 
-        {/* AI Tooltip */}
+        {/* Simplified AI Tooltip */}
         {aiTooltipVisible && (
-          <div 
-            className="fixed z-50 pointer-events-none"
-            style={{
-              left: `${aiTooltipPosition.x}px`,
-              top: `${aiTooltipPosition.y}px`,
-              transform: 'translateX(-50%) translateY(-100%)'
-            }}
-          >
-            <div className="bg-gradient-to-r from-slate-800/95 to-slate-700/95 backdrop-blur-sm border border-cyan-400/50 rounded-lg p-3 shadow-2xl max-w-xs animate-fade-in">
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+            <div className="bg-slate-800 border border-slate-600 rounded-lg p-4 shadow-lg max-w-sm">
               <div className="flex items-start gap-2">
-                <div className="flex-shrink-0">
-                  <span className="text-lg">💡</span>
-                </div>
+                <span className="text-lg">💡</span>
                 <div className="flex-1">
-                                     <h4 className="text-white font-semibold text-sm mb-1">AI-Powered Summary</h4>
-                   <p className="text-slate-300 text-xs leading-relaxed">
-                     This feature uses advanced AI to analyze all expectations in this category and group similar responses together. 
-                     The AI identifies patterns and common themes to help organize and categorize your expectations more effectively.
-                   </p>
-                  <div className="mt-2 flex items-center gap-1 text-xs text-cyan-300">
-                    <span className="animate-pulse">⚡</span>
-                    <span>Powered by Gemini AI</span>
-                  </div>
+                  <h4 className="text-white font-medium text-sm mb-2">AI Summary</h4>
+                  <p className="text-slate-300 text-xs">
+                    AI analyzes expectations and groups similar responses together to help organize your data.
+                  </p>
                 </div>
               </div>
-              {/* Tooltip arrow */}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-700/95"></div>
             </div>
           </div>
         )}
         
         {/* Enhanced Header Section */}
-        <div className="px-6 py-8 bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-b border-slate-600/30">
+        <div className="px-6 py-8 bg-gradient-to-r from-[#29252c]/80 to-[#29252c]/60 border-b border-gray-700/30">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-2">Action Plans Management</h1>
             <p className="text-slate-300 text-lg">Create, manage, and track action plans for your department</p>
@@ -1254,20 +1317,20 @@ function ActionPlansPage() {
         {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length > 0 && (
           <div className="px-6 py-6">
             <div className="max-w-7xl mx-auto">
-              <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-2xl">
-                <CardHeader className="border-b border-white/10">
+              <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-2xl">
+                <CardHeader className="border-b border-gray-700">
                   <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
-                    <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
+                    <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
                     Action Plans Assigned by You
-                    <Badge variant="secondary" className="ml-auto bg-blue-500/20 text-blue-300 border-blue-400/30">
+                    <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-yellow-400 border-[goldenrod]/30">
                       {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length} Plans
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
                     <table className="w-full">
-                      <thead className="bg-gradient-to-r from-slate-700 to-slate-600">
+                      <thead className="bg-gradient-to-r from-gray-800 to-gray-700 sticky top-0 z-10">
                         <tr>
                           <th className="px-6 py-4 text-left text-sm font-semibold text-white">Department</th>
                           <th className="px-6 py-4 text-left text-sm font-semibold text-white">Category</th>
@@ -1278,11 +1341,12 @@ function ActionPlansPage() {
                           <th className="px-6 py-4 text-left text-sm font-semibold text-white">Target Date</th>
                           <th className="px-6 py-4 text-left text-sm font-semibold text-white">Status</th>
                           <th className="px-6 py-4 text-left text-sm font-semibold text-white">Update Status</th>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">View</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-gray-700">
                         {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).map((plan, idx) => (
-                          <tr key={plan._id} className="hover:bg-white/5 transition-colors duration-200">
+                          <tr key={plan._id} className="hover:bg-gray-800/50 transition-colors duration-200">
                             <td className="px-6 py-4 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(plan.department?.name)}</td>
                             <td className="px-6 py-4 text-sm text-slate-200">{capitalizeFirstLetter(plan.category?.name)}</td>
                             <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.expectations}>{plan.expectations}</td>
@@ -1313,9 +1377,19 @@ function ActionPlansPage() {
                                   }
                                 }}
                                 options={statusOptions.filter(opt => opt.value !== "all")}
-                                className="h-9 bg-slate-700 border-slate-600 text-white"
+                                className="h-9 bg-gray-700 border-gray-600 text-white"
                                 disabled={isSubmitting}
                               />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openExpandedView(plan)}
+                                className="bg-[goldenrod] hover:bg-amber-600 border-[goldenrod] text-black font-medium"
+                              >
+                                👁️ View
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -1334,10 +1408,10 @@ function ActionPlansPage() {
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Category List */}
               <aside className="w-full lg:w-1/4">
-                <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10">
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl">
+                  <CardHeader className="border-b border-gray-700">
                     <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
-                      <div className="w-1.5 h-6 bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full"></div>
+                      <div className="w-1.5 h-6 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
                       Categories
                     </CardTitle>
                   </CardHeader>
@@ -1355,8 +1429,8 @@ function ActionPlansPage() {
                               variant={selectedCategory === category.name ? "primary" : "outline"}
                               className={`w-full justify-start transition-all duration-200 ${
                                 selectedCategory === category.name 
-                                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 border-0 text-white shadow-lg' 
-                                  : 'bg-white/5 border-white/20 text-slate-200 hover:bg-white/10 hover:border-white/30'
+                                  ? 'bg-gradient-to-r from-[goldenrod] to-amber-500 border-0 text-black font-medium shadow-lg' 
+                                  : 'bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/30'
                               }`}
                               onClick={() => {
                                 setSelectedCategory(category.name);
@@ -1377,11 +1451,11 @@ function ActionPlansPage() {
             <section className="flex-1 flex flex-col gap-6">
               {/* Placeholder when no category is selected */}
               {!selectedCategory && (
-                <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl flex flex-col items-center justify-center min-h-[400px]">
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl flex flex-col items-center justify-center min-h-[400px]">
                   <CardContent className="flex flex-col items-center justify-center w-full p-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mb-6">
-                      <FaClipboardList className="text-2xl text-blue-400" />
-                    </div>
+                                          <div className="w-16 h-16 bg-gradient-to-br from-[goldenrod]/20 to-amber-500/20 rounded-full flex items-center justify-center mb-6">
+                        <FaClipboardList className="text-2xl text-[goldenrod]" />
+                      </div>
                     <h2 className="text-2xl font-bold mb-3 text-white">Summarize All Categories</h2>
                     <p className="text-center max-w-lg text-slate-300 mb-8 leading-relaxed">
                      Try out this AI feature to help group and merge Action Plans.It will also help you to create Action Plans for all categories.
@@ -1391,7 +1465,7 @@ function ActionPlansPage() {
                         variant="outline" 
                         onClick={fetchAllAiSummary} 
                         disabled={isAllAiSummaryLoading}
-                        className={`bg-white/5 border-white/20 text-slate-200 hover:bg-white/10 hover:border-cyan-400/50 hover:text-cyan-300 hover:shadow-lg hover:shadow-cyan-500/25 px-6 py-3 transition-all duration-300 ${!isAllAiSummaryLoading && allAiSummary.length === 0 ? 'animate-pulse' : ''}`}
+                        className={`bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/50 hover:text-[goldenrod] hover:shadow-lg hover:shadow-[goldenrod]/25 px-6 py-3 transition-all duration-300 ${!isAllAiSummaryLoading && allAiSummary.length === 0 ? 'animate-pulse' : ''}`}
                       >
                         {isAllAiSummaryLoading ? (
                           <div className="flex items-center gap-2">
@@ -1410,19 +1484,19 @@ function ActionPlansPage() {
                     
                     {/* Enhanced AI Features with Step-by-Step Guide */}
                     <div className="w-full max-w-4xl mb-8">
-                      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm border border-white/10 shadow-xl">
-                        <CardHeader className="border-b border-white/10">
+                      <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#29252c]/60 backdrop-blur-sm border border-gray-700 shadow-xl">
+                        <CardHeader className="border-b border-gray-700">
                           <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
+                            <div className="w-1.5 h-6 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
                             🤖 AI-Powered Features Guide
-                            <Badge variant="secondary" className="ml-auto bg-cyan-500/20 text-cyan-300 border-cyan-400/30">
+                            <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-[goldenrod] border-[goldenrod]/30">
                               <span className="animate-pulse">●</span> Step-by-Step
                             </Badge>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                           {/* Step-by-Step Guide */}
-                          <div className="mb-6 p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-lg border border-cyan-400/20">
+                          <div className="mb-6 p-4 bg-gradient-to-r from-[goldenrod]/10 to-amber-500/10 rounded-lg border border-[goldenrod]/20">
                             <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
                               <span className="text-lg">📋</span>
                               How to Use AI Features - Step by Step
@@ -1572,162 +1646,213 @@ function ActionPlansPage() {
                         </CardContent>
                       </Card>
                     </div>
-                  {/* Rule-Based Summary */}
+                  {/* Simplified Rule Summary */}
                   {allSummary.length > 0 && (
                     <div className="w-full max-w-4xl mb-8">
-                      <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
-                        <CardHeader className="border-b border-white/10">
+                      <Card className="bg-[#29252c]/70 border border-gray-700 shadow-lg">
+                        <CardHeader className="border-b border-gray-700">
                           <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full"></div>
-                            Rule-Based Summary
-                            <Badge variant="secondary" className="ml-auto bg-emerald-500/20 text-emerald-300 border-emerald-400/30">
+                            <span className="text-[goldenrod]">📊</span>
+                            Rule Summary
+                            <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-[goldenrod]">
                               {allSummary.length} Points
                             </Badge>
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                        <CardContent className="p-4">
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
                             {allSummary.map((item, idx) => (
-                              <div key={idx} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:border-emerald-400/30 transition-all duration-200">
+                              <div key={idx} className="flex items-start gap-2 p-2 bg-slate-700/50 rounded border border-slate-600">
                                 <input
                                   type="checkbox"
                                   checked={selectedAllSummaryPoints.includes(idx)}
                                   onChange={() => setSelectedAllSummaryPoints(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
-                                  className="accent-emerald-500 w-4 h-4 mt-1"
+                                  className="w-4 h-4 mt-1"
                                 />
-                                <div className="flex-1">
-                                  <span className="font-medium text-slate-200">{item.text}</span>
-                                  {item.count !== undefined && (
-                                    <Badge variant="secondary" className="ml-2 bg-emerald-500/20 text-emerald-300 border-emerald-400/30">
-                                      {item.count}
-                                    </Badge>
-                                  )}
-                                </div>
+                                <span className="text-gray-200 text-sm">{item.text}</span>
+                                {item.count !== undefined && (
+                                  <Badge variant="secondary" className="ml-2 bg-[goldenrod]/20 text-[goldenrod]">
+                                    {item.count}
+                                  </Badge>
+                                )}
                               </div>
                             ))}
                           </div>
                           <Button
-                            className="mt-4 w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 border-0 text-white shadow-lg"
+                            className="mt-4 w-full bg-[goldenrod] hover:bg-amber-600 text-black font-medium"
                             onClick={() => {
-                              setAssignAllSummaryData(selectedAllSummaryPoints.map(idx => allSummary[idx]?.text).filter(Boolean));
+                              const selectedData = selectedAllSummaryPoints.map(idx => allSummary[idx]?.text).filter(Boolean);
+                              setAssignAllSummaryData(selectedData);
+                              setAssignAllSummaryForm(prev => ({
+                                ...prev,
+                                expectations: selectedData.join('; ')
+                              }));
                               setAssignAllSummaryModal(true);
                             }}
                             disabled={!selectedAllSummaryPoints.length}
                           >
-                            <span className="mr-2">📋</span>
-                            Assign Selected as Action Plan
+                            📋 Assign Selected as Action Plan
                           </Button>
                         </CardContent>
                       </Card>
                     </div>
                   )}
-                  {/* AI Summary */}
+                  {/* Simplified AI Summary */}
                   {allAiSummary.length > 0 && (
                     <div className="w-full max-w-4xl mb-8">
-                      <Card 
-                        className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm border border-white/10 shadow-xl cursor-help"
-                        onMouseEnter={handleAiSectionMouseEnter}
-                        onMouseLeave={handleAiSectionMouseLeave}
-                      >
-                        <CardHeader className="border-b border-white/10">
+                      <Card className="bg-[#29252c]/70 border border-gray-700 shadow-lg">
+                        <CardHeader className="border-b border-gray-700">
                           <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
-                            AI-Powered Summary
-                            <Badge variant="secondary" className="ml-auto bg-cyan-500/20 text-cyan-300 border-cyan-400/30">
-                              <span className="animate-pulse">●</span> Gemini AI
+                            <span className="text-[goldenrod]">🤖</span>
+                            AI Summary
+                            <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-[goldenrod]">
+                              AI Generated
                             </Badge>
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                        <CardContent className="p-4">
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
                             {allAiSummary.map((item, idx) => (
-                              <div key={idx} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:border-cyan-400/30 transition-all duration-200">
+                              <div key={idx} className="flex items-start gap-2 p-2 bg-gray-800/50 rounded border border-gray-600">
                                 <input
                                   type="checkbox"
                                   checked={selectedAllAiPoints.includes(idx)}
                                   onChange={() => setSelectedAllAiPoints(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
-                                  className="accent-cyan-500 w-4 h-4 mt-1"
+                                  className="w-4 h-4 mt-1"
                                 />
-                                <div className="flex-1">
-                                  <span className="font-medium text-slate-200">{item}</span>
-                                </div>
-                                <span className="text-xs text-cyan-400">AI Generated</span>
+                                <span className="text-gray-200 text-sm">{item}</span>
                               </div>
                             ))}
                           </div>
                           <Button
-                            className="mt-4 w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 border-0 text-white shadow-lg"
+                            className="mt-4 w-full bg-[goldenrod] hover:bg-amber-600 text-black font-medium"
                             onClick={() => {
-                              setAssignAllSummaryData(selectedAllAiPoints.map(idx => allAiSummary[idx]).filter(Boolean));
+                              const selectedData = selectedAllAiPoints.map(idx => allAiSummary[idx]).filter(Boolean);
+                              setAssignAllSummaryData(selectedData);
+                              setAssignAllSummaryForm(prev => ({
+                                ...prev,
+                                expectations: selectedData.join('; ')
+                              }));
                               setAssignAllSummaryModal(true);
                             }}
                             disabled={!selectedAllAiPoints.length}
                           >
-                            <span className="mr-2">🚀</span>
-                            Assign Selected as Action Plan
+                            📋 Assign Selected as Action Plan
                           </Button>
                         </CardContent>
                       </Card>
                     </div>
                   )}
                   {/* Modal for assigning selected summary points */}
-                  <Dialog open={assignAllSummaryModal} onOpenChange={setAssignAllSummaryModal}>
-                    <DialogContent className="bg-[#232026]/90">
-                      <DialogHeader>
-                        <DialogTitle>Assign Action Plan from Summary</DialogTitle>
+                  <Dialog open={assignAllSummaryModal} onOpenChange={(open) => {
+                    setAssignAllSummaryModal(open);
+                    if (!open) {
+                      // Reset form when modal is closed
+                      setAssignAllSummaryForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', status: 'pending' });
+                      setAssignAllSummaryData([]);
+                    }
+                  }}>
+                    <DialogContent className="bg-[#29252c]/95 backdrop-blur-sm border border-gray-700 shadow-2xl max-w-2xl max-h-[90vh] flex flex-col">
+                      <DialogHeader className="border-b border-gray-700 flex-shrink-0">
+                        <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                          <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
+                          Assign Action Plan from Summary
+                        </DialogTitle>
                       </DialogHeader>
-                      <form onSubmit={handleCreateActionPlan} className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Expectations</label>
-                          <Input
-                            value={assignAllSummaryData.join('; ')}
-                            disabled
-                          />
+                      <form onSubmit={handleAssignAllSummaryActionPlan} className="flex-1 overflow-y-auto p-6 space-y-4">
+                        <div className="flex gap-4 items-center p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-400">Department:</span>
+                            <span className="text-base font-bold text-white">{getCurrentDepartment()?.name || ""}</span>
+                          </div>
                         </div>
-                        <div className="flex gap-4 items-center mb-2">
-                          <span className="text-sm font-semibold text-gray-400">Department:</span>
-                          <span className="text-base font-bold text-[#FFF8E7]">{getCurrentDepartment()?.name || ""}</span>
-                          <span className="text-sm font-semibold text-gray-400 ml-6">Category:</span>
-                          <span className="text-base font-bold text-[#FFF8E7]">{selectedCategory}</span>
-                        </div>
+                        
                         <div>
-                          <label className="block text-sm font-medium mb-1">Instructions (optional)</label>
-                          <Input
-                            value={createForm.instructions}
-                            onChange={e => handleCreateFormChange('instructions', e.target.value)}
-                            placeholder="Any extra instructions from HOD"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Assign To</label>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Category *</label>
                           <Select
-                            value={createForm.assignedTo}
-                            onValueChange={(val) => handleCreateFormChange("assignedTo", val)}
-                            options={departmentUsers?.map((u) => ({ value: u._id, label: u.name })) || []}
-                            placeholder={usersLoading ? "Loading users..." : "Select user"}
+                            value={assignAllSummaryForm.categoryId}
+                            onValueChange={(val) => handleAssignAllSummaryFormChange('categoryId', val)}
+                            options={allCategories
+                              .filter(cat => !cat.department || String(cat.department) === String(getCurrentDepartment()?._id))
+                              .map((cat) => ({ value: cat._id, label: capitalizeFirstLetter(cat.name) }))}
+                            placeholder="Select a category"
+                            className="bg-gray-800/50 border-gray-600 text-white"
                             required
-                            disabled={usersLoading || !departmentUsers || departmentUsers.length === 0}
                           />
-                          {!usersLoading && (!departmentUsers || departmentUsers.length === 0) && (
-                            <div className="text-xs text-red-400 mt-1">No users available to assign in this department.</div>
-                          )}
                         </div>
+
                         <div>
-                          <label className="block text-sm font-medium mb-1">Target Date</label>
-                          <Input
-                            type="date"
-                            value={createForm.targetDate}
-                            onChange={(e) => handleCreateFormChange("targetDate", e.target.value)}
-                            min={new Date().toISOString().split("T")[0]}
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Expectations *</label>
+                          <Textarea
+                            value={assignAllSummaryForm.expectations}
+                            onChange={e => handleAssignAllSummaryFormChange('expectations', e.target.value)}
+                            placeholder="Expectations for this action plan"
+                            className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 focus:border-[goldenrod] resize-none"
+                            rows={3}
                             required
                           />
                         </div>
-                        <DialogFooter>
-                          <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? "Creating..." : "Create Action Plan"}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-slate-200">Assign To *</label>
+                            <Select
+                              value={assignAllSummaryForm.assignedTo}
+                              onValueChange={(val) => handleAssignAllSummaryFormChange("assignedTo", val)}
+                              options={departmentUsers?.map((u) => ({ value: u._id, label: u.name })) || []}
+                              placeholder={usersLoading ? "Loading users..." : "Select user"}
+                              className="bg-gray-800/50 border-gray-600 text-white"
+                              required
+                              disabled={usersLoading || !departmentUsers || departmentUsers.length === 0}
+                            />
+                            {!usersLoading && (!departmentUsers || departmentUsers.length === 0) && (
+                              <div className="text-xs text-red-400 mt-1">No users available to assign in this department.</div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-slate-200">Target Date *</label>
+                            <Input
+                              type="date"
+                              value={assignAllSummaryForm.targetDate}
+                              onChange={(e) => handleAssignAllSummaryFormChange("targetDate", e.target.value)}
+                              min={new Date().toISOString().split("T")[0]}
+                              className="bg-gray-800/50 border-gray-600 text-white focus:border-[goldenrod]"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Instructions (optional)</label>
+                          <Input
+                            value={assignAllSummaryForm.instructions}
+                            onChange={e => handleAssignAllSummaryFormChange('instructions', e.target.value)}
+                            placeholder="Any extra instructions from HOD"
+                            className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 focus:border-[goldenrod]"
+                          />
+                        </div>
+
+                        <DialogFooter className="border-t border-white/10 pt-6 flex-shrink-0">
+                          <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="bg-gradient-to-r from-[goldenrod] to-amber-500 hover:from-amber-600 hover:to-amber-700 border-0 text-black font-medium shadow-lg"
+                          >
+                            {isSubmitting ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span>Creating...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span>📋</span>
+                                <span>Create Action Plan</span>
+                              </div>
+                            )}
                           </Button>
                           <DialogClose asChild>
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="outline" className="bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700">
                               Cancel
                             </Button>
                           </DialogClose>
@@ -2031,6 +2156,7 @@ function ActionPlansPage() {
                       ratingFilter={ratingFilter}
                       onAssign={(expObj) => {
                         setCreateModalOpen(true);
+                        setSelectedCategoryForForm(selectedCategory || "");
                         setCreateForm(f => ({
                           ...f,
                           expectations: expObj.expectation,
@@ -2045,25 +2171,73 @@ function ActionPlansPage() {
               </Card>
             )}
             {/* Create Action Plan Modal */}
-            <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-              <DialogContent className="bg-slate-900/95 backdrop-blur-sm border border-white/10 shadow-2xl">
-                <DialogHeader className="border-b border-white/10">
+            <Dialog open={createModalOpen} onOpenChange={(open) => {
+              setCreateModalOpen(open);
+              if (!open) {
+                // Reset form when modal is closed
+                setCreateForm({ expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                setSelectedCategoryForForm("");
+              }
+            }}>
+              <DialogContent className="bg-slate-900/95 backdrop-blur-sm border border-white/10 shadow-2xl max-w-2xl max-h-[90vh] flex flex-col">
+                <DialogHeader className="border-b border-white/10 flex-shrink-0">
                   <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
                     <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
                     Create Action Plan
                   </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleCreateActionPlan} className="space-y-6 p-6">
-                  <div className="flex gap-4 items-center p-4 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-400">Department:</span>
-                      <span className="text-base font-bold text-white">{getCurrentDepartment()?.name || ""}</span>
+                <form onSubmit={handleCreateActionPlan} className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-400">Department:</span>
+                        <span className="text-base font-bold text-white">{getCurrentDepartment()?.name || ""}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-400">Category:</span>
-                      <span className="text-base font-bold text-white">{selectedCategory}</span>
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-400">Category:</span>
+                        {selectedCategoryForForm ? (
+                          <span className="text-base font-bold text-white">{capitalizeFirstLetter(selectedCategoryForForm)}</span>
+                        ) : (
+                          <span className="text-sm text-slate-400">Select category below</span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {!selectedCategoryForForm && (
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium mb-2 text-slate-200">Category *</label>
+                      
+                      {/* Existing Categories Dropdown */}
+                      {allCategories.filter(cat => String(cat.department) === String(getCurrentDepartment()?._id)).length > 0 && (
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-slate-300">Select from existing categories:</label>
+                          <Select
+                            value={selectedCategoryForForm}
+                            onValueChange={(val) => setSelectedCategoryForForm(val)}
+                            options={allCategories
+                              .filter(cat => String(cat.department) === String(getCurrentDepartment()?._id))
+                              .map((cat) => ({ value: cat.name, label: capitalizeFirstLetter(cat.name) }))}
+                            placeholder="Choose existing category"
+                            className="bg-white/5 border-white/20 text-white"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Manual Category Input */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-300">Or enter category name:</label>
+                        <Input
+                          value={selectedCategoryForForm}
+                          onChange={(e) => setSelectedCategoryForForm(e.target.value)}
+                          placeholder="Enter category name"
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
                     <Input
@@ -2138,7 +2312,13 @@ function ActionPlansPage() {
             </Dialog>
 
             {/* Edit Action Plan Modal (Admin) */}
-            <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+            <Dialog open={editModalOpen} onOpenChange={(open) => {
+              setEditModalOpen(open);
+              if (!open) {
+                // Reset form when modal is closed
+                setEditForm({ _id: '', expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+              }
+            }}>
               <DialogContent className="bg-[#232026]/90">
                 <DialogHeader>
                   <DialogTitle>Edit Action Plan</DialogTitle>
@@ -2826,6 +3006,106 @@ function ActionPlansPage() {
             </div>
           </div>
         </div>
+
+        {/* Expanded View Modal */}
+        <Dialog open={expandedViewModal} onOpenChange={setExpandedViewModal}>
+          <DialogContent className="bg-[#29252c]/95 backdrop-blur-sm border border-gray-700 shadow-2xl max-w-4xl max-h-[90vh] flex flex-col">
+            <DialogHeader className="border-b border-gray-700 flex-shrink-0">
+              <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
+                Action Plan Details
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto p-6">
+              {selectedPlanForExpandedView && (
+                <div className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Department</h3>
+                      <p className="text-white font-medium">{capitalizeFirstLetter(selectedPlanForExpandedView.department?.name)}</p>
+                    </div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Category</h3>
+                      <p className="text-white font-medium">{capitalizeFirstLetter(selectedPlanForExpandedView.category?.name)}</p>
+                    </div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Assigned To</h3>
+                      <p className="text-white font-medium">{selectedPlanForExpandedView.assignedTo?.name}</p>
+                    </div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Target Date</h3>
+                      <p className="text-white font-medium">{new Date(selectedPlanForExpandedView.targetDate).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Status</h3>
+                    <div className="flex items-center gap-3">
+                      {getStatusBadge(selectedPlanForExpandedView.status)}
+                      <Select
+                        value={selectedPlanForExpandedView.status}
+                        onValueChange={async (value) => {
+                          setIsSubmitting(true);
+                          try {
+                            await axios.put(
+                              `${Server}/action-plans/${selectedPlanForExpandedView._id}`,
+                              { status: value },
+                              { withCredentials: true }
+                            );
+                            fetchData();
+                            setSelectedPlanForExpandedView(prev => ({ ...prev, status: value }));
+                            toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                          } catch (e) {
+                            toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                          } finally {
+                            setIsSubmitting(false);
+                          }
+                        }}
+                        options={statusOptions.filter(opt => opt.value !== "all")}
+                        className="w-48 bg-gray-700 border-gray-600 text-white"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Expectations */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Expectations</h3>
+                    <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.expectations}</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Actions</h3>
+                    <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.actions || "No actions taken yet"}</p>
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Instructions</h3>
+                    <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.instructions || "No additional instructions"}</p>
+                  </div>
+
+                  {/* Created/Updated Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Created By</h3>
+                      <p className="text-white font-medium">{selectedPlanForExpandedView.assignedBy?.name}</p>
+                      <p className="text-gray-400 text-sm">{new Date(selectedPlanForExpandedView.createdAt).toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Last Updated</h3>
+                      <p className="text-white font-medium">{new Date(selectedPlanForExpandedView.updatedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
