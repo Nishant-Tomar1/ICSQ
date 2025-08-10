@@ -199,7 +199,7 @@ function DashboardHeader() {
             // "/action-plans",
              "/reports"].map((path, i) => {
               const name = ["Home", "Survey", "SIPOC"
-                //  ,"Action Plans"
+                 ,"Action Plans"
                 ][i]
               return (
                 <Link

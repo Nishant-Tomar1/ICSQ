@@ -3,14 +3,6 @@ import { SIPOC } from '../models/SIPOC.model.js'
 
 const connectDB = async () => {
     try {
-        // Check if MONGO_URI is set (your current env variable name)
-        if (!process.env.MONGO_URI) {
-            console.error("MONGO_URI environment variable is not set");
-            process.exit(1);
-        }
-        
-        console.log(`Attempting to connect to MongoDB with URI: ${process.env.MONGO_URI}`);
-        
         const connectionInstance = await mongoose.connect(process.env.MONGO_URI);
         console.log(`MongoDB database connected !! DB URL : ${connectionInstance.connection.host}`);
         

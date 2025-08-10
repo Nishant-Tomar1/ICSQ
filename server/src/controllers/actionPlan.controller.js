@@ -1,82 +1,96 @@
 import mongoose from "mongoose"
 import {ActionPlan} from "../models/ActionPlan.model.js"
+import {User} from "../models/User.model.js"
+import {sendActionPlanAssignmentEmail} from "../utils/emailService.js"
 
-// Get all action plans with optional filters
-export async function getActionPlans(req, res) {
+// Get all action plans (admin only, with filters)
+export async function getActionPlansForAdmin(req, res) {
   try {
-    const { departmentId, status, categoryId } = req.query
-
+    const { departmentId, status, categoryId, assignedTo } = req.query
     const filters = {}
     if (departmentId) filters.department = new mongoose.Types.ObjectId(departmentId)
     if (status) filters.status = status
     if (categoryId) filters.category = new mongoose.Types.ObjectId(categoryId)
-
-    // const plans = await ActionPlan.find(filters)
-    const plans = await ActionPlan.aggregate([
-      {
-        $match : filters
-      },
-      {
-        $lookup : {
-          from : 'categories',
-          localField : 'category',
-          foreignField : '_id',
-          as : 'category',
-        }
-      },
-      {
-        $lookup : {
-          from : 'users',
-          localField : 'owner',
-          foreignField : '_id',
-          as : 'owner'
-        }
-      }
-    ])
-    
+    if (assignedTo) filters.assignedTo = new mongoose.Types.ObjectId(assignedTo)
+    const plans = await ActionPlan.find(filters)
+      .populate('department')
+      .populate('category')
+      .populate('assignedBy')
+      .populate('assignedTo')
     return res.json(plans)
   } catch (error) {
-    console.error("Error fetching action plans:", error)
+    console.error("Error fetching action plans (admin):", error)
     return res.status(500).json({ message: "Failed to fetch action plans" })
   }
 }
 
-// Get action plan by ID
-export async function getActionPlanById(req, res) {
+// Get all action plans for HOD's current department
+export async function getActionPlansForHOD(req, res) {
   try {
-    const plan = await ActionPlan.findById(req.params.id)
-
-    if (!plan) {
-      return res.status(404).json({ message: "Action plan not found" })
-    }
-
-    return res.json(plan)
+    const departmentId = req.user.currentDepartment
+    if (!departmentId) return res.status(400).json({ message: "No current department found for HOD" })
+    const plans = await ActionPlan.find({ department: departmentId })
+      .populate('department')
+      .populate('category')
+      .populate('assignedBy')
+      .populate('assignedTo')
+    return res.json(plans)
   } catch (error) {
-    console.error(`Error fetching action plan ${req.params.id}:`, error)
-    return res.status(500).json({ message: "Failed to fetch action plan" })
+    console.error("Error fetching action plans (HOD):", error)
+    return res.status(500).json({ message: "Failed to fetch action plans" })
   }
 }
 
-// Create a new action plan
+// Get all action plans assigned to the current user
+export async function getActionPlansForUser(req, res) {
+  try {
+    const userId = req.user._id
+    const plans = await ActionPlan.find({ assignedTo: userId })
+      .populate('department')
+      .populate('category')
+      .populate('assignedBy')
+      .populate('assignedTo')
+    return res.json(plans)
+  } catch (error) {
+    console.error("Error fetching action plans (user):", error)
+    return res.status(500).json({ message: "Failed to fetch action plans" })
+  }
+}
+
+// Create a new action plan (HOD or admin)
 export async function createActionPlan(req, res) {
   try {
-    const { departmentId, categoryId, actions, ownerId, targetDate, status} = req.body
-    
-    if (!departmentId || !categoryId || !actions || !ownerId || !targetDate) {
+    const { departmentId, categoryId, expectations, actions, instructions, assignedTo, targetDate, status } = req.body
+    if (!departmentId || !categoryId || !expectations || !assignedTo || !targetDate) {
       return res.status(400).json({ message: "Missing required fields" })
     }
-
+    
     const plan = new ActionPlan({
-      department : new mongoose.Types.ObjectId(departmentId),
-      category : new mongoose.Types.ObjectId(categoryId),
+      department: new mongoose.Types.ObjectId(departmentId),
+      category: new mongoose.Types.ObjectId(categoryId),
+      expectations,
       actions,
-      owner : new mongoose.Types.ObjectId(ownerId),
+      instructions,
+      assignedBy: req.user._id,
+      assignedTo: new mongoose.Types.ObjectId(assignedTo),
       targetDate: new Date(targetDate),
       status: status || "pending",
     })
-
     await plan.save()
-
+    
+    // Send email notification to assigned user
+    try {
+      const assignedUser = await User.findById(assignedTo).select('name email')
+      if (assignedUser) {
+        const assignedByUser = await User.findById(req.user._id).select('name email')
+        await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+        console.log(`Email notification sent to ${assignedUser.email} for action plan assignment`)
+      }
+    } catch (emailError) {
+      console.error("Error sending email notification:", emailError)
+      // Don't fail the request if email fails
+    }
+    
     return res.status(201).json(plan)
   } catch (error) {
     console.error("Error creating action plan:", error)
@@ -84,73 +98,126 @@ export async function createActionPlan(req, res) {
   }
 }
 
-// Update an action plan
+// Update an action plan (HOD or admin)
 export async function updateActionPlan(req, res) {
   try {
-    const { department, category, actions, owner, targetDate, status } = req.body
-
+    const { department, category, expectations, actions, instructions, assignedTo, targetDate, status } = req.body
     const plan = await ActionPlan.findById(req.params.id)
-
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
     }
-
-    if (department) plan.department = department
-    if (category) plan.category = category
-    if (actions) plan.actions = actions
-    if (owner) plan.owner = owner
-    if (targetDate) plan.targetDate = new Date(targetDate)
-    if (status) plan.status = status
-
+    
+    // Store the original assignedTo to check if it changed
+    const originalAssignedTo = plan.assignedTo;
+    
+    // Authorization: allow HODs, admins, or assigned user (with restrictions)
+    const isAdmin = req.user.role === 'admin';
+    const isHOD = req.user.role === 'hod';
+    const isAssignedUser = String(plan.assignedTo) === String(req.user._id);
+    if (!isAdmin && !isHOD && !isAssignedUser) {
+      return res.status(403).json({ message: "Not authorized to update this action plan" })
+    }
+    
+    // Only allow assigned user to update 'actions' and 'status'
+    if (isAssignedUser && !isAdmin && !isHOD) {
+      if (actions !== undefined) plan.actions = actions;
+      if (status !== undefined) plan.status = status;
+      // Block all other fields
+    } else {
+      if (department) plan.department = department
+      if (category) plan.category = category
+      if (expectations) plan.expectations = expectations
+      if (actions !== undefined) plan.actions = actions
+      if (instructions) plan.instructions = instructions
+      if (assignedTo) plan.assignedTo = assignedTo
+      if (targetDate) plan.targetDate = new Date(targetDate)
+      if (status !== undefined) plan.status = status
+    }
+    
     await plan.save()
-
+    
+    // Send email notification if assignment changed and it's a new assignment
+    if (assignedTo && String(originalAssignedTo) !== String(assignedTo)) {
+      try {
+        const assignedUser = await User.findById(assignedTo).select('name email')
+        if (assignedUser) {
+          const assignedByUser = await User.findById(req.user._id).select('name email')
+          await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+          console.log(`Email notification sent to ${assignedUser.email} for action plan reassignment`)
+        }
+      } catch (emailError) {
+        console.error("Error sending email notification for reassignment:", emailError)
+        // Don't fail the request if email fails
+      }
+    }
+    
     return res.json(plan)
   } catch (error) {
     console.error(`Error updating action plan ${req.params.id}:`, error)
-    return res.status(500).json({ message: "Failed to update action plan" })
+    console.error('User:', req.user)
+    console.error('Body:', req.body)
+    return res.status(500).json({ message: "Failed to update action plan", error: error?.message, stack: error?.stack })
   }
 }
 
-// Update multiple action plans
-export async function updateActionPlans(req, res) {
+// User updates status of their assigned action plan
+export async function updateActionPlanStatus(req, res) {
   try {
-    const { plans } = req.body
-
-    if (!plans || !Array.isArray(plans)) {
-      return res.status(400).json({ message: "Plans array is required" })
-    }
-
-    const updatePromises = plans.map(async (plan) => {
-      const { _id, ...updateData } = plan
-      return ActionPlan.findByIdAndUpdate(_id, updateData, { new: true })
-    })
-
-    await Promise.all(updatePromises)
-
-    return res.json({
-      message: "Action plans updated successfully",
-      modifiedCount: plans.length,
-    })
-  } catch (error) {
-    console.error("Error updating action plans:", error)
-    return res.status(500).json({ message: "Failed to update action plans" })
-  }
-}
-
-// Delete an action plan
-export async function deleteActionPlan(req, res) {
-  try {
+    const { status } = req.body
     const plan = await ActionPlan.findById(req.params.id)
-
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
     }
+    if (String(plan.assignedTo) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Not authorized to update this action plan" })
+    }
+    plan.status = status
+    await plan.save()
+    return res.json(plan)
+  } catch (error) {
+    console.error(`Error updating action plan status ${req.params.id}:`, error)
+    console.error('User:', req.user)
+    console.error('Body:', req.body)
+    return res.status(500).json({ message: "Failed to update action plan status", error: error?.message, stack: error?.stack })
+  }
+}
 
+// Delete an action plan (admin only)
+export async function deleteActionPlan(req, res) {
+  try {
+    const plan = await ActionPlan.findById(req.params.id)
+    if (!plan) {
+      return res.status(404).json({ message: "Action plan not found" })
+    }
     await plan.deleteOne()
-
     return res.json({ message: "Action plan deleted successfully" })
   } catch (error) {
     console.error(`Error deleting action plan ${req.params.id}:`, error)
     return res.status(500).json({ message: "Failed to delete action plan" })
+  }
+}
+
+// Test email configuration (admin only)
+export async function testEmailConfig(req, res) {
+  try {
+    const { testEmailConfiguration } = await import("../utils/emailService.js")
+    const result = await testEmailConfiguration()
+    
+    if (result.success) {
+      return res.json({ message: "Email configuration is valid", success: true })
+    } else {
+      return res.status(500).json({ 
+        message: "Email configuration error", 
+        error: result.error,
+        success: false 
+      })
+    }
+  } catch (error) {
+    console.error("Error testing email configuration:", error)
+    return res.status(500).json({ 
+      message: "Failed to test email configuration", 
+      error: error.message,
+      success: false 
+    })
   }
 }

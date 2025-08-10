@@ -12,10 +12,22 @@ const ActionPlanSchema = new Schema(
       ref : 'Category',
       required: true,
     },
-    actions: [{
+    expectations: {
       type: String,
-    }],
-    owner: {
+      required: true,
+    },
+    actions: {
+      type: String,
+    },
+    instructions: {
+      type: String,
+    },
+    assignedBy: {
+      type: Schema.Types.ObjectId,
+      ref : 'User',
+      required: true,
+    },
+    assignedTo: {
       type: Schema.Types.ObjectId,
       ref : 'User',
       required: true,

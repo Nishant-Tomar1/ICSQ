@@ -1,6 +1,7 @@
 import { Router } from "express"
 const router = Router()
-import { getDepartmentScores, getCategoryScores, getActionPlanStats, getPlatformStats, getDepartmentScoresforParticular, getExpectationData, getSentimentResponses, getSentimentCounts, getClusteredResponses, getAssignedPatterns } from "../controllers/analytics.controller.js"
+import { getDepartmentScores, getCategoryScores, getActionPlanStats, getPlatformStats, getDepartmentScoresforParticular, getExpectationData } from "../controllers/analytics.controller.js"
+import { summarizeExpectationsRuleBased, summarizeExpectationsAI, generateActionPlansFromAI, analyzeTrendsAndPredictions } from "../controllers/summarization.controller.js"
 import { requireAuth } from "../middleware/auth.js"
 
 // Apply auth middleware to all routes
@@ -23,16 +24,12 @@ router.get("/action-plan-stats", getActionPlanStats)
 // Get Expectaions data
 router.get("/expectation-data/:id", getExpectationData)
 
-// Get sentiment responses for a category and sentiment
-router.get("/sentiment-responses", getSentimentResponses)
+// Summarization endpoints
+router.get("/summarize-expectations/rule", summarizeExpectationsRuleBased)
+router.get("/summarize-expectations/ai", summarizeExpectationsAI)
 
-// Get sentiment counts for a category
-router.get("/sentiment-counts", getSentimentCounts)
-
-// Get clustered responses for a category and sentiment
-router.get("/clustered-responses", getClusteredResponses)
-
-// Get assigned patterns for a department
-router.get("/assigned-patterns", getAssignedPatterns)
+// Enhanced AI features
+router.post("/generate-action-plans", generateActionPlansFromAI)
+router.get("/analyze-trends", analyzeTrendsAndPredictions)
 
 export default router
