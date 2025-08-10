@@ -111,7 +111,7 @@ function Select({ value, onValueChange, placeholder, options = [], className = "
 
       {/* Dropdown - rendered inline with smart positioning */}
       {isOpen && options && options.length > 0 && (
-        <div className={`absolute z-50 w-full bg-[#29252c] shadow-xl border border-gray-600/50 rounded-md py-1 text-base ring-1 ring-gray-400 max-h-60 overflow-auto ${
+        <div className={`absolute z-50 w-full bg-[#29252c] shadow-xl border border-gray-600/50 rounded-md py-1 text-base ring-1 ring-gray-400 max-h-80 overflow-scroll ${
           position === "bottom" ? "mt-1" : "mb-1 bottom-full"
         }`}>
           {options.map((option) => (

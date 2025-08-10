@@ -21,7 +21,7 @@ import {
 import Select from "../components/ui/Select";
 import Badge from "../components/ui/Badge";
 import axios from "axios";
-import { FaAngleDown, FaAngleUp, FaClipboardList } from "react-icons/fa";
+import { FaAngleDown, FaAngleUp, FaClipboardList, FaInfoCircle } from "react-icons/fa";
 import { capitalizeFirstLetter, Server } from "../Constants";
 import {
   Dialog,
@@ -142,7 +142,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter }) {
                 <thead className="bg-slate-700/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Department</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th>
+                    {/* <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th> */}
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Expectation</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Rating</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
@@ -152,8 +152,8 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter }) {
                   {items.map((e, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.department)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td>
-                      <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={e.expectation}>{e.expectation}</td>
+                      {/* <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td> */}
+                      <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={e.expectation}>{e.expectation?.length > 20 ? (e.expectation.split(20) + "...") : e.expectation}</td>
                       <td className="px-4 py-3 text-sm">
                         <Badge 
                           variant="secondary" 
@@ -333,6 +333,15 @@ function ActionPlansPage() {
   // State for expanded view modal
   const [expandedViewModal, setExpandedViewModal] = useState(false);
   const [selectedPlanForExpandedView, setSelectedPlanForExpandedView] = useState(null);
+
+  // NEW: Add UX improvement states
+  const [activeTab, setActiveTab] = useState("overview"); // "overview", "categories", "ai-tools"
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    // Check localStorage to see if user has seen the tutorial
+    return localStorage.getItem('actionPlansTutorialSeen') !== 'true';
+  });
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
 
   // Open edit modal and prefill form
   const openEditModal = async (plan) => {
@@ -712,8 +721,7 @@ function ActionPlansPage() {
     }
   };
 
-  // --- Summarization selection and assignment features ---
-  // Add state for selected summary points
+  
   const [selectedRulePoints, setSelectedRulePoints] = useState([]);
   const [selectedAiPoints, setSelectedAiPoints] = useState([]);
 
@@ -829,13 +837,13 @@ function ActionPlansPage() {
       // Parse the detailed action plans into structured data
       const parsedPlans = parseDetailedActionPlans(res.data.actionPlans);
       setDetailedPlansData(parsedPlans);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to generate detailed action plans', variant: 'destructive' });
     } finally {
       setIsGeneratingPlans(false);
     }
   };
-
   // Helper function to parse detailed action plans from text
   const parseDetailedActionPlans = (actionPlansText) => {
     if (!actionPlansText) return [];
@@ -849,45 +857,25 @@ function ActionPlansPage() {
       const lines = block.split('\n').map(line => line.trim()).filter(line => line);
       const plan = {
         id: index,
-        title: '',
-        description: '',
-        steps: '',
-        timeline: '',
-        resources: '',
-        successMetrics: '',
-        priority: 'medium',
-        originalText: block.trim()
+        expectation: ''
       };
       
-      let currentSection = '';
-      
       lines.forEach(line => {
-        if (line.includes('Title:')) {
-          plan.title = line.replace('Title:', '').trim();
-        } else if (line.includes('Description:')) {
-          currentSection = 'description';
-          plan.description = line.replace('Description:', '').trim();
-        } else if (line.includes('Steps:')) {
-          currentSection = 'steps';
-          plan.steps = line.replace('Steps:', '').trim();
-        } else if (line.includes('Timeline:')) {
-          currentSection = 'timeline';
-          plan.timeline = line.replace('Timeline:', '').trim();
-        } else if (line.includes('Resources Needed:')) {
-          currentSection = 'resources';
-          plan.resources = line.replace('Resources Needed:', '').trim();
-        } else if (line.includes('Success Metrics:')) {
-          currentSection = 'successMetrics';
-          plan.successMetrics = line.replace('Success Metrics:', '').trim();
-        } else if (line.includes('Priority:')) {
-          plan.priority = line.replace('Priority:', '').trim().toLowerCase();
-        } else if (currentSection && line) {
-          // Continue building the current section
-          plan[currentSection] += '\n' + line;
+        if (line.includes('[Expectation]')) {
+          // Get the text after [Expectation]
+          const expectationMatch = line.match(/\[Expectation\](.*)/);
+          if (expectationMatch) {
+            plan.expectation = expectationMatch[1].trim();
+          }
+          // If expectation is on next line
+          else if (lines[lines.indexOf(line) + 1]) {
+            plan.expectation = lines[lines.indexOf(line) + 1].trim();
+          }
         }
       });
       
-      if (plan.title) {
+      if (plan.expectation) {
+        plan.expectation = plan.expectation.includes(":**") ? plan.expectation.split(":**")[1].trim() : plan.expectation;
         plans.push(plan);
       }
     });
@@ -899,13 +887,7 @@ function ActionPlansPage() {
   const openDetailedPlanEdit = (plan) => {
     setSelectedDetailedPlan(plan);
     setDetailedPlanEditForm({
-      title: plan.title || '',
-      description: plan.description || '',
-      steps: plan.steps || '',
-      timeline: plan.timeline || '',
-      resources: plan.resources || '',
-      successMetrics: plan.successMetrics || '',
-      priority: plan.priority || 'medium'
+      expectation: plan.expectation || ''
     });
     setDetailedPlanEditModal(true);
   };
@@ -981,14 +963,12 @@ function ActionPlansPage() {
       const actionPlanData = {
         departmentId: getCurrentDepartment()?._id,
         categoryId: categoryId,
-        expectations: selectedDetailedPlan.title,
+        expectations: selectedDetailedPlan.expectation,
         actions: selectedDetailedPlan.description,
         instructions: detailedPlanAssignForm.instructions || selectedDetailedPlan.steps,
         assignedTo: detailedPlanAssignForm.assignedTo,
         targetDate: detailedPlanAssignForm.targetDate,
-        status: detailedPlanAssignForm.status,
-        aiGenerated: true,
-        detailedPlanData: selectedDetailedPlan
+        status: detailedPlanAssignForm.status || "pending",
       };
 
       await axios.post(`${Server}/action-plans`, actionPlanData, { withCredentials: true });
@@ -1265,8 +1245,81 @@ function ActionPlansPage() {
       <div className="min-h-screen bg-[#29252c]">
         <DashboardHeader user={currentUser} />
         
+        {/* Onboarding Guide */}
+        {showOnboarding && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-300 rounded-lg max-w-2xl w-full p-6">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Action Plans!</h2>
+                <p className="text-gray-600">Let's get you started with managing action plans effectively.</p>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                {currentStep === 1 && (
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h3 className="font-semibold text-blue-900 mb-2">📋 Step 1: Overview</h3>
+                    <p className="text-blue-800 text-sm">Start here to see all your action plans and their current status. You can filter, search, and manage existing plans.</p>
+                  </div>
+                )}
+                {currentStep === 2 && (
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <h3 className="font-semibold text-green-900 mb-2">📊 Step 2: Expectations</h3>
+                    <p className="text-green-800 text-sm">Select a category to view expectations and create action plans based on survey responses.</p>
+                  </div>
+                )}
+                {currentStep === 3 && (
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <h3 className="font-semibold text-purple-900 mb-2">🤖 Step 3: AI Tools</h3>
+                    <p className="text-purple-800 text-sm">Use AI-powered features to analyze data, generate summaries, and create detailed action plans automatically.</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  {[1, 2, 3].map(step => (
+                    <div
+                      key={step}
+                      className={`w-3 h-3 rounded-full ${
+                        step === currentStep ? 'bg-blue-600' : 'bg-gray-100'
+                      }`}
+                    />
+                  ))}
+                </div>
+                
+                <div className="flex gap-2">
+                  {currentStep > 1 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentStep(prev => prev - 1)}
+                    >
+                      Previous
+                    </Button>
+                  )}
+                  {currentStep < 3 ? (
+                    <Button
+                      onClick={() => setCurrentStep(prev => prev + 1)}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setShowOnboarding(false);
+                        localStorage.setItem('actionPlansTutorialSeen', 'true');
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Simplified AI Suggestion */}
-        {showAiSuggestion && !aiSuggestionDismissed && (
+        {/* {showAiSuggestion && !aiSuggestionDismissed && (
           <div className="fixed top-20 right-6 z-50">
             <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg max-w-xs">
               <div className="flex items-start gap-2">
@@ -1286,7 +1339,7 @@ function ActionPlansPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Simplified AI Tooltip */}
         {aiTooltipVisible && (
@@ -1310,11 +1363,184 @@ function ActionPlansPage() {
           <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-2">Action Plans Management</h1>
             <p className="text-slate-300 text-lg">Create, manage, and track action plans for your department</p>
+            
+            {/* Navigation Tabs */}
+            <div className="flex space-x-1 mt-6 bg-white/10 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                  activeTab === "overview"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-white hover:bg-white/20"
+                }`}
+              >
+                📋 Overview
+              </button>
+              <button
+                onClick={() => setActiveTab("categories")}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                  activeTab === "categories"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-white hover:bg-white/20"
+                }`}
+              >
+                📊 Expectations
+              </button>
+              {/* <button
+                onClick={() => setActiveTab("ai-tools")}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                  activeTab === "ai-tools"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-white hover:bg-white/20"
+                }`}
+              >
+                🤖 AI Tools
+              </button> */}
+            </div>
           </div>
         </div>
 
+        {/* Overview Section */}
+        {activeTab === "overview" && (
+          <div className="px-6 py-6">
+            <div className="max-w-7xl mx-auto">
+              {/* Welcome Section */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Welcome back, {currentUser.name}!</h2>
+                    <p className="text-slate-300">Here's an overview of your action plans and quick actions you can take.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowHelpGuide(!showHelpGuide)}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    {showHelpGuide ? 'Hide Help' : 'Learn How to Use'}
+                  </Button>
+                </div>
+                
+                {/* Help Guide */}
+                {showHelpGuide && (
+                  <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-6">
+                    <CardContent className="p-6">
+                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <span>💡</span>
+                        Quick Guide to Action Plans
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                            <h4 className="text-blue-300 font-medium">View & Manage</h4>
+                          </div>
+                          <p className="text-slate-300 text-sm">Check your assigned action plans, update status, and track progress in the table below.</p>
+                        </div>
+                        <div className="p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                            <h4 className="text-green-300 font-medium">Create New Plans</h4>
+                          </div>
+                          <p className="text-slate-300 text-sm">Go to "Expectations" tab to select a category and create action plans based on survey responses.</p>
+                        </div>
+                        <div className="p-4 bg-white/5 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                            <h4 className="text-purple-300 font-medium">Use AI Tools</h4>
+                          </div>
+                          <p className="text-slate-300 text-sm">Use "AI Tools" to analyze data, generate summaries, and create detailed action plans automatically.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-4">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
+                      📋
+                    </div>
+                    <div className="text-2xl font-bold text-white">{actionPlans.length}</div>
+                    <div className="text-sm text-gray-400">Total Plans</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-4">
+                    <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
+                      ⏳
+                    </div>
+                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => p.status === "pending").length}</div>
+                    <div className="text-sm text-gray-400">Pending</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-4">
+                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
+                      🔄
+                    </div>
+                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => p.status === "in-progress").length}</div>
+                    <div className="text-sm text-gray-400">In Progress</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-4">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
+                      ✅
+                    </div>
+                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => p.status === "completed").length}</div>
+                    <div className="text-sm text-gray-400">Completed</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-4">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
+                      ⚠️
+                    </div>
+                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => new Date(p.targetDate) < new Date() && p.status !== "completed").length}</div>
+                    <div className="text-sm text-gray-400">Overdue</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Quick Actions */}
+              {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <Card className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-200 cursor-pointer" onClick={() => setActiveTab("categories")}>
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl">
+                      📊
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Manage Categories</h3>
+                    <p className="text-slate-300 text-sm">View expectations by category and create new action plans</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-200 cursor-pointer" onClick={() => setActiveTab("ai-tools")}>
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl">
+                      🤖
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">AI Analysis</h3>
+                    <p className="text-slate-300 text-sm">Use AI to analyze data and generate action plans automatically</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/20 hover:border-green-400/40 transition-all duration-200 cursor-pointer" onClick={() => setCreateModalOpen(true)}>
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl">
+                      ➕
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Create Plan</h3>
+                    <p className="text-slate-300 text-sm">Quickly create a new action plan from scratch</p>
+                  </CardContent>
+                </Card>
+              </div> */}
+            </div>
+          </div>
+        )}
+
         {/* HOD's Assigned Action Plans Table (Enhanced) */}
-        {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length > 0 && (
+        {activeTab === "overview" && (
           <div className="px-6 py-6">
             <div className="max-w-7xl mx-auto">
               <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-2xl">
@@ -1322,88 +1548,94 @@ function ActionPlansPage() {
                   <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
                     <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
                     Action Plans Assigned by You
-                    <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-yellow-400 border-[goldenrod]/30">
+                    <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-gray-600 border-[goldenrod]/30">
                       {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length} Plans
                     </Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                    <table className="w-full">
-                      <thead className="bg-gradient-to-r from-gray-800 to-gray-700 sticky top-0 z-10">
-                        <tr>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Department</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Category</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Expectations</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Actions</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Instructions</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Assigned To</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Target Date</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Status</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Update Status</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">View</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-700">
-                        {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).map((plan, idx) => (
-                          <tr key={plan._id} className="hover:bg-gray-800/50 transition-colors duration-200">
-                            <td className="px-6 py-4 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(plan.department?.name)}</td>
-                            <td className="px-6 py-4 text-sm text-slate-200">{capitalizeFirstLetter(plan.category?.name)}</td>
-                            <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.expectations}>{plan.expectations}</td>
-                            <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.actions}>
-                              <span>{plan.actions || "No actions yet"}</span>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.instructions}>{plan.instructions || "No instructions"}</td>
-                            <td className="px-6 py-4 text-sm text-slate-200 font-medium">{plan.assignedTo?.name}</td>
-                            <td className="px-6 py-4 text-sm text-slate-200">{new Date(plan.targetDate).toLocaleDateString()}</td>
-                            <td className="px-6 py-4">{getStatusBadge(plan.status)}</td>
-                            <td className="px-6 py-4">
-                              <Select
-                                value={plan.status}
-                                onValueChange={async (value) => {
-                                  setIsSubmitting(true);
-                                  try {
-                                    await axios.put(
-                                      `${Server}/action-plans/${plan._id}`,
-                                      { status: value },
-                                      { withCredentials: true }
-                                    );
-                                    fetchData();
-                                    toast({ title: "Success", description: "Status updated successfully", variant: "success" });
-                                  } catch (e) {
-                                    toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
-                                  } finally {
-                                    setIsSubmitting(false);
-                                  }
-                                }}
-                                options={statusOptions.filter(opt => opt.value !== "all")}
-                                className="h-9 bg-gray-700 border-gray-600 text-white"
-                                disabled={isSubmitting}
-                              />
-                            </td>
-                            <td className="px-6 py-4">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openExpandedView(plan)}
-                                className="bg-[goldenrod] hover:bg-amber-600 border-[goldenrod] text-black font-medium"
-                              >
-                                👁️ View
-                              </Button>
-                            </td>
+                <CardContent className="p-6">
+                  {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length > 0 ? (
+                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                      <table className="w-full">
+                        <thead className="bg-gradient-to-r from-gray-800 to-gray-700 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Department</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Category</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Expectations</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Actions</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Instructions</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Assigned To</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Target Date</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Status</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Update Status</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">View</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).map((plan, idx) => (
+                            <tr key={plan._id} className="hover:bg-gray-800/50 transition-colors duration-200">
+                              <td className="px-6 py-4 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(plan.department?.name)}</td>
+                              <td className="px-6 py-4 text-sm text-slate-200">{capitalizeFirstLetter(plan.category?.name)}</td>
+                              <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.expectations}>{plan.expectations}</td>
+                              <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.actions}>
+                                <span>{plan.actions || "No actions yet"}</span>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.instructions}>{plan.instructions || "No instructions"}</td>
+                              <td className="px-6 py-4 text-sm text-slate-200 font-medium">{plan.assignedTo?.name}</td>
+                              <td className="px-6 py-4 text-sm text-slate-200">{new Date(plan.targetDate).toLocaleDateString()}</td>
+                              <td className="px-6 py-4">{getStatusBadge(plan.status)}</td>
+                              <td className="px-6 py-4">
+                                <Select
+                                  value={plan.status}
+                                  onValueChange={async (value) => {
+                                    setIsSubmitting(true);
+                                    try {
+                                      await axios.put(
+                                        `${Server}/action-plans/${plan._id}`,
+                                        { status: value },
+                                        { withCredentials: true }
+                                      );
+                                      fetchData();
+                                      toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                                    } catch (e) {
+                                      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                                    } finally {
+                                      setIsSubmitting(false);
+                                    }
+                                  }}
+                                  options={statusOptions.filter(opt => opt.value !== "all")}
+                                  className="h-9 bg-gray-700 border-gray-600 text-white"
+                                  disabled={isSubmitting}
+                                />
+                              </td>
+                              <td className="px-6 py-4">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openExpandedView(plan)}
+                                  className="bg-[goldenrod] hover:bg-gray-600 border-[goldenrod] text-teal-500 font-medium"
+                                >
+                                  👁️ View
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-300">
+                      Action plans assigned by you will appear here
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
           </div>
         )}
 
-                {/* Main Content Area */}
-        <div className="px-6 py-6">
+        {/* Main Content Area */}
+        {activeTab !== "overview" && <div className="px-6 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Category List */}
@@ -1449,13 +1681,119 @@ function ActionPlansPage() {
 
                       {/* Main Content */}
             <section className="flex-1 flex flex-col gap-6">
+               
+            {/* Enhanced Detailed Action Plans Section */}
+            {showDetailedPlans && !selectedCategory && (detailedPlansData.length  > 0) && (
+              <div className="w-full max-w-6xl mb-8">
+                <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                        <div className="w-2 h-8 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
+                        AI-Generated Action Plans
+                        <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-300 border-green-400/30">
+                          {detailedPlansData.length} Plans
+                        </Badge>
+                      </CardTitle>
+                    </div>
+                    <p className="text-slate-300 text-sm mt-2">
+                      Review, edit, and assign these AI-generated action plans.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-6 max-h-[600px] overflow-y-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {detailedPlansData.map((plan, index) => (
+                        <Card 
+                          key={plan.id} 
+                          className="group bg-white/5 border border-white/10 hover:border-green-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 relative overflow-hidden"
+                        >
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base font-semibold text-white group-hover:text-green-300 transition-colors">
+                              Action Plan {index + 1}
+                            </CardTitle>
+                          </CardHeader>
+                          
+                          <CardContent className="pt-0">
+                            <p className="text-sm text-slate-300 mb-4">
+                              {plan.expectation}
+                            </p>
+
+                            <div className="flex gap-2 pt-3 border-t border-white/10">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openDetailedPlanPreview(plan)}
+                                className="flex-1 bg-white/5 border-white/20 text-slate-200 hover:bg-blue-500/20 hover:border-blue-400/50 hover:text-blue-200 text-xs"
+                              >
+                                Preview
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openDetailedPlanEdit(plan)}
+                                className="flex-1 bg-white/5 border-white/20 text-slate-200 hover:bg-yellow-500/20 hover:border-yellow-400/50 hover:text-yellow-200 text-xs"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => openDetailedPlanAssign(plan)}
+                                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white text-xs"
+                              >
+                                Assign
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
               {/* Placeholder when no category is selected */}
               {!selectedCategory && (
                 <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl flex flex-col items-center justify-center min-h-[400px]">
                   <CardContent className="flex flex-col items-center justify-center w-full p-8">
-                                          <div className="w-16 h-16 bg-gradient-to-br from-[goldenrod]/20 to-amber-500/20 rounded-full flex items-center justify-center mb-6">
-                        <FaClipboardList className="text-2xl text-[goldenrod]" />
+                    <div className="absolute top-4 right-4 group">
+                      <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-600 flex items-center justify-center cursor-help">
+                        <FaInfoCircle className="text-gray-400 group-hover:text-[goldenrod] transition-colors duration-200" />
                       </div>
+                      <div className="absolute right-0 w-96 p-4 bg-[#29252c]/95 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                          <span className="text-lg">📋</span>
+                          How to Use AI Features - Step by Step
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                            <div className="flex-1">
+                              <h5 className="text-cyan-300 font-medium mb-1">Start with AI Summary</h5>
+                              <p className="text-slate-300 text-sm">Click "Summarize All (AI)" to analyze all expectations across categories using advanced AI.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                            <div className="flex-1">
+                              <h5 className="text-purple-300 font-medium mb-1">Analyze Trends (Optional)</h5>
+                              <p className="text-slate-300 text-sm">Use "AI Trend Analysis" to get insights into patterns and recommendations.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                            <div className="flex-1">
+                              <h5 className="text-green-300 font-medium mb-1">Generate Plans</h5>
+                              <p className="text-slate-300 text-sm">Select insights and click "Generate Detailed Plans" to create comprehensive action plans.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-16 h-16 bg-gradient-to-br from-[goldenrod]/20 to-amber-500/20 rounded-full flex items-center justify-center mb-6">
+                      <FaClipboardList className="text-2xl text-[goldenrod]" />
+                    </div>
                     <h2 className="text-2xl font-bold mb-3 text-white">Summarize All Categories</h2>
                     <p className="text-center max-w-lg text-slate-300 mb-8 leading-relaxed">
                      Try out this AI feature to help group and merge Action Plans.It will also help you to create Action Plans for all categories.
@@ -1483,7 +1821,7 @@ function ActionPlansPage() {
                     </div>
                     
                     {/* Enhanced AI Features with Step-by-Step Guide */}
-                    <div className="w-full max-w-4xl mb-8">
+                    <div className="w-full max-w-4xl ">
                       <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#29252c]/60 backdrop-blur-sm border border-gray-700 shadow-xl">
                         <CardHeader className="border-b border-gray-700">
                           <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
@@ -1495,55 +1833,6 @@ function ActionPlansPage() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
-                          {/* Step-by-Step Guide */}
-                          <div className="mb-6 p-4 bg-gradient-to-r from-[goldenrod]/10 to-amber-500/10 rounded-lg border border-[goldenrod]/20">
-                            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                              <span className="text-lg">📋</span>
-                              How to Use AI Features - Step by Step
-                            </h3>
-                            <div className="space-y-3">
-                              <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 group">
-                                <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform duration-200">
-                                  1
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="text-cyan-300 font-medium mb-1">Start with AI Summary</h4>
-                                  <p className="text-slate-300 text-sm">Click "Summarize All (AI)" to analyze all expectations across categories using advanced AI. This will group similar responses and identify patterns.</p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 group">
-                                <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform duration-200">
-                                  2
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="text-purple-300 font-medium mb-1">Analyze Trends (Optional)</h4>
-                                  <p className="text-slate-300 text-sm">Use "AI Trend Analysis" to get insights into patterns, predictions, and recommendations based on your data.</p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 group">
-                                <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform duration-200">
-                                  3
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="text-green-300 font-medium mb-1">Select & Generate Plans</h4>
-                                  <p className="text-slate-300 text-sm">Check the boxes next to insights you want to use, then click "Generate Detailed Plans" to create comprehensive action plans.</p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-200 group">
-                                <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform duration-200">
-                                  4
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="text-orange-300 font-medium mb-1">Review & Assign</h4>
-                                  <p className="text-slate-300 text-sm">Preview, edit, and assign the generated action plans to team members with specific timelines and instructions.</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
                           {/* AI Feature Buttons */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Button 
@@ -1583,7 +1872,7 @@ function ActionPlansPage() {
                                 <div className="flex flex-col items-center gap-2">
                                   <span className="text-xl group-hover:scale-110 transition-transform duration-200">📈</span>
                                   <div className="text-center">
-                                    <div className="font-medium">Trend Analysis</div>
+                                    <div className="font-medium">Trend Analysis (Optional)</div>
                                     <div className="text-xs text-purple-300">Step 2</div>
                                   </div>
                                 </div>
@@ -1620,28 +1909,6 @@ function ActionPlansPage() {
                                 </div>
                               )}
                             </Button>
-                          </div>
-
-                          {/* Quick Tips */}
-                          <div className="mt-6 p-4 bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-lg border border-slate-500/30">
-                            <h4 className="text-white font-medium mb-2 flex items-center gap-2">
-                              <span className="text-yellow-400">💡</span>
-                              Quick Tips
-                            </h4>
-                            <ul className="space-y-1 text-sm text-slate-300">
-                              <li className="flex items-start gap-2">
-                                <span className="text-cyan-400 mt-1">•</span>
-                                <span>Hover over AI sections for detailed explanations</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-purple-400 mt-1">•</span>
-                                <span>Select multiple insights to combine them into comprehensive plans</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-green-400 mt-1">•</span>
-                                <span>Generated plans can be previewed, edited, and assigned to team members</span>
-                              </li>
-                            </ul>
                           </div>
                         </CardContent>
                       </Card>
@@ -1699,7 +1966,7 @@ function ActionPlansPage() {
                   )}
                   {/* Simplified AI Summary */}
                   {allAiSummary.length > 0 && (
-                    <div className="w-full max-w-4xl mb-8">
+                    <div className="w-full max-w-4xl mt-4">
                       <Card className="bg-[#29252c]/70 border border-gray-700 shadow-lg">
                         <CardHeader className="border-b border-gray-700">
                           <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
@@ -1896,202 +2163,7 @@ function ActionPlansPage() {
                 </Card>
               </div>
             )}
-            
-            {/* Enhanced Detailed Action Plans Section */}
-            {showDetailedPlans && detailedPlansData.length > 0 && (
-              <div className="w-full max-w-6xl mb-8">
-                <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
-                        <div className="w-2 h-8 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
-                        AI-Generated Detailed Action Plans
-                        <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-300 border-green-400/30">
-                          {detailedPlansData.length} Plans
-                        </Badge>
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-slate-400 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-                          💡 Hover over cards for actions
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-slate-300 text-sm mt-2">
-                      Review, edit, and assign these AI-generated action plans. Each plan includes detailed steps, timeline, and resources needed.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {/* Usage Guide */}
-                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/20 rounded-lg">
-                      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                        <span>📋</span>
-                        How to Use These Action Plans
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-start gap-2">
-                          <div className="w-6 h-6 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</div>
-                          <div>
-                            <span className="text-white font-medium">Preview</span>
-                            <p className="text-slate-300">Click "Preview" to see the complete plan details</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <div className="w-6 h-6 bg-green-500/20 text-green-300 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</div>
-                          <div>
-                            <span className="text-white font-medium">Edit</span>
-                            <p className="text-slate-300">Click "Edit" to customize the plan before assigning</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <div className="w-6 h-6 bg-purple-500/20 text-purple-300 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</div>
-                          <div>
-                            <span className="text-white font-medium">Assign</span>
-                            <p className="text-slate-300">Click "Assign" to delegate the plan to team members</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {detailedPlansData.map((plan, index) => (
-                        <Card 
-                          key={plan.id} 
-                          className="group bg-white/5 border border-white/10 hover:border-green-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 relative overflow-hidden"
-                        >
-                          {/* Priority indicator */}
-                          <div className={`absolute top-0 left-0 w-1 h-full ${
-                            plan.priority === 'high' ? 'bg-red-500' :
-                            plan.priority === 'medium' ? 'bg-yellow-500' :
-                            'bg-green-500'
-                          }`}></div>
-                          
-                          <CardHeader className="pb-3 pl-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                                  <CardTitle className="text-base font-semibold text-white group-hover:text-green-300 transition-colors">
-                                    {plan.title || `Action Plan ${index + 1}`}
-                                  </CardTitle>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant="secondary"
-                                    className={`text-xs ${
-                                      plan.priority === 'high' ? 'bg-red-500/20 text-red-300 border-red-400/30' :
-                                      plan.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30' :
-                                      'bg-green-500/20 text-green-300 border-green-400/30'
-                                    }`}
-                                  >
-                                    {plan.priority.toUpperCase()} Priority
-                                  </Badge>
-                                  {plan.timeline && (
-                                    <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-300 border-blue-400/30">
-                                      ⏱️ {plan.timeline}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          
-                          <CardContent className="pt-0 pl-4">
-                            <div className="space-y-3">
-                              {plan.description && (
-                                <div className="group/desc">
-                                  <p className="text-sm text-slate-300 line-clamp-3 group-hover/desc:text-slate-200 transition-colors">
-                                    {plan.description}
-                                  </p>
-                                  {plan.description.length > 100 && (
-                                    <div className="text-xs text-slate-400 mt-1 opacity-0 group-hover/desc:opacity-100 transition-opacity">
-                                      Hover to see full description
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {/* Quick info preview */}
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                {plan.steps && (
-                                  <div className="flex items-center gap-1 text-slate-400">
-                                    <span>📝</span>
-                                    <span>{plan.steps.split('\n').length} steps</span>
-                                  </div>
-                                )}
-                                {plan.resources && (
-                                  <div className="flex items-center gap-1 text-slate-400">
-                                    <span>🛠️</span>
-                                    <span>Resources needed</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Action buttons with enhanced hover effects */}
-                              <div className="flex gap-2 pt-3 border-t border-white/10">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openDetailedPlanPreview(plan)}
-                                  className="flex-1 bg-white/5 border-white/20 text-slate-200 hover:bg-blue-500/20 hover:border-blue-400/50 hover:text-blue-200 text-xs transition-all duration-200 group/btn"
-                                  title="Preview complete plan details"
-                                >
-                                  <span className="mr-1 group-hover/btn:scale-110 transition-transform">👁️</span>
-                                  Preview
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openDetailedPlanEdit(plan)}
-                                  className="flex-1 bg-white/5 border-white/20 text-slate-200 hover:bg-yellow-500/20 hover:border-yellow-400/50 hover:text-yellow-200 text-xs transition-all duration-200 group/btn"
-                                  title="Edit and customize this plan"
-                                >
-                                  <span className="mr-1 group-hover/btn:scale-110 transition-transform">✏️</span>
-                                  Edit
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  onClick={() => openDetailedPlanAssign(plan)}
-                                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white text-xs transition-all duration-200 group/btn shadow-lg hover:shadow-green-500/25"
-                                  title="Assign this plan to team members"
-                                >
-                                  <span className="mr-1 group-hover/btn:scale-110 transition-transform">📋</span>
-                                  Assign
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                          
-                          {/* Hover overlay with quick actions */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                        </Card>
-                      ))}
-                    </div>
-                    
-                    <div className="mt-6 flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          // Extract action plan titles and create action plans
-                          const planTitles = detailedPlansData.map(plan => plan.title).filter(Boolean);
-                          
-                          if (planTitles.length > 0) {
-                            planTitles.forEach(title => {
-                              createActionPlan(title, 'AI-Generated Action Plan');
-                            });
-                          }
-                        }}
-                        className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10 hover:border-green-400/50"
-                      >
-                        <span className="mr-2">📋</span>
-                        Create All Action Plans from AI
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-            
+           
             {/* Expectations Table */}
             {selectedCategory && (
               <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
@@ -2408,172 +2480,27 @@ function ActionPlansPage() {
                     Preview Action Plan
                   </DialogTitle>
                   <DialogDescription className="text-slate-300">
-                    Review the complete details of this action plan before editing or assigning.
+                    Review the expectations for this action plan.
                   </DialogDescription>
                 </DialogHeader>
                 {selectedDetailedPlan && (
                   <div className="space-y-6">
-                    {/* Plan Header */}
-                    <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-6 rounded-lg border border-green-400/20">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-white mb-2">{selectedDetailedPlan.title}</h3>
-                          <div className="flex items-center gap-3">
-                            <Badge
-                              variant="secondary"
-                              className={`${
-                                selectedDetailedPlan.priority === 'high' ? 'bg-red-500/20 text-red-300 border-red-400/30' :
-                                selectedDetailedPlan.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30' :
-                                'bg-green-500/20 text-green-300 border-green-400/30'
-                              }`}
-                            >
-                              {selectedDetailedPlan.priority.toUpperCase()} Priority
-                            </Badge>
-                            {selectedDetailedPlan.timeline && (
-                              <Badge variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-400/30">
-                                ⏱️ {selectedDetailedPlan.timeline}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                    {/* Expectations */}
+                    <div className="bg-white/5 p-5 rounded-lg border border-white/10">
+                      <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                        <span>📊</span>
+                        Expectations
+                      </h4>
+                      <div className="space-y-2">
+                        {selectedDetailedPlan.expectation.split('\n').map((expectation, index) => {
+                          if (!expectation.trim()) return null;
+                          return (
+                            <div key={index} className="p-2">
+                              <p className="text-slate-300 text-sm leading-relaxed">{expectation}</p>
+                            </div>
+                          );
+                        })}
                       </div>
-                      {selectedDetailedPlan.description && (
-                        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                          <h4 className="text-white font-medium mb-2 flex items-center gap-2">
-                            <span>📋</span>
-                            Description
-                          </h4>
-                          <p className="text-slate-300 text-sm leading-relaxed">{selectedDetailedPlan.description}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Plan Details Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Steps */}
-                      {selectedDetailedPlan.steps && (
-                        <div className="bg-white/5 p-5 rounded-lg border border-white/10">
-                          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
-                            <span>📝</span>
-                            Implementation Steps
-                          </h4>
-                          <div className="space-y-3">
-                            {selectedDetailedPlan.steps.split('\n').map((step, index) => {
-                              if (!step.trim()) return null;
-                              
-                              // Check if this is a numbered step
-                              const stepMatch = step.match(/^(\d+\.?)\s*(.+)/);
-                              if (stepMatch) {
-                                return (
-                                  <div key={index} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:border-green-400/30 transition-colors">
-                                    <div className="w-6 h-6 bg-green-500/20 text-green-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                                      {stepMatch[1].replace('.', '')}
-                                    </div>
-                                    <div className="flex-1">
-                                      <p className="text-slate-200 text-sm leading-relaxed">{stepMatch[2]}</p>
-                                    </div>
-                                  </div>
-                                );
-                              }
-                              
-                              // Check if this is a bold section header
-                              if (step.includes('**') && step.includes(':**')) {
-                                const headerText = step.replace(/\*\*/g, '').replace(/:\*\*/, '');
-                                return (
-                                  <div key={index} className="mt-4 mb-2">
-                                    <h5 className="text-white font-semibold text-sm flex items-center gap-2">
-                                      <span>🎯</span>
-                                      {headerText}
-                                    </h5>
-                                  </div>
-                                );
-                              }
-                              
-                              // Regular text
-                              return (
-                                <div key={index} className="p-2">
-                                  <p className="text-slate-300 text-sm leading-relaxed">{step}</p>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Timeline */}
-                      {selectedDetailedPlan.timeline && (
-                        <div className="bg-white/5 p-5 rounded-lg border border-white/10">
-                          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
-                            <span>⏱️</span>
-                            Timeline
-                          </h4>
-                          <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-400/20">
-                            <p className="text-blue-200 text-sm font-medium">{selectedDetailedPlan.timeline}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Resources */}
-                      {selectedDetailedPlan.resources && (
-                        <div className="bg-white/5 p-5 rounded-lg border border-white/10">
-                          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
-                            <span>🛠️</span>
-                            Resources Needed
-                          </h4>
-                          <div className="space-y-2">
-                            {selectedDetailedPlan.resources.split('\n').map((resource, index) => {
-                              if (!resource.trim()) return null;
-                              
-                              // Check if this is a bullet point
-                              if (resource.trim().startsWith('*')) {
-                                return (
-                                  <div key={index} className="flex items-start gap-2 p-2">
-                                    <span className="text-yellow-400 mt-1">•</span>
-                                    <span className="text-slate-300 text-sm">{resource.trim().substring(1).trim()}</span>
-                                  </div>
-                                );
-                              }
-                              
-                              return (
-                                <div key={index} className="p-2">
-                                  <p className="text-slate-300 text-sm leading-relaxed">{resource}</p>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Success Metrics */}
-                      {selectedDetailedPlan.successMetrics && (
-                        <div className="bg-white/5 p-5 rounded-lg border border-white/10">
-                          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
-                            <span>📊</span>
-                            Success Metrics
-                          </h4>
-                          <div className="space-y-2">
-                            {selectedDetailedPlan.successMetrics.split('\n').map((metric, index) => {
-                              if (!metric.trim()) return null;
-                              
-                              // Check if this is a bullet point
-                              if (metric.trim().startsWith('*')) {
-                                return (
-                                  <div key={index} className="flex items-start gap-2 p-2">
-                                    <span className="text-green-400 mt-1">✓</span>
-                                    <span className="text-slate-300 text-sm">{metric.trim().substring(1).trim()}</span>
-                                  </div>
-                                );
-                              }
-                              
-                              return (
-                                <div key={index} className="p-2">
-                                  <p className="text-slate-300 text-sm leading-relaxed">{metric}</p>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -2617,92 +2544,21 @@ function ActionPlansPage() {
                 <DialogHeader>
                   <DialogTitle className="text-white flex items-center gap-2">
                     <span>✏️</span>
-                    Edit Action Plan
+                    Edit Expectations
                   </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); handleDetailedPlanEditSave(); }} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
-                      <Input
-                        value={detailedPlanEditForm.title}
-                        onChange={(e) => handleDetailedPlanEditChange('title', e.target.value)}
-                        placeholder="Action plan title"
-                        className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
-                      <Select
-                        value={detailedPlanEditForm.priority}
-                        onValueChange={(value) => handleDetailedPlanEditChange('priority', value)}
-                        options={[
-                          { value: 'high', label: 'High Priority' },
-                          { value: 'medium', label: 'Medium Priority' },
-                          { value: 'low', label: 'Low Priority' }
-                        ]}
-                        className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                      />
-                    </div>
-                  </div>
-                  
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Expectations</label>
                     <Textarea
-                      value={detailedPlanEditForm.description}
-                      onChange={(e) => handleDetailedPlanEditChange('description', e.target.value)}
-                      placeholder="Detailed description of the action plan"
-                      className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                      rows={4}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Steps</label>
-                    <Textarea
-                      value={detailedPlanEditForm.steps}
-                      onChange={(e) => handleDetailedPlanEditChange('steps', e.target.value)}
-                      placeholder="Step-by-step implementation plan"
+                      value={detailedPlanEditForm.expectation}
+                      onChange={(e) => handleDetailedPlanEditChange('expectation', e.target.value)}
+                      placeholder="List the expectations for this action plan"
                       className="bg-white/5 border-white/20 text-white focus:border-blue-400"
                       rows={6}
                       required
                     />
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Timeline</label>
-                      <Input
-                        value={detailedPlanEditForm.timeline}
-                        onChange={(e) => handleDetailedPlanEditChange('timeline', e.target.value)}
-                        placeholder="e.g., 8 Weeks"
-                        className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                      />
-                    </div>
-                                         <div>
-                       <label className="block text-sm font-medium text-slate-300 mb-2">Success Metrics</label>
-                       <Textarea
-                         value={detailedPlanEditForm.successMetrics}
-                         onChange={(e) => handleDetailedPlanEditChange('successMetrics', e.target.value)}
-                         placeholder="How success will be measured"
-                         className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                         rows={3}
-                       />
-                     </div>
-                   </div>
-                   
-                   <div>
-                     <label className="block text-sm font-medium text-slate-300 mb-2">Resources Needed</label>
-                     <Textarea
-                       value={detailedPlanEditForm.resources}
-                       onChange={(e) => handleDetailedPlanEditChange('resources', e.target.value)}
-                       placeholder="Resources, tools, and budget requirements"
-                       className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                       rows={3}
-                     />
-                   </div>
                   
                   <DialogFooter className="border-t border-white/10 pt-6">
                     <Button 
@@ -2724,23 +2580,56 @@ function ActionPlansPage() {
 
             {/* Assign Modal */}
             <Dialog open={detailedPlanAssignModal} onOpenChange={setDetailedPlanAssignModal}>
-              <DialogContent className="bg-[#232026]/90">
+              <DialogContent className="bg-[#232026]/90 max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-white flex items-center gap-2">
                     <span>📋</span>
-                    Assign Action Plan
+                    Assign Action Plan from AI Summary
                   </DialogTitle>
                 </DialogHeader>
+                
                 {selectedDetailedPlan && (
                   <div className="space-y-4">
                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                      <h4 className="font-medium text-white mb-2">{selectedDetailedPlan.title}</h4>
-                      <p className="text-sm text-slate-300 line-clamp-2">{selectedDetailedPlan.description}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-400">Department:</span>
+                        <span className="text-base font-bold text-white">{getCurrentDepartment()?.name || ""}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-400">Category:</span>
+                        <Select
+                            value={detailedPlanAssignForm.categoryId}
+                            onValueChange={(val) => handleDetailedPlanAssignChange('categoryId', val)}
+                            options={allCategories
+                              .filter(cat => !cat.department || String(cat.department) === String(getCurrentDepartment()?._id))
+                              .map((cat) => ({ value: cat._id, label: capitalizeFirstLetter(cat.name) }))}
+                            placeholder="Select a category"
+                            className="bg-gray-800/50 border-gray-600 text-white"
+                            required
+                          />
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="space-y-2">
+                        {selectedDetailedPlan.expectation.split('\n').map((expectation, index) => {
+                          if (!expectation.trim()) return null;
+                          return (
+                            <div key={index} className="p-2">
+                              <p className="text-sm text-slate-300">{expectation}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                     
                     <form onSubmit={(e) => { e.preventDefault(); handleDetailedPlanAssign(); }} className="space-y-4">
+
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Assign To</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Assign To *</label>
                         <Select
                           value={detailedPlanAssignForm.assignedTo}
                           onValueChange={(value) => handleDetailedPlanAssignChange('assignedTo', value)}
@@ -2756,25 +2645,7 @@ function ActionPlansPage() {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Category</label>
-                        <Select
-                          value={detailedPlanAssignForm.categoryId || ''}
-                          onValueChange={(value) => handleDetailedPlanAssignChange('categoryId', value)}
-                          options={allCategories
-                            .filter((cat) => !cat.department || String(cat.department) === String(getCurrentDepartment()?._id))
-                            .map((cat) => ({ value: cat._id, label: capitalizeFirstLetter(cat.name) }))
-                          }
-                          placeholder="Select category for this action plan"
-                          className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                          required
-                        />
-                        <div className="text-xs text-slate-400 mt-1">
-                          Choose the category that best fits this action plan
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Target Date</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Target Date *</label>
                         <Input
                           type="date"
                           value={detailedPlanAssignForm.targetDate}
@@ -2784,28 +2655,17 @@ function ActionPlansPage() {
                           required
                         />
                       </div>
-                      
+
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Status</label>
-                        <Select
-                          value={detailedPlanAssignForm.status}
-                          onValueChange={(value) => handleDetailedPlanAssignChange('status', value)}
-                          options={statusOptions.filter(opt => opt.value !== 'all')}
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Instructions (optional)</label>
+                        <Textarea
+                          value={detailedPlanAssignForm.instructions}
+                          onChange={(e) => handleDetailedPlanAssignChange('instructions', e.target.value)}
+                          placeholder="Any additional instructions"
                           className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                          required
+                          rows={4}
                         />
                       </div>
-                      
-                                             <div>
-                         <label className="block text-sm font-medium text-slate-300 mb-2">Additional Instructions (Optional)</label>
-                         <Textarea
-                           value={detailedPlanAssignForm.instructions}
-                           onChange={(e) => handleDetailedPlanAssignChange('instructions', e.target.value)}
-                           placeholder="Any additional instructions or notes for the assignee"
-                           className="bg-white/5 border-white/20 text-white focus:border-blue-400"
-                           rows={3}
-                         />
-                       </div>
                       
                       <DialogFooter className="border-t border-white/10 pt-6">
                         <Button 
@@ -2821,7 +2681,7 @@ function ActionPlansPage() {
                           ) : (
                             <div className="flex items-center gap-2">
                               <span>📋</span>
-                              <span>Assign Action Plan</span>
+                              <span>Assign Expectations</span>
                             </div>
                           )}
                         </Button>
@@ -3005,7 +2865,7 @@ function ActionPlansPage() {
           </section>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Expanded View Modal */}
         <Dialog open={expandedViewModal} onOpenChange={setExpandedViewModal}>
@@ -3106,6 +2966,8 @@ function ActionPlansPage() {
 
           </DialogContent>
         </Dialog>
+
+        
       </div>
     );
   }

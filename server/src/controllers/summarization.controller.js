@@ -156,7 +156,6 @@ Keep each point concise (under 20 words) and focus on practical, implementable s
     return res.status(500).json({ message: "Failed to summarize expectations with AI" });
   }
 }
-
 // Generate detailed action plans from AI insights
 export async function generateActionPlansFromAI(req, res) {
   try {
@@ -165,29 +164,55 @@ export async function generateActionPlansFromAI(req, res) {
       return res.status(400).json({ message: "departmentId and selectedInsights are required" });
     }
 
-    const prompt = `Based on these selected insights, generate detailed action plans:
+    const prompt = `Based on these insights, summarize into clear expectations:
 
-SELECTED INSIGHTS:
 ${selectedInsights.join("\n")}
 
-Please generate detailed action plans in this format:
-
-ACTION PLAN 1:
-Title: [Clear, actionable title]
-Description: [Detailed description of what needs to be done]
-Steps: 
-1. [Specific step 1]
-2. [Specific step 2]
-3. [Specific step 3]
-Timeline: [Realistic timeline - e.g., "2-3 weeks"]
-Resources Needed: [Tools, training, or personnel required]
-Success Metrics: [How to measure success]
-Priority: [High/Medium/Low]
+${selectedInsights.length > 10 ? `ACTION PLAN 1:
+[Expectation]
 
 ACTION PLAN 2:
-[Repeat format for each insight]
+[Expectation]
 
-Make each action plan practical, specific, and immediately implementable.`;
+ACTION PLAN 3:
+[Expectation]
+
+ACTION PLAN 4:
+[Expectation]
+
+ACTION PLAN 5:
+[Expectation]
+
+ACTION PLAN 6:
+[Expectation]
+
+ACTION PLAN 7:
+[Expectation]
+
+ACTION PLAN 8:
+[Expectation]
+
+ACTION PLAN 9:
+[Expectation]
+
+ACTION PLAN 10:
+[Expectation]
+
+ACTION PLAN 11:
+[Expectation]` : `ACTION PLAN 1:
+[Expectation]
+
+ACTION PLAN 2:
+[Expectation]
+
+ACTION PLAN 3:
+[Expectation]
+
+ACTION PLAN 4:
+[Expectation]
+
+ACTION PLAN 5:
+[Expectation]`}`;
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -212,6 +237,29 @@ Make each action plan practical, specific, and immediately implementable.`;
     });
     
     let actionPlans = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (actionPlans) {
+      // Extract everything starting from "ACTION PLAN 1"
+      const planStartIndex = actionPlans.indexOf("ACTION PLAN 1");
+      if (planStartIndex !== -1) {
+        actionPlans = actionPlans.substring(planStartIndex);
+        
+        // Find end index based on length
+        let endIndex;
+        const plan11Index = actionPlans.indexOf("ACTION PLAN 11");
+        const plan6Index = actionPlans.indexOf("ACTION PLAN 5"); 
+        
+        if (actionPlans.length > 2000) { // Large input - get 10 plans
+          endIndex = plan11Index;
+        } else { // Small input - get 5 plans
+          endIndex = plan6Index;
+        }
+        
+        if (endIndex !== -1) {
+          actionPlans = actionPlans.substring(0, endIndex);
+        }
+      }
+    }
+    
     
     if (!actionPlans) {
       return res.status(500).json({ message: "Failed to generate action plans" });
