@@ -89,32 +89,46 @@ export async function summarizeExpectationsAI(req, res) {
     // Calculate average rating if available
     const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
     
-    // Enhanced prompt for more productive AI analysis
-    const prompt = `Analyze these department expectations and provide actionable insights:
+    // Enhanced prompt for grouped analysis by emotions and types
+    const prompt = `Analyze these department expectations and group them by emotions and types of responses. 
 
 EXPECTATIONS DATA:
 ${expectations.join("\n")}
 
 AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
 
-Please provide a comprehensive analysis in the following format:
+Please analyze and group the responses into the following categories based on common themes, emotions, and types of issues mentioned:
 
-PRIORITY AREAS (High/Medium/Low):
-• [Identify 3-5 critical areas that need immediate attention]
+1. TIME-RELATED ISSUES (e.g., delays, response time, waiting, slow service)
+2. SUPPORT & COMMUNICATION ISSUES (e.g., lack of support, poor communication, unhelpful staff)
+3. QUALITY & STANDARDS ISSUES (e.g., poor quality, low standards, subpar work)
+4. RESOURCE & PROCESS ISSUES (e.g., insufficient resources, broken processes, lack of tools)
+5. POSITIVE FEEDBACK (e.g., appreciation, good service, helpful staff)
+6. OTHER ISSUES (e.g., miscellaneous concerns not fitting above categories)
 
-SMART ACTION PLANS:
-• [Generate 5-8 specific, actionable plans with clear steps]
+For each group, provide:
+- A clear heading (e.g., "TIME-RELATED ISSUES")
+- A brief summary of the common theme
+- The specific responses that belong to that group
 
-RESOURCE RECOMMENDATIONS:
-• [Suggest training, tools, or processes needed]
+Format your response exactly like this:
 
-TIMELINE SUGGESTIONS:
-• [Provide realistic timelines for implementation]
+=== TIME-RELATED ISSUES ===
+Summary: [Brief description of the time-related issues found]
+Responses:
+• [Specific response 1]
+• [Specific response 2]
+• [Specific response 3]
 
-RISK ASSESSMENT:
-• [Identify potential challenges and mitigation strategies]
+=== SUPPORT & COMMUNICATION ISSUES ===
+Summary: [Brief description of support/communication issues found]
+Responses:
+• [Specific response 1]
+• [Specific response 2]
 
-Keep each point concise (under 20 words) and focus on practical, implementable solutions.`;
+[Continue for other groups...]
+
+Keep each point concise and focus on practical, implementable solutions. Group similar responses together to make it easier for managers to review and take action.`;
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -129,7 +143,7 @@ Keep each point concise (under 20 words) and focus on practical, implementable s
         temperature: 0.4,
         topK: 1,
         topP: 1,
-        maxOutputTokens: 800
+        maxOutputTokens: 1200
       }
     }, {
       headers: {
@@ -145,9 +159,9 @@ Keep each point concise (under 20 words) and focus on practical, implementable s
       return res.json({ summary: expectations.join("\n") });
     }
     
-    // Clean up and format the response
+    // Clean up and format the response - keep the grouped structure
     summary = summary.split('\n')
-      .filter(line => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('PRIORITY') || line.trim().startsWith('SMART') || line.trim().startsWith('RESOURCE') || line.trim().startsWith('TIMELINE') || line.trim().startsWith('RISK'))
+      .filter(line => line.trim().length > 0) // Keep all non-empty lines to preserve grouping
       .join('\n');
     
     return res.json({ summary: summary || expectations.join("\n") });

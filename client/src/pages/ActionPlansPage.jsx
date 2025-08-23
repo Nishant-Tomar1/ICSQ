@@ -154,7 +154,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter }) {
                     <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.department)}</td>
                       {/* <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td> */}
-                      <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={e.expectation}>{e.expectation?.length > 20 ? (e.expectation.split(20) + "...") : e.expectation}</td>
+                      <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={e.expectation}>{e.expectation?.length > 20 ? (e.expectation.substring(0, 20) + "...") : e.expectation}</td>
                       <td className="px-4 py-3 text-sm">
                         <Badge 
                           variant="secondary" 
@@ -189,6 +189,189 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter }) {
       {(!groups.detractor.length && !groups.passive.length && !groups.promoter.length) && (
         <div className="p-6 text-slate-400 text-center bg-white/5 rounded-lg border border-white/10">
           No expectations found for this category.
+        </div>
+      )}
+    </div>
+  );
+}
+
+         // Department Expectations Table Component
+         function DepartmentExpectationsTable({ data, departmentId, allDepartments, onAssign, ratingFilter }) {
+  if (!data || !Array.isArray(data)) {
+    console.log("DepartmentExpectationsTable - No data or not an array:", data);
+    return <div className="p-6 text-slate-400 text-center bg-white/5 rounded-lg border border-white/10">No data available.</div>;
+  }
+  
+             console.log("DepartmentExpectationsTable - Raw data:", data);
+           console.log("DepartmentExpectationsTable - departmentId:", departmentId);
+           console.log("DepartmentExpectationsTable - allDepartments:", allDepartments);
+           console.log("DepartmentExpectationsTable - Data length:", data.length);
+  
+  // Flatten all expectations from the selected department across all categories
+  let allExpectations = [];
+  
+  // data is now an array of arrays (one array per department)
+  data.forEach((departmentData, deptIndex) => {
+    console.log(`Processing department data ${deptIndex}:`, departmentData);
+    if (!Array.isArray(departmentData)) {
+      console.log(`Department data ${deptIndex} is not an array:`, departmentData);
+      return;
+    }
+    
+    departmentData.forEach((category, catIndex) => {
+      console.log(`Processing category ${catIndex}:`, category);
+      if (!category.departments || !Array.isArray(category.departments)) {
+        console.log("No departments array found in category:", category);
+        return;
+      }
+      
+      category.departments.forEach((dept, deptIdx) => {
+        console.log(`Processing department ${deptIdx}:`, dept);
+        console.log("Department object keys:", Object.keys(dept));
+        console.log("Department _id:", dept._id, "Department id:", dept.id);
+        
+                         // Since departments don't have IDs, match by name
+                 // We need to find the department name from the selectedDepartment ID
+                 const selectedDept = allDepartments.find(d => d._id === departmentId);
+                 const selectedDeptName = selectedDept ? selectedDept.name.toLowerCase() : '';
+                 const currentDeptName = dept.name.toLowerCase();
+                 
+                 console.log("Selected department name:", selectedDeptName);
+                 console.log("Current department name:", currentDeptName);
+                 
+                 if (selectedDeptName && currentDeptName === selectedDeptName) {
+          console.log("Match found! Processing users for department:", dept.name);
+          if (!dept.users || !Array.isArray(dept.users)) {
+            console.log("No users array found in department:", dept);
+            return;
+          }
+          
+          dept.users.forEach((user, userIdx) => {
+            console.log(`Processing user ${userIdx}:`, user);
+            if (!user.expectations || !Array.isArray(user.expectations)) {
+              console.log("No expectations array found in user:", user);
+              return;
+            }
+            
+            user.expectations.forEach((exp, expIdx) => {
+              if (exp) {
+                console.log(`Processing expectation ${expIdx}:`, exp);
+                console.log(`Expectation type:`, typeof exp);
+                console.log(`Expectation keys:`, exp && typeof exp === 'object' ? Object.keys(exp) : 'N/A');
+                
+                // Handle different expectation data structures
+                let expectationText = '';
+                let expectationRating = 0;
+                
+                if (typeof exp === 'string') {
+                  expectationText = exp;
+                  expectationRating = user.ratings?.[expIdx] || 0;
+                } else if (exp && typeof exp === 'object') {
+                  expectationText = exp.text || exp.expectation || exp.message || JSON.stringify(exp);
+                  expectationRating = exp.rating !== undefined ? exp.rating : user.ratings?.[expIdx] || 0;
+                } else {
+                  expectationText = String(exp);
+                  expectationRating = user.ratings?.[expIdx] || 0;
+                }
+                
+                console.log(`Final expectation text:`, expectationText);
+                console.log(`Final expectation rating:`, expectationRating);
+                
+                allExpectations.push({
+                  department: dept.name,
+                  user: user.name,
+                  expectation: expectationText,
+                  rating: expectationRating,
+                  userId: user._id || user.id,
+                  category: category.category,
+                });
+              }
+            });
+          });
+        }
+      });
+    });
+  });
+
+  console.log("All expectations found:", allExpectations);
+
+  // Group by rating
+  const groups = {
+    detractor: allExpectations.filter(e => e.rating <= 40),
+    passive: allExpectations.filter(e => e.rating > 40 && e.rating < 80),
+    promoter: allExpectations.filter(e => e.rating >= 80),
+  };
+
+  const groupOrder = [
+    { key: 'detractor', label: 'Detractor (≤ 40)', color: 'from-red-500 to-orange-500' },
+    { key: 'passive', label: 'Passive (41-79)', color: 'from-yellow-500 to-orange-500' },
+    { key: 'promoter', label: 'Promoter (≥ 80)', color: 'from-green-500 to-emerald-500' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {groupOrder.map(group => {
+        if (ratingFilter && ratingFilter !== group.key) return null;
+        const items = groups[group.key];
+        if (!items.length) return null;
+        return (
+          <div key={group.key} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden"> 
+            <div className={`px-4 py-3 bg-gradient-to-r ${group.color} text-white font-semibold`}>
+              {group.label} ({items.length} expectations)
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-700/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Category</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Expectation</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Rating</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {items.map((e, idx) => (
+                    <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
+                      <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.category)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td>
+                      <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={String(e.expectation || '')}>
+                        {String(e.expectation || '').length > 20 ? (String(e.expectation || '').substring(0, 20) + "...") : String(e.expectation || '')}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <Badge 
+                          variant="secondary" 
+                          className={`${
+                            e.rating <= 40 ? 'bg-red-500/20 text-red-300 border-red-400/30' :
+                            e.rating < 80 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30' :
+                            'bg-green-500/20 text-green-300 border-green-400/30'
+                          }`}
+                        >
+                          {e.rating}%
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <Button 
+                          size="sm" 
+                          variant="primary" 
+                          onClick={() => onAssign(e)}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white shadow-lg"
+                        >
+                          <span className="mr-1">📋</span>
+                          Assign
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+      {(!groups.detractor.length && !groups.passive.length && !groups.promoter.length) && (
+        <div className="p-6 text-slate-400 text-center bg-white/5 rounded-lg border border-white/10">
+          No expectations found for this department.
         </div>
       )}
     </div>
@@ -234,6 +417,9 @@ function ActionPlansPage() {
   const [allCategories, setAllCategories] = useState([]);
   const [allDepartments, setAllDepartments] = useState([]);
   const [expectationData, setExpectationData] = useState([]);
+  const [allDepartmentsExpectationData, setAllDepartmentsExpectationData] = useState([]);
+  const [isLoadingExpectationData, setIsLoadingExpectationData] = useState(false);
+  const [departmentSearch, setDepartmentSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -279,7 +465,7 @@ function ActionPlansPage() {
   const [assignAllSummaryData, setAssignAllSummaryData] = useState([]);
   // Add state for all-categories summary
   const [allSummary, setAllSummary] = useState([]);
-  const [allAiSummary, setAllAiSummary] = useState([]);
+  const [allAiSummary, setAllAiSummary] = useState('');
   const [isAllSummaryLoading, setIsAllSummaryLoading] = useState(false);
   const [isAllAiSummaryLoading, setIsAllAiSummaryLoading] = useState(false);
   const [selectedAllSummaryPoints, setSelectedAllSummaryPoints] = useState([]);
@@ -315,6 +501,10 @@ function ActionPlansPage() {
   const [detailedPlanEditModal, setDetailedPlanEditModal] = useState(false);
   const [detailedPlanPreviewModal, setDetailedPlanPreviewModal] = useState(false);
   const [detailedPlanAssignModal, setDetailedPlanAssignModal] = useState(false);
+  
+  // New state variables for view mode and department selection
+  const [viewMode, setViewMode] = useState("categories"); // "categories" or "departments"
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [detailedPlanEditForm, setDetailedPlanEditForm] = useState({
     title: '',
     description: '',
@@ -336,13 +526,24 @@ function ActionPlansPage() {
   const [selectedPlanForExpandedView, setSelectedPlanForExpandedView] = useState(null);
 
   // NEW: Add UX improvement states
-  const [activeTab, setActiveTab] = useState("overview"); // "overview", "categories", "ai-tools"
+  const [activeTab, setActiveTab] = useState("overview"); // "overview", "categories", "ai-action-plans"
   const [showOnboarding, setShowOnboarding] = useState(() => {
     // Check localStorage to see if user has seen the tutorial
     return localStorage.getItem('actionPlansTutorialSeen') !== 'true';
   });
   const [currentStep, setCurrentStep] = useState(1);
   const [showHelpGuide, setShowHelpGuide] = useState(false);
+
+  // AI Action Plans state variables
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const [aiGeneratedPlans, setAiGeneratedPlans] = useState([]);
+  const [aiAnalysisScope, setAiAnalysisScope] = useState("all");
+  const [aiPriorityFocus, setAiPriorityFocus] = useState("all");
+  
+  // AI Plan Editing state variables
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [aiPlanEditModalOpen, setAiPlanEditModalOpen] = useState(false);
 
   // Open edit modal and prefill form
   const openEditModal = async (plan) => {
@@ -436,12 +637,7 @@ function ActionPlansPage() {
     try {
       let response;
       if (currentUser.role === "admin") {
-        response = await axios.get(`${Server}/action-plans/admin`, {
-          params: adminFilters,
-          withCredentials: true,
-        });
-      } else if (currentUser.role === "hod") {
-        response = await axios.get(`${Server}/action-plans/hod`, { withCredentials: true });
+        response = await axios.get(`${Server}/action-plans`, { withCredentials: true });
       } else {
         response = await axios.get(`${Server}/action-plans/user`, { withCredentials: true });
       }
@@ -460,6 +656,52 @@ function ActionPlansPage() {
       setIsLoading(false);
     }
   };
+
+  // Fetch expectation data for all departments when needed
+  const fetchAllDepartmentsExpectationData = async () => {
+    if (isLoadingExpectationData) return;
+    
+    console.log("Fetching all departments expectation data...");
+    console.log("All departments:", allDepartments);
+    
+    setIsLoadingExpectationData(true);
+    try {
+      const promises = allDepartments.map(dept => {
+        console.log(`Fetching data for department: ${dept.name} (${dept._id})`);
+        return axios.get(`${Server}/analytics/expectation-data/${dept._id}`, { withCredentials: true });
+      });
+      
+      const responses = await Promise.all(promises);
+      console.log("All responses received:", responses);
+      
+      const allData = responses.map(response => {
+        console.log("Response data:", response.data);
+        return response.data;
+      }).filter(Boolean);
+      
+      console.log("Final allData:", allData);
+      setAllDepartmentsExpectationData(allData);
+    } catch (error) {
+      console.error("Error fetching all departments expectation data:", error);
+      toast({ title: "Error", description: "Failed to load department expectations", variant: "destructive" });
+    } finally {
+      setIsLoadingExpectationData(false);
+    }
+  };
+
+  // Fetch all departments expectation data when viewMode changes to "departments"
+  useEffect(() => {
+    if (viewMode === "departments" && allDepartments.length > 0 && allDepartmentsExpectationData.length === 0) {
+      fetchAllDepartmentsExpectationData();
+    }
+  }, [viewMode, allDepartments, allDepartmentsExpectationData.length]);
+
+  // Also fetch data when a department is selected
+  useEffect(() => {
+    if (selectedDepartment && viewMode === "departments" && allDepartmentsExpectationData.length === 0) {
+      fetchAllDepartmentsExpectationData();
+    }
+  }, [selectedDepartment, viewMode, allDepartmentsExpectationData.length]);
 
   // Memoize adminFilters to prevent unnecessary re-renders
   const memoizedAdminFilters = useMemo(() => adminFilters, [adminFilters.departmentId, adminFilters.categoryId, adminFilters.assignedTo, adminFilters.status]);
@@ -753,9 +995,30 @@ function ActionPlansPage() {
     if (type === 'rule') {
       expectationsText = points.map(idx => ruleSummary[idx]?.text).filter(Boolean).join('; ');
     } else if (type === 'ai') {
-      // aiSummary is a string, need to split it first
-      const aiSummaryArray = aiSummary.split('\n').filter(Boolean);
-      expectationsText = points.map(idx => aiSummaryArray[idx]).filter(Boolean).join('; ');
+      // Handle grouped AI responses
+      const groupedResponses = parseGroupedAIResponses(aiSummary);
+      if (groupedResponses.length > 0) {
+        // Extract text from grouped responses (only responses, no action items)
+        const selectedTexts = points.map(point => {
+          if (typeof point === 'string' && point.includes('-')) {
+            const [groupIdx, itemIdx] = point.split('-');
+            const group = groupedResponses[parseInt(groupIdx)];
+            if (group) {
+              // Only handle responses, skip action items
+              if (!itemIdx.startsWith('action')) {
+                const respIdx = parseInt(itemIdx);
+                return group.responses[respIdx] || '';
+              }
+            }
+          }
+          return '';
+        }).filter(Boolean);
+        expectationsText = selectedTexts.join('; ');
+      } else {
+        // Fallback to old format
+        const aiSummaryArray = aiSummary.split('\n').filter(Boolean);
+        expectationsText = points.map(idx => aiSummaryArray[idx]).filter(Boolean).join('; ');
+      }
     }
     
     setCreateForm(f => ({
@@ -765,6 +1028,57 @@ function ActionPlansPage() {
       instructions: '',
       assignedTo: '',
     }));
+  };
+
+  // Function to parse grouped AI responses
+  const parseGroupedAIResponses = (aiSummaryText) => {
+    if (!aiSummaryText) return [];
+    
+    const lines = aiSummaryText.split('\n');
+    const groups = [];
+    let currentGroup = null;
+    let currentSection = null;
+    
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Check if this is a group header (starts with ===)
+      if (trimmedLine.startsWith('===') && trimmedLine.endsWith('===')) {
+        // Save previous group if exists
+        if (currentGroup) {
+          groups.push(currentGroup);
+        }
+        
+        // Start new group
+        const groupName = trimmedLine.replace(/===/g, '').trim();
+        currentGroup = {
+          name: groupName,
+          summary: '',
+          responses: []
+        };
+        currentSection = null;
+      } else if (trimmedLine.startsWith('Summary:')) {
+        currentSection = 'summary';
+        currentGroup.summary = trimmedLine.replace('Summary:', '').trim();
+      } else if (trimmedLine.startsWith('Responses:')) {
+        currentSection = 'responses';
+      } else if (trimmedLine.startsWith('•') && currentGroup) {
+        const content = trimmedLine.substring(1).trim();
+        if (currentSection === 'responses') {
+          currentGroup.responses.push(content);
+        }
+      } else if (trimmedLine && currentGroup && currentSection === 'summary' && !currentGroup.summary) {
+        // Handle summary that might be on the next line
+        currentGroup.summary = trimmedLine;
+      }
+    });
+    
+    // Add the last group
+    if (currentGroup) {
+      groups.push(currentGroup);
+    }
+    
+    return groups;
   };
 
   // Handler to fetch all-categories rule-based summary
@@ -786,15 +1100,16 @@ function ActionPlansPage() {
   // Handler to fetch all-categories AI summary
   const fetchAllAiSummary = async () => {
     setIsAllAiSummaryLoading(true);
-    setAllAiSummary([]);
+    setAllAiSummary(''); // Initialize as empty string
     try {
       const res = await axios.get(`${Server}/analytics/summarize-expectations/ai`, {
         params: { departmentId: getCurrentDepartment()?._id },
         withCredentials: true,
       });
-      setAllAiSummary((res.data.summary || '').split('\n').filter(Boolean));
+      // Store the raw text for grouping
+      setAllAiSummary(res.data.summary || '');
     } catch {
-      setAllAiSummary([]);
+      setAllAiSummary('');
     } finally {
       setIsAllAiSummaryLoading(false);
     }
@@ -1240,6 +1555,344 @@ function ActionPlansPage() {
     );
   }
 
+  // AI Action Plans Functions
+  const handleGenerateAIActionPlans = async () => {
+    setIsGeneratingAI(true);
+    setAiProgress(0);
+    setAiGeneratedPlans([]);
+    
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setAiProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 500);
+
+      // Fetch survey data for AI analysis
+      const response = await axios.get(`${Server}/analytics/summarize-expectations/ai`, {
+        params: { 
+          departmentId: getCurrentDepartment()?._id,
+          scope: aiAnalysisScope,
+          priority: aiPriorityFocus
+        },
+        withCredentials: true,
+      });
+
+      clearInterval(progressInterval);
+      setAiProgress(100);
+
+      // Process AI response and generate action plans
+      const aiSummary = response.data.summary || '';
+      const generatedPlans = await processAIResponse(aiSummary);
+      setAiGeneratedPlans(generatedPlans);
+
+      toast({ 
+        title: "Success", 
+        description: `Generated ${generatedPlans.length} AI action plans`, 
+        variant: "success" 
+      });
+
+    } catch (error) {
+      console.error('Error generating AI action plans:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to generate AI action plans", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsGeneratingAI(false);
+      setAiProgress(0);
+    }
+  };
+
+  const processAIResponse = async (aiSummary) => {
+    if (!aiSummary) return [];
+
+    // Parse AI summary and group similar feedback
+    const groupedResponses = parseGroupedAIResponses(aiSummary);
+    
+    if (groupedResponses.length === 0) {
+      // Fallback to old format if grouping fails
+      return generateFallbackPlans(aiSummary);
+    }
+
+    // Generate structured action plans based on grouped responses
+    const plans = [];
+    
+    groupedResponses.forEach((group, index) => {
+      if (group.responses.length === 0) return;
+      
+      // Determine priority based on group type and response count
+      let priority = 'medium';
+      let impactScore = 7;
+      
+      if (group.name.toLowerCase().includes('communication') || group.name.toLowerCase().includes('support')) {
+        priority = 'high';
+        impactScore = 9;
+      } else if (group.name.toLowerCase().includes('quality') || group.name.toLowerCase().includes('process')) {
+        priority = 'high';
+        impactScore = 8;
+      } else if (group.name.toLowerCase().includes('time') || group.name.toLowerCase().includes('deadline')) {
+        priority = 'high';
+        impactScore = 8;
+      } else if (group.name.toLowerCase().includes('resource')) {
+        priority = 'medium';
+        impactScore = 7;
+      }
+
+      // Generate specific action items based on group type
+      const recommendedActions = generateActionItems(group);
+      
+      const plan = {
+        title: `${group.name}`,
+        category: group.name,
+        priority: priority,
+        impactScore: impactScore,
+        summary: group.summary || `Address ${group.name.toLowerCase()} to improve overall performance`,
+        recommendedActions: recommendedActions,
+        supportingData: `Based on ${group.responses.length} survey responses: ${group.responses.slice(0, 3).join('; ')}${group.responses.length > 3 ? '...' : ''}`,
+        groupData: group
+      };
+      
+      plans.push(plan);
+    });
+
+    return plans;
+  };
+
+  // Helper function to generate specific action items based on group type
+  const generateActionItems = (group) => {
+    const actions = [];
+    const groupName = group.name.toLowerCase();
+    
+    if (groupName.includes('communication') || groupName.includes('support')) {
+      actions.push(
+        "Establish regular team communication channels (weekly meetings, chat groups)",
+        "Implement feedback collection system for ongoing improvement",
+        "Create communication guidelines and best practices document",
+        "Schedule regular one-on-one meetings between team members and supervisors",
+        "Develop escalation procedures for urgent communication needs"
+      );
+    } else if (groupName.includes('quality') || groupName.includes('standards')) {
+      actions.push(
+        "Review and update quality standards and procedures",
+        "Implement quality control checkpoints in workflows",
+        "Provide quality-focused training sessions for team members",
+        "Establish quality metrics and regular monitoring",
+        "Create quality improvement feedback loop"
+      );
+    } else if (groupName.includes('process') || groupName.includes('efficiency')) {
+      actions.push(
+        "Conduct process audit to identify bottlenecks and inefficiencies",
+        "Streamline workflows and eliminate redundant steps",
+        "Implement process automation where possible",
+        "Establish clear process documentation and training",
+        "Create process improvement team with regular review meetings"
+      );
+    } else if (groupName.includes('time') || groupName.includes('deadline')) {
+      actions.push(
+        "Implement project management tools for better timeline tracking",
+        "Establish realistic deadline setting process with buffer time",
+        "Create priority matrix for task management",
+        "Implement regular progress check-ins and milestone reviews",
+        "Develop contingency plans for potential delays"
+      );
+    } else if (groupName.includes('resource')) {
+      actions.push(
+        "Conduct resource needs assessment and gap analysis",
+        "Optimize resource allocation and utilization",
+        "Implement resource tracking and monitoring systems",
+        "Develop resource planning and forecasting processes",
+        "Create resource sharing and collaboration opportunities"
+      );
+    } else {
+      // Generic actions for other categories
+      actions.push(
+        "Conduct detailed analysis of identified issues",
+        "Develop specific improvement strategies",
+        "Implement monitoring and measurement systems",
+        "Create feedback mechanisms for continuous improvement",
+        "Establish regular review and update processes"
+      );
+    }
+    
+    return actions;
+  };
+
+  // Fallback function for old format
+  const generateFallbackPlans = (aiSummary) => {
+    const summaryLines = aiSummary.split('\n').filter(line => line.trim());
+    if (summaryLines.length === 0) return [];
+    
+    return [{
+      title: "AI Generated Action Plan",
+      category: "General",
+      priority: 'high',
+      impactScore: 8,
+      summary: summaryLines.slice(0, 3).join(' '),
+      recommendedActions: summaryLines.slice(3, 6).map(line => line.trim()).filter(Boolean),
+      supportingData: aiSummary
+    }];
+  };
+
+  const handleAssignFromAI = async (aiPlan) => {
+    console.log('handleAssignFromAI called with:', aiPlan);
+    try {
+      // Pre-fill the create form with AI-generated content for assignment
+      setCreateForm({
+        expectations: aiPlan.summary,
+        actions: aiPlan.recommendedActions.join('; '),
+        instructions: `AI Generated Plan: ${aiPlan.title}\nPriority: ${aiPlan.priority}\nImpact Score: ${aiPlan.impactScore}/10`,
+        assignedTo: '',
+        targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        status: 'pending',
+      });
+
+      // Set the category for the form
+      setSelectedCategoryForForm(aiPlan.category);
+
+      // Open the create modal for assignment
+      setCreateModalOpen(true);
+
+      toast({ 
+        title: "Success", 
+        description: "AI plan loaded for assignment. You can now assign it to a team member.", 
+        variant: "success" 
+      });
+
+    } catch (error) {
+      console.error('Error assigning from AI plan:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to load AI plan for assignment", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleEditAI = async (aiPlan, index) => {
+    console.log('handleEditAI called with:', aiPlan, 'index:', index);
+    try {
+      // Open edit modal with current plan data
+      setAiPlanEditModalOpen(true);
+      setEditingPlan({ ...aiPlan, originalIndex: index });
+
+      toast({ 
+        title: "Edit Mode", 
+        description: "You can now edit the action plan", 
+        variant: "success" 
+      });
+
+    } catch (error) {
+      console.error('Error editing AI plan:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to open edit mode", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Handle saving edited AI plan
+  const handleSaveEditedAI = async (editedPlan) => {
+    try {
+      const updatedPlans = [...aiGeneratedPlans];
+      updatedPlans[editedPlan.originalIndex] = {
+        ...editedPlan,
+        title: editedPlan.title,
+        category: editedPlan.category,
+        priority: editedPlan.priority,
+        impactScore: editedPlan.impactScore,
+        summary: editedPlan.summary,
+        recommendedActions: editedPlan.recommendedActions,
+        supportingData: editedPlan.supportingData,
+        groupData: editedPlan.groupData
+      };
+      
+      setAiGeneratedPlans(updatedPlans);
+      setAiPlanEditModalOpen(false);
+      setEditingPlan(null);
+
+      toast({ 
+        title: "Success", 
+        description: "AI action plan updated successfully", 
+        variant: "success" 
+      });
+
+    } catch (error) {
+      console.error('Error saving edited AI plan:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to save edited AI plan", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Helper function to generate refined action items
+  const generateRefinedActionItems = (group) => {
+    const actions = [];
+    const groupName = group.name.toLowerCase();
+    
+    if (groupName.includes('communication') || groupName.includes('support')) {
+      actions.push(
+        "Schedule bi-weekly team communication workshops focusing on active listening and feedback techniques",
+        "Implement a digital communication platform with dedicated channels for different project types",
+        "Create a communication protocol document with response time expectations and escalation procedures",
+        "Establish monthly cross-department communication sessions to improve collaboration",
+        "Develop a feedback collection system with anonymous and identified options for different scenarios"
+      );
+    } else if (groupName.includes('quality') || groupName.includes('standards')) {
+      actions.push(
+        "Conduct a comprehensive quality audit with external consultants to identify improvement areas",
+        "Implement Six Sigma methodology with certified practitioners leading quality initiatives",
+        "Establish quality circles with representatives from each team level for continuous improvement",
+        "Create quality dashboards with real-time metrics and automated alerting systems",
+        "Develop quality training programs with certification requirements for team members"
+      );
+    } else if (groupName.includes('process') || groupName.includes('efficiency')) {
+      actions.push(
+        "Perform value stream mapping to identify and eliminate non-value-added activities",
+        "Implement Lean methodology with 5S workplace organization and visual management",
+        "Establish process automation using RPA tools for repetitive tasks",
+        "Create process improvement teams with dedicated time allocation for improvement projects",
+        "Implement Kaizen events for rapid process improvement with measurable outcomes"
+      );
+    } else if (groupName.includes('time') || groupName.includes('deadline')) {
+      actions.push(
+        "Implement Agile project management with 2-week sprint cycles and daily stand-ups",
+        "Establish critical path analysis for all major projects with buffer time calculations",
+        "Create a project portfolio management system with resource allocation optimization",
+        "Implement milestone tracking with automated notifications and escalation procedures",
+        "Develop risk management protocols with contingency planning for potential delays"
+      );
+    } else if (groupName.includes('resource')) {
+      actions.push(
+        "Conduct comprehensive resource capacity planning with demand forecasting",
+        "Implement resource optimization software for workload balancing and skill matching",
+        "Establish resource sharing agreements between departments with clear ownership",
+        "Create resource development programs with skill gap analysis and training plans",
+        "Implement resource performance metrics with regular review and optimization cycles"
+      );
+    } else {
+      // Generic refined actions for other categories
+      actions.push(
+        "Conduct root cause analysis using 5-Why methodology for identified issues",
+        "Implement PDCA (Plan-Do-Check-Act) cycle for systematic improvement",
+        "Establish benchmarking with industry leaders to identify best practices",
+        "Create continuous improvement culture with regular innovation workshops",
+        "Implement change management protocols with stakeholder engagement strategies"
+      );
+    }
+    
+    return actions;
+  };
+
   // --- HOD View ---
   if (currentUser.role === "hod") {
     return (
@@ -1270,8 +1923,8 @@ function ActionPlansPage() {
                 )}
                 {currentStep === 3 && (
                   <div className="p-4 bg-purple-50 rounded-lg">
-                    <h3 className="font-semibold text-purple-900 mb-2">🤖 Step 3: AI Tools</h3>
-                    <p className="text-purple-800 text-sm">Use AI-powered features to analyze data, generate summaries, and create detailed action plans automatically.</p>
+                    <h3 className="font-semibold text-purple-900 mb-2">🤖 Step 3: AI Action Plans</h3>
+                    <p className="text-purple-800 text-sm">Use AI to automatically analyze survey responses, group similar feedback, and generate actionable plans.</p>
                   </div>
                 )}
               </div>
@@ -1387,16 +2040,16 @@ function ActionPlansPage() {
               >
                 📊 Expectations
               </button>
-              {/* <button
-                onClick={() => setActiveTab("ai-tools")}
+              <button
+                onClick={() => setActiveTab("ai-action-plans")}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                  activeTab === "ai-tools"
+                  activeTab === "ai-action-plans"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-white hover:bg-white/20"
                 }`}
               >
-                🤖 AI Tools
-              </button> */}
+                🤖 AI Action Plans
+              </button>
             </div>
           </div>
         </div>
@@ -1447,9 +2100,9 @@ function ActionPlansPage() {
                         <div className="p-4 bg-white/5 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
-                            <h4 className="text-purple-300 font-medium">Use AI Tools</h4>
+                            <h4 className="text-purple-300 font-medium">Use AI Action Plans</h4>
                           </div>
-                          <p className="text-slate-300 text-sm">Use "AI Tools" to analyze data, generate summaries, and create detailed action plans automatically.</p>
+                          <p className="text-slate-300 text-sm">Use "AI Action Plans" tab to automatically generate action plans by analyzing survey responses and grouping similar feedback.</p>
                         </div>
                       </div>
                     </CardContent>
@@ -1636,48 +2289,177 @@ function ActionPlansPage() {
         )}
 
         {/* Main Content Area */}
-        {activeTab !== "overview" && <div className="px-6 py-6">
+        {activeTab !== "overview" && activeTab !== "ai-action-plans" && <div className="px-6 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col lg:flex-row gap-8">
-              {/* Category List */}
+              {/* Left Sidebar */}
               <aside className="w-full lg:w-1/4">
-                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl">
+                {/* View Mode Selection */}
+                <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl mb-4">
                   <CardHeader className="border-b border-gray-700">
                     <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
                       <div className="w-1.5 h-6 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
-                      Categories
+                      View Mode
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <ul className="space-y-3">
-                      {allCategories
-                        .filter(
-                          (cat) =>
-                            !cat.department ||
-                            String(cat.department) === String(getCurrentDepartment()?._id)
-                        )
-                        .map((category) => (
-                          <li key={category._id}>
-                            <Button
-                              variant={selectedCategory === category.name ? "primary" : "outline"}
-                              className={`w-full justify-start transition-all duration-200 ${
-                                selectedCategory === category.name 
-                                  ? 'bg-gradient-to-r from-[goldenrod] to-amber-500 border-0 text-black font-medium shadow-lg' 
-                                  : 'bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/30'
-                              }`}
-                              onClick={() => {
-                                setSelectedCategory(category.name);
-                                setRuleSummary([]);
-                                setAiSummary("");
-                              }}
-                            >
-                              {capitalizeFirstLetter(category.name)}
-                            </Button>
-                          </li>
-                        ))}
-                    </ul>
+                    <div className="space-y-3">
+                      <Button
+                        variant={viewMode === "categories" ? "primary" : "outline"}
+                        className={`w-full justify-start transition-all duration-200 ${
+                          viewMode === "categories" 
+                            ? 'bg-gradient-to-r from-[goldenrod] to-amber-500 border-0 text-black font-medium shadow-lg' 
+                            : 'bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/30'
+                        }`}
+                        onClick={() => {
+                          setViewMode("categories");
+                          setSelectedCategory("");
+                          setSelectedDepartment("");
+                          setRuleSummary([]);
+                          setAiSummary("");
+                        }}
+                      >
+                        📊 By Categories
+                      </Button>
+                      <Button
+                        variant={viewMode === "departments" ? "primary" : "outline"}
+                        className={`w-full justify-start transition-all duration-200 ${
+                          viewMode === "departments" 
+                            ? 'bg-gradient-to-r from-[goldenrod] to-amber-500 border-0 text-black font-medium shadow-lg' 
+                            : 'bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/30'
+                        }`}
+                        onClick={() => {
+                          setViewMode("departments");
+                          setSelectedCategory("");
+                          setSelectedDepartment("");
+                          setDepartmentSearch("");
+                          setRuleSummary([]);
+                          setAiSummary("");
+                        }}
+                      >
+                        🏢 By Department
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
+
+                {/* Categories Section */}
+                {viewMode === "categories" && (
+                  <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl">
+                    <CardHeader className="border-b border-gray-700">
+                      <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
+                        Categories
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <ul className="space-y-3">
+                        {allCategories
+                          .filter(
+                            (cat) =>
+                              !cat.department ||
+                              String(cat.department) === String(getCurrentDepartment()?._id)
+                          )
+                          .map((category) => (
+                            <li key={category._id}>
+                              <Button
+                                variant={selectedCategory === category.name ? "primary" : "outline"}
+                                className={`w-full justify-start transition-all duration-200 ${
+                                  selectedCategory === category.name 
+                                    ? 'bg-gradient-to-r from-[goldenrod] to-amber-500 border-0 text-black font-medium shadow-lg' 
+                                    : 'bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/30'
+                                }`}
+                                onClick={() => {
+                                  setSelectedCategory(category.name);
+                                  setRuleSummary([]);
+                                  setAiSummary("");
+                                }}
+                              >
+                                {capitalizeFirstLetter(category.name)}
+                              </Button>
+                            </li>
+                          ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Departments Section */}
+                {viewMode === "departments" && (
+                  <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl">
+                    <CardHeader className="border-b border-gray-700">
+                      <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
+                        Departments
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {/* Search Input */}
+                      <div className="relative mb-4">
+                        <input
+                          type="text"
+                          placeholder="Search departments..."
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:border-[goldenrod] transition-colors"
+                          value={departmentSearch}
+                          onChange={(e) => setDepartmentSearch(e.target.value)}
+                        />
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                      
+                      {isLoadingExpectationData ? (
+                        <div className="flex items-center justify-center p-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-[goldenrod] border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-slate-300 text-sm">Loading departments...</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+                          {/* Results count */}
+                          {departmentSearch && (
+                            <div className="text-xs text-slate-400 mb-3 px-1">
+                              {allDepartments.filter(dept => 
+                                dept.name.toLowerCase().includes(departmentSearch.toLowerCase())
+                              ).length} department{allDepartments.filter(dept => 
+                                dept.name.toLowerCase().includes(departmentSearch.toLowerCase())
+                              ).length !== 1 ? 's' : ''} found
+                            </div>
+                          )}
+                          <ul className="space-y-3">
+                            {allDepartments
+                              .filter(dept => 
+                                dept.name.toLowerCase().includes(departmentSearch.toLowerCase())
+                              )
+                              .map((department) => (
+                                <li key={department._id}>
+                                  <Button
+                                    variant={selectedDepartment === department._id ? "primary" : "outline"}
+                                    className={`w-full justify-start transition-all duration-200 ${
+                                      selectedDepartment === department._id 
+                                        ? 'bg-gradient-to-r from-[goldenrod] to-amber-500 border-0 text-black font-medium shadow-lg' 
+                                        : 'bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/30'
+                                    }`}
+                                    onClick={() => {
+                                      setSelectedDepartment(department._id);
+                                      setSelectedCategory("");
+                                      setRuleSummary([]);
+                                      setAiSummary("");
+                                    }}
+                                  >
+                                    {capitalizeFirstLetter(department.name)}
+                                  </Button>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </aside>
 
                       {/* Main Content */}
@@ -1754,8 +2536,8 @@ function ActionPlansPage() {
               </div>
             )}
             
-              {/* Placeholder when no category is selected */}
-              {!selectedCategory && (
+              {/* Placeholder when no category/department is selected - Shows for both view modes when nothing is selected */}
+              {!selectedCategory && !selectedDepartment && (
                 <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl flex flex-col items-center justify-center min-h-[400px]">
                   <CardContent className="flex flex-col items-center justify-center w-full p-8">
                     <div className="absolute top-4 right-4 group">
@@ -1778,15 +2560,15 @@ function ActionPlansPage() {
                           <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
                             <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
                             <div className="flex-1">
-                              <h5 className="text-purple-300 font-medium mb-1">Analyze Trends (Optional)</h5>
-                              <p className="text-slate-300 text-sm">Use "AI Trend Analysis" to get insights into patterns and recommendations.</p>
+                              <h5 className="text-purple-300 font-medium mb-1">Generate AI-Driven Action Plans</h5>
+                              <p className="text-slate-300 text-sm">Click "Click here to generate AI driven 'Action Plan'" to create comprehensive action plans from selected insights.</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
                             <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
                             <div className="flex-1">
-                              <h5 className="text-green-300 font-medium mb-1">Generate Plans</h5>
-                              <p className="text-slate-300 text-sm">Select insights and click "Generate Detailed Plans" to create comprehensive action plans.</p>
+                              <h5 className="text-green-300 font-medium mb-1">Generate Plans (Alternative)</h5>
+                              <p className="text-slate-300 text-sm">Select insights and click "Click here to generate AI driven 'Action Plan'" to create comprehensive action plans.</p>
                             </div>
                           </div>
                         </div>
@@ -1804,7 +2586,7 @@ function ActionPlansPage() {
                         variant="outline" 
                         onClick={fetchAllAiSummary} 
                         disabled={isAllAiSummaryLoading}
-                        className={`bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/50 hover:text-[goldenrod] hover:shadow-lg hover:shadow-[goldenrod]/25 px-6 py-3 transition-all duration-300 ${!isAllAiSummaryLoading && allAiSummary.length === 0 ? 'animate-pulse' : ''}`}
+                        className={`bg-gray-800/50 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-[goldenrod]/50 hover:text-[goldenrod] hover:shadow-lg hover:shadow-[goldenrod]/25 px-6 py-3 transition-all duration-300 ${!isAllAiSummaryLoading && !allAiSummary.trim() ? 'animate-pulse' : ''}`}
                       >
                         {isAllAiSummaryLoading ? (
                           <div className="flex items-center gap-2">
@@ -1860,56 +2642,69 @@ function ActionPlansPage() {
                             
                             <Button 
                               variant="outline" 
-                              onClick={fetchTrendAnalysis} 
-                              disabled={isTrendLoading}
-                              className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/50 text-purple-200 hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-300 hover:text-purple-100 hover:shadow-lg hover:shadow-purple-500/25 px-4 py-3 transition-all duration-300 group"
-                            >
-                              {isTrendLoading ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                                  <span>Analyzing...</span>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center gap-2">
-                                  <span className="text-xl group-hover:scale-110 transition-transform duration-200">📈</span>
-                                  <div className="text-center">
-                                    <div className="font-medium">Trend Analysis (Optional)</div>
-                                    <div className="text-xs text-purple-300">Step 2</div>
-                                  </div>
-                                </div>
-                              )}
-                            </Button>
-                            
-                            <Button 
-                              variant="outline" 
                               onClick={() => {
-                                const selectedInsights = [...selectedAllSummaryPoints, ...selectedAllAiPoints].map(idx => {
-                                  if (selectedAllSummaryPoints.includes(idx)) {
-                                    return allSummary[idx]?.text || '';
+                                const selectedInsights = (() => {
+                                  const insights = [];
+                                  
+                                  // Add rule summary points
+                                  selectedAllSummaryPoints.forEach(idx => {
+                                    if (allSummary[idx]?.text) {
+                                      insights.push(allSummary[idx].text);
+                                    }
+                                  });
+                                  
+                                  // Add AI summary points (handle grouped format - only responses)
+                                  const groupedResponses = parseGroupedAIResponses(allAiSummary);
+                                  if (groupedResponses.length > 0) {
+                                    selectedAllAiPoints.forEach(point => {
+                                      if (typeof point === 'string' && point.includes('-')) {
+                                        const [groupIdx, itemIdx] = point.split('-');
+                                        const group = groupedResponses[parseInt(groupIdx)];
+                                        if (group) {
+                                          // Only handle responses, skip action items
+                                          if (!itemIdx.startsWith('action')) {
+                                            const respIdx = parseInt(itemIdx);
+                                            if (group.responses[respIdx]) {
+                                              insights.push(group.responses[respIdx]);
+                                            }
+                                          }
+                                        }
+                                      }
+                                    });
                                   } else {
-                                    return allAiSummary[idx] || '';
+                                    // Fallback to old format - split the string into lines
+                                    const summaryLines = allAiSummary ? allAiSummary.split('\n').filter(Boolean) : [];
+                                    selectedAllAiPoints.forEach(idx => {
+                                      if (summaryLines[idx]) {
+                                        insights.push(summaryLines[idx]);
+                                      }
+                                    });
                                   }
-                                }).filter(Boolean);
+                                  
+                                  return insights;
+                                })();
                                 generateDetailedActionPlans(selectedInsights);
                               }}
                               disabled={isGeneratingPlans || (selectedAllSummaryPoints.length === 0 && selectedAllAiPoints.length === 0)}
-                              className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/50 text-green-200 hover:bg-gradient-to-r hover:from-green-500/30 hover:to-emerald-500/30 hover:border-green-300 hover:text-green-100 hover:shadow-lg hover:shadow-green-500/25 px-4 py-3 transition-all duration-300 group"
+                              className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/50 text-purple-200 hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-purple-300 hover:text-purple-100 hover:shadow-lg hover:shadow-purple-500/25 px-4 py-3 transition-all duration-300 group"
                             >
                               {isGeneratingPlans ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
                                   <span>Generating...</span>
                                 </div>
                               ) : (
                                 <div className="flex flex-col items-center gap-2">
                                   <span className="text-xl group-hover:scale-110 transition-transform duration-200">🎯</span>
                                   <div className="text-center">
-                                    <div className="font-medium">Generate Plans</div>
-                                    <div className="text-xs text-green-300">Step 3</div>
+                                    <div className="font-medium">Click here to generate AI driven "Action Plan"</div>
+                                    <div className="text-xs text-purple-300">Step 2</div>
                                   </div>
                                 </div>
                               )}
                             </Button>
+                            
+
                           </div>
                         </CardContent>
                       </Card>
@@ -1959,43 +2754,119 @@ function ActionPlansPage() {
                             }}
                             disabled={!selectedAllSummaryPoints.length}
                           >
-                            📋 Assign Selected as Action Plan
+                            📋 Click here to generate AI driven "Action Plan"
                           </Button>
                         </CardContent>
                       </Card>
                     </div>
                   )}
-                  {/* Simplified AI Summary */}
-                  {allAiSummary.length > 0 && (
+                  {/* Grouped AI Summary */}
+                  {allAiSummary && (
                     <div className="w-full max-w-4xl mt-4">
                       <Card className="bg-[#29252c]/70 border border-gray-700 shadow-lg">
                         <CardHeader className="border-b border-gray-700">
                           <CardTitle className="text-lg font-semibold text-white flex items-center gap-3">
                             <span className="text-[goldenrod]">🤖</span>
-                            AI Summary
+                            AI Summary - Grouped by Emotions & Types
                             <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-[goldenrod]">
                               AI Generated
                             </Badge>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-4">
-                          <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {allAiSummary.map((item, idx) => (
-                              <div key={idx} className="flex items-start gap-2 p-2 bg-gray-800/50 rounded border border-gray-600">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedAllAiPoints.includes(idx)}
-                                  onChange={() => setSelectedAllAiPoints(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
-                                  className="w-4 h-4 mt-1"
-                                />
-                                <span className="text-gray-200 text-sm">{item}</span>
-                              </div>
-                            ))}
+                          <div className="space-y-4 max-h-80 overflow-y-auto">
+                            {(() => {
+                              const groupedResponses = parseGroupedAIResponses(allAiSummary);
+                              
+                              if (groupedResponses.length === 0) {
+                                // Fallback to old format if grouping fails - split the string into lines
+                                const summaryLines = allAiSummary ? allAiSummary.split('\n').filter(Boolean) : [];
+                                return summaryLines.map((item, idx) => (
+                                  <div key={idx} className="flex items-start gap-2 p-2 bg-gray-800/50 rounded border border-gray-600">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedAllAiPoints.includes(idx)}
+                                      onChange={() => setSelectedAllAiPoints(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
+                                      className="w-4 h-4 mt-1"
+                                    />
+                                    <span className="text-gray-200 text-sm">{item}</span>
+                                  </div>
+                                ));
+                              }
+                              
+                              return groupedResponses.map((group, groupIdx) => (
+                                <div key={groupIdx} className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-lg border border-slate-600/50 overflow-hidden">
+                                  {/* Group Header */}
+                                  <div className="bg-gradient-to-r from-[goldenrod]/20 to-amber-500/20 px-4 py-3 border-b border-slate-600/50">
+                                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                      <span className="w-2 h-2 bg-gradient-to-r from-[goldenrod] to-amber-400 rounded-full"></span>
+                                      {group.name}
+                                    </h3>
+                                    {group.summary && (
+                                      <p className="text-sm text-slate-300 mt-1">{group.summary}</p>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Group Content */}
+                                  <div className="p-4 space-y-4">
+                                    {/* Responses Section */}
+                                    {group.responses.length > 0 && (
+                                      <div>
+                                        <h4 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+                                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                                          Responses ({group.responses.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                          {group.responses.map((response, respIdx) => (
+                                            <div key={respIdx} className="group/item p-2 bg-white/5 rounded border border-white/10 hover:border-blue-400/30 transition-all duration-200 flex items-start gap-3">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedAllAiPoints.includes(`${groupIdx}-${respIdx}`)}
+                                                onChange={() => setSelectedAllAiPoints(prev => prev.includes(`${groupIdx}-${respIdx}`) ? prev.filter(i => i !== `${groupIdx}-${respIdx}`) : [...prev, `${groupIdx}-${respIdx}`])}
+                                                className="w-4 h-4 mt-1"
+                                              />
+                                              <span className="text-sm text-gray-200 group-hover/item:text-blue-200 transition-colors duration-200">
+                                                {response}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Action Items Section - Removed as requested */}
+                                  </div>
+                                </div>
+                              ));
+                            })()}
                           </div>
                           <Button
                             className="mt-4 w-full bg-[goldenrod] hover:bg-amber-600 text-black font-medium"
                             onClick={() => {
-                              const selectedData = selectedAllAiPoints.map(idx => allAiSummary[idx]).filter(Boolean);
+                              const selectedData = (() => {
+                                const groupedResponses = parseGroupedAIResponses(allAiSummary);
+                                if (groupedResponses.length === 0) {
+                                  // Fallback to old format - split the string into lines
+                                  const summaryLines = allAiSummary ? allAiSummary.split('\n').filter(Boolean) : [];
+                                  return selectedAllAiPoints.map(idx => summaryLines[idx]).filter(Boolean);
+                                } else {
+                                  // Extract text from grouped responses (only responses, no action items)
+                                  return selectedAllAiPoints.map(point => {
+                                    if (typeof point === 'string' && point.includes('-')) {
+                                      const [groupIdx, itemIdx] = point.split('-');
+                                      const group = groupedResponses[parseInt(groupIdx)];
+                                      if (group) {
+                                        // Only handle responses, skip action items
+                                        if (!itemIdx.startsWith('action')) {
+                                          const respIdx = parseInt(itemIdx);
+                                          return group.responses[respIdx] || '';
+                                        }
+                                      }
+                                    }
+                                    return '';
+                                  }).filter(Boolean);
+                                }
+                              })();
                               setAssignAllSummaryData(selectedData);
                               setAssignAllSummaryForm(prev => ({
                                 ...prev,
@@ -2005,7 +2876,7 @@ function ActionPlansPage() {
                             }}
                             disabled={!selectedAllAiPoints.length}
                           >
-                            📋 Assign Selected as Action Plan
+                            📋 Click here to generate AI driven "Action Plan"
                           </Button>
                         </CardContent>
                       </Card>
@@ -2132,8 +3003,8 @@ function ActionPlansPage() {
               </Card>
             )}
             
-            {/* Trend Analysis Section */}
-            {showTrendAnalysis && trendAnalysis && (
+            {/* Trend Analysis Section - Hidden as requested */}
+            {/* {showTrendAnalysis && trendAnalysis && (
               <div className="w-full max-w-4xl mb-8">
                 <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
                   <CardHeader className="border-b border-white/10">
@@ -2163,7 +3034,7 @@ function ActionPlansPage() {
                   </CardContent>
                 </Card>
               </div>
-            )}
+            )} */}
            
             {/* Expectations Table */}
             {selectedCategory && (
@@ -2243,7 +3114,96 @@ function ActionPlansPage() {
                 </CardContent>
               </Card>
             )}
-            {/* Create Action Plan Modal */}
+
+            {/* Department Expectations Table */}
+            {selectedDepartment && (
+              <Card className="bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10">
+                  <CardTitle className="text-xl font-semibold text-white flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full"></div>
+                      <span>All Expectations from {capitalizeFirstLetter(allDepartments.find(d => d._id === selectedDepartment)?.name || 'Department')}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={ratingFilter === "" ? "primary" : "outline"}
+                          onClick={() => setRatingFilter("")}
+                          className={ratingFilter === "" ? "bg-gradient-to-r from-blue-600 to-purple-600 border-0" : "bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={ratingFilter === "detractor" ? "primary" : "outline"}
+                          onClick={() => setRatingFilter("detractor")}
+                          className={ratingFilter === "detractor" ? "bg-gradient-to-r from-red-600 to-orange-600 border-0" : "bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"}
+                        >
+                          Detractor
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={ratingFilter === "passive" ? "primary" : "outline"}
+                          onClick={() => setRatingFilter("passive")}
+                          className={ratingFilter === "passive" ? "bg-gradient-to-r from-yellow-600 to-orange-600 border-0" : "bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"}
+                        >
+                          Passive
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={ratingFilter === "promoter" ? "primary" : "outline"}
+                          onClick={() => setRatingFilter("promoter")}
+                          className={ratingFilter === "promoter" ? "bg-gradient-to-r from-green-600 to-emerald-600 border-0" : "bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"}
+                        >
+                          Promoter
+                        </Button>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedDepartment("")}
+                        className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"
+                      >
+                        <span className="mr-1">←</span>
+                        Back
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="p-6">
+                    {isLoadingExpectationData ? (
+                      <div className="flex items-center justify-center p-8">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-slate-300">Loading department expectations...</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <DepartmentExpectationsTable
+                        data={allDepartmentsExpectationData.length > 0 ? allDepartmentsExpectationData : expectationData}
+                        departmentId={selectedDepartment}
+                        allDepartments={allDepartments}
+                        ratingFilter={ratingFilter}
+                        onAssign={(expObj) => {
+                          setCreateModalOpen(true);
+                          setSelectedCategoryForForm(expObj.category || "");
+                          setCreateForm(f => ({
+                            ...f,
+                            expectations: expObj.expectation,
+                            actions: '',
+                            instructions: '',
+                            assignedTo: expObj.userId || '',
+                          }));
+                        }}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Dialog open={createModalOpen} onOpenChange={(open) => {
               setCreateModalOpen(open);
               if (!open) {
@@ -2256,7 +3216,7 @@ function ActionPlansPage() {
                 <DialogHeader className="border-b border-white/10 flex-shrink-0">
                   <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
                     <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
-                    Create Action Plan
+                    Assign Action Plan
                   </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreateActionPlan} className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -2267,50 +3227,44 @@ function ActionPlansPage() {
                         <span className="text-base font-bold text-white">{getCurrentDepartment()?.name || ""}</span>
                       </div>
                     </div>
-                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div className="p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-400/30">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-400">Category:</span>
-                        {selectedCategoryForForm ? (
-                          <span className="text-base font-bold text-white">{capitalizeFirstLetter(selectedCategoryForForm)}</span>
-                        ) : (
-                          <span className="text-sm text-slate-400">Select category below</span>
-                        )}
+                        <span className="text-sm font-semibold text-blue-300">🤖 AI Generated Plan:</span>
+                        <span className="text-base font-bold text-white">{selectedCategoryForForm ? capitalizeFirstLetter(selectedCategoryForForm) : "AI Action Plan"}</span>
                       </div>
                     </div>
                   </div>
-                  {!selectedCategoryForForm && (
-                    <div className="space-y-3">
-                      <label className="block text-sm font-medium mb-2 text-slate-200">Category *</label>
-                      
-                      {/* Existing Categories Dropdown */}
-                      {allCategories.filter(cat => String(cat.department) === String(getCurrentDepartment()?._id)).length > 0 && (
-                        <div>
-                          <label className="block text-xs font-medium mb-1 text-slate-300">Select from existing categories:</label>
-                          <Select
-                            value={selectedCategoryForForm}
-                            onValueChange={(val) => setSelectedCategoryForForm(val)}
-                            options={allCategories
-                              .filter(cat => String(cat.department) === String(getCurrentDepartment()?._id))
-                              .map((cat) => ({ value: cat.name, label: capitalizeFirstLetter(cat.name) }))}
-                            placeholder="Choose existing category"
-                            className="bg-white/5 border-white/20 text-white"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Manual Category Input */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Category *</label>
+                    
+                    {/* Existing Categories Dropdown */}
+                    {allCategories.filter(cat => String(cat.department) === String(getCurrentDepartment()?._id)).length > 0 && (
                       <div>
-                        <label className="block text-xs font-medium mb-1 text-slate-300">Or enter category name:</label>
-                        <Input
+                        <label className="block text-xs font-medium mb-1 text-slate-300">Select from existing categories:</label>
+                        <Select
                           value={selectedCategoryForForm}
-                          onChange={(e) => setSelectedCategoryForForm(e.target.value)}
-                          placeholder="Enter category name"
-                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
-                          required
+                          onValueChange={(val) => setSelectedCategoryForForm(val)}
+                          options={allCategories
+                            .filter(cat => String(cat.department) === String(getCurrentDepartment()?._id))
+                            .map((cat) => ({ value: cat.name, label: capitalizeFirstLetter(cat.name) }))}
+                          placeholder="Choose existing category"
+                          className="bg-white/5 border-white/20 text-white"
                         />
                       </div>
+                    )}
+                    
+                    {/* Manual Category Input */}
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-300">Or enter category name:</label>
+                      <Input
+                        value={selectedCategoryForForm}
+                        onChange={(e) => setSelectedCategoryForForm(e.target.value)}
+                        placeholder="Enter category name"
+                        className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                        required
+                      />
                     </div>
-                  )}
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
                     <Input
@@ -2318,6 +3272,16 @@ function ActionPlansPage() {
                       onChange={e => handleCreateFormChange('expectations', e.target.value)}
                       placeholder="Expectations for this action plan"
                       className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Actions *</label>
+                    <Textarea
+                      value={createForm.actions}
+                      onChange={e => handleCreateFormChange('actions', e.target.value)}
+                      placeholder="Actions to be taken"
+                      className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
                       required
                     />
                   </div>
@@ -2365,12 +3329,12 @@ function ActionPlansPage() {
                       {isSubmitting ? (
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Creating...</span>
+                          <span>Assigning...</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <span>📋</span>
-                          <span>Create Action Plan</span>
+                          <span>Assign Action Plan</span>
                         </div>
                       )}
                     </Button>
@@ -2384,89 +3348,153 @@ function ActionPlansPage() {
               </DialogContent>
             </Dialog>
 
-            {/* Edit Action Plan Modal (Admin) */}
-            <Dialog open={editModalOpen} onOpenChange={(open) => {
-              setEditModalOpen(open);
+
+
+
+
+            {/* AI Plan Edit Modal */}
+            <Dialog open={aiPlanEditModalOpen && editingPlan} onOpenChange={(open) => {
               if (!open) {
-                // Reset form when modal is closed
-                setEditForm({ _id: '', expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                setAiPlanEditModalOpen(false);
+                setEditingPlan(null);
               }
             }}>
-              <DialogContent className="bg-[#232026]/90">
-                <DialogHeader>
-                  <DialogTitle>Edit Action Plan</DialogTitle>
+              <DialogContent className="bg-slate-900/95 backdrop-blur-sm border border-white/10 shadow-2xl max-w-4xl max-h-[90vh] flex flex-col">
+                <DialogHeader className="border-b border-white/10 flex-shrink-0">
+                  <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                    <div className="w-2 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                    Edit AI Action Plan
+                  </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleEditActionPlan} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Expectations</label>
-                    <Input
-                      value={editForm.expectations}
-                      onChange={e => handleEditFormChange('expectations', e.target.value)}
-                      placeholder="Expectations for this action plan"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Actions</label>
-                    <Input
-                      value={editForm.actions}
-                      onChange={e => handleEditFormChange('actions', e.target.value)}
-                      placeholder="Actions to be taken"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Instructions (optional)</label>
-                    <Input
-                      value={editForm.instructions}
-                      onChange={e => handleEditFormChange('instructions', e.target.value)}
-                      placeholder="Any extra instructions from HOD"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Assign To</label>
-                    <Select
-                      value={editForm.assignedTo}
-                      onValueChange={(val) => handleEditFormChange('assignedTo', val)}
-                      options={departmentUsers?.map((u) => ({ value: u._id, label: u.name })) || []}
-                      placeholder={usersLoading ? "Loading users..." : "Select user"}
-                      required
-                      disabled={usersLoading || !departmentUsers || departmentUsers.length === 0}
-                    />
-                    {!usersLoading && (!departmentUsers || departmentUsers.length === 0) && (
-                      <div className="text-xs text-red-400 mt-1">No users available to assign in this department.</div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Target Date</label>
-                    <Input
-                      type="date"
-                      value={editForm.targetDate}
-                      onChange={(e) => handleEditFormChange('targetDate', e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Status</label>
-                    <Select
-                      value={editForm.status}
-                      onValueChange={(val) => handleEditFormChange('status', val)}
-                      options={statusOptions.filter(opt => opt.value !== 'all')}
-                      required
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? 'Updating...' : 'Update Action Plan'}
-                    </Button>
-                    <DialogClose asChild>
-                      <Button type="button" variant="outline">
-                        Cancel
+                {editingPlan && (
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSaveEditedAI(editingPlan);
+                  }} className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Title</label>
+                        <Input
+                          value={editingPlan.title}
+                          onChange={(e) => setEditingPlan({...editingPlan, title: e.target.value})}
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Category</label>
+                        <Input
+                          value={editingPlan.category}
+                          onChange={(e) => setEditingPlan({...editingPlan, category: e.target.value})}
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Priority</label>
+                        <Select
+                          value={editingPlan.priority}
+                          onValueChange={(val) => setEditingPlan({...editingPlan, priority: val})}
+                          options={[
+                            { value: 'high', label: 'High' },
+                            { value: 'medium', label: 'Medium' },
+                            { value: 'low', label: 'Low' }
+                          ]}
+                          className="bg-white/5 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Impact Score</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={editingPlan.impactScore}
+                          onChange={(e) => setEditingPlan({...editingPlan, impactScore: parseInt(e.target.value)})}
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-slate-200">Summary</label>
+                      <Textarea
+                        value={editingPlan.summary}
+                        onChange={(e) => setEditingPlan({...editingPlan, summary: e.target.value})}
+                        placeholder="Summary of the action plan"
+                        className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-slate-200">Recommended Actions</label>
+                      <div className="space-y-3">
+                        {editingPlan.recommendedActions.map((action, index) => (
+                          <div key={index} className="flex items-center gap-3">
+                            <Input
+                              value={action}
+                              onChange={(e) => {
+                                const newActions = [...editingPlan.recommendedActions];
+                                newActions[index] = e.target.value;
+                                setEditingPlan({...editingPlan, recommendedActions: newActions});
+                              }}
+                              className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                              placeholder={`Action ${index + 1}`}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newActions = editingPlan.recommendedActions.filter((_, i) => i !== index);
+                                setEditingPlan({...editingPlan, recommendedActions: newActions});
+                              }}
+                              className="bg-red-500/20 border-red-400/30 text-red-300 hover:bg-red-500/30"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingPlan({
+                              ...editingPlan, 
+                              recommendedActions: [...editingPlan.recommendedActions, '']
+                            });
+                          }}
+                          className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"
+                        >
+                          + Add Action
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-slate-200">Supporting Data</label>
+                      <Textarea
+                        value={editingPlan.supportingData}
+                        onChange={(e) => setEditingPlan({...editingPlan, supportingData: e.target.value})}
+                        placeholder="Supporting data for this action plan"
+                        className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
+                      />
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button type="submit" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white">
+                        Save Changes
                       </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </form>
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </form>
+                )}
               </DialogContent>
             </Dialog>
 
@@ -2524,7 +3552,7 @@ function ActionPlansPage() {
                         setDetailedPlanPreviewModal(false);
                         openDetailedPlanAssign(selectedDetailedPlan);
                       }}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white shadow-lg"
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300 w-[160px] h-[44px] rounded-xl"
                     >
                       <span className="mr-2">📋</span>
                       Assign
@@ -2672,7 +3700,7 @@ function ActionPlansPage() {
                         <Button 
                           type="submit"
                           disabled={isSubmitting}
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white shadow-lg"
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300 w-[160px] h-[44px] rounded-xl"
                         >
                           {isSubmitting ? (
                             <div className="flex items-center gap-2">
@@ -2745,7 +3773,7 @@ function ActionPlansPage() {
                       disabled={!selectedRulePoints.length}
                     >
                       <span className="mr-2">📋</span>
-                      Assign Selected as Action Plan
+                      Click here to generate AI driven "Action Plan"
                     </Button>
                   </CardContent>
                 </Card> */}
@@ -2823,30 +3851,82 @@ function ActionPlansPage() {
                         <div className="p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-400/30">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-green-400">✓</span>
-                            <span className="text-green-300 text-sm font-medium">AI Analysis Complete</span>
+                            <span className="text-green-300 text-sm font-medium">AI Analysis Complete - Grouped by Emotions & Types</span>
                           </div>
                         </div>
                         
-                        <div className="space-y-3 max-h-80 overflow-y-auto">
-                          {(isTyping ? typedSummary : aiSummary).split('\n').map((item, idx) => (
-                            <div key={idx} className="group/item p-3 bg-white/5 rounded-lg border border-white/10 hover:border-cyan-400/50 transition-all duration-300 flex items-start gap-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedAiPoints.includes(idx)}
-                                onChange={() => toggleAiPoint(idx)}
-                                className="accent-cyan-400 w-4 h-4 mt-1"
-                              />
-                              <div className="flex-1">
-                                <span className="font-medium text-slate-200 group-hover/item:text-cyan-200 transition-colors duration-300">
-                                  {item}
-                                  {isTyping && idx === (isTyping ? typedSummary : aiSummary).split('\n').length - 1 && (
-                                    <span className="inline-block w-2 h-5 bg-cyan-400 ml-1 animate-pulse"></span>
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                          {(() => {
+                            const groupedResponses = parseGroupedAIResponses(isTyping ? typedSummary : aiSummary);
+                            
+                            if (groupedResponses.length === 0) {
+                              // Fallback to old format if grouping fails
+                              return (isTyping ? typedSummary : aiSummary).split('\n').map((item, idx) => (
+                                <div key={idx} className="group/item p-3 bg-white/5 rounded-lg border border-white/10 hover:border-cyan-400/50 transition-all duration-300 flex items-start gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedAiPoints.includes(idx)}
+                                    onChange={() => toggleAiPoint(idx)}
+                                    className="accent-cyan-400 w-4 h-4 mt-1"
+                                  />
+                                  <div className="flex-1">
+                                    <span className="font-medium text-slate-200 group-hover/item:text-cyan-200 transition-colors duration-300">
+                                      {item}
+                                      {isTyping && idx === (isTyping ? typedSummary : aiSummary).split('\n').length - 1 && (
+                                        <span className="inline-block w-2 h-5 bg-cyan-400 ml-1 animate-pulse"></span>
+                                      )}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-cyan-400">AI Generated</span>
+                                </div>
+                              ));
+                            }
+                            
+                            return groupedResponses.map((group, groupIdx) => (
+                              <div key={groupIdx} className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-lg border border-slate-600/50 overflow-hidden">
+                                {/* Group Header */}
+                                <div className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 px-4 py-3 border-b border-slate-600/50">
+                                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full"></span>
+                                    {group.name}
+                                  </h3>
+                                  {group.summary && (
+                                    <p className="text-sm text-slate-300 mt-1">{group.summary}</p>
                                   )}
-                                </span>
+                                </div>
+                                
+                                {/* Group Content */}
+                                <div className="p-4 space-y-4">
+                                  {/* Responses Section */}
+                                  {group.responses.length > 0 && (
+                                    <div>
+                                      <h4 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                                        Responses ({group.responses.length})
+                                      </h4>
+                                      <div className="space-y-2">
+                                        {group.responses.map((response, respIdx) => (
+                                          <div key={respIdx} className="group/item p-2 bg-white/5 rounded border border-white/10 hover:border-blue-400/30 transition-all duration-200 flex items-start gap-3">
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedAiPoints.includes(`${groupIdx}-${respIdx}`)}
+                                              onChange={() => toggleAiPoint(`${groupIdx}-${respIdx}`)}
+                                              className="accent-blue-400 w-4 h-4 mt-1"
+                                            />
+                                            <span className="text-sm text-slate-200 group-hover/item:text-blue-200 transition-colors duration-200">
+                                              {response}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Action Items Section - Removed as requested */}
+                                </div>
                               </div>
-                              <span className="text-xs text-cyan-400">AI Generated</span>
-                            </div>
-                          ))}
+                            ));
+                          })()}
                         </div>
                         
                         <Button
@@ -2855,7 +3935,7 @@ function ActionPlansPage() {
                           disabled={!selectedAiPoints.length}
                         >
                           <span className="mr-2">🚀</span>
-                          Assign Selected as Action Plan
+                          Click here to generate AI driven "Action Plan"
                         </Button>
                       </div>
                     )}
@@ -2967,6 +4047,420 @@ function ActionPlansPage() {
 
           </DialogContent>
         </Dialog>
+
+        {/* AI Action Plans Tab Content */}
+        {activeTab === "ai-action-plans" && (
+          <div className="px-6 py-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-8">
+                                        <h2 className="text-2xl font-bold text-white mb-2">🤖 AI Action Plans Generator</h2>
+                        <p className="text-slate-300 text-sm mt-2">
+                          AI will analyze all survey responses across categories and departments to identify patterns and generate actionable insights.
+                        </p>
+              </div>
+
+                                     {/* AI Analysis Controls */}
+                       <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl mb-6">
+                         <CardContent className="p-6">
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                           <div className="flex justify-center items-center h-full">
+                                <Button
+                                  onClick={handleGenerateAIActionPlans}
+                                  disabled={isGeneratingAI}
+                                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 border-0 text-white shadow-lg px-8 py-3"
+                                >
+                                 {isGeneratingAI ? (
+                                   <>
+                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                     Analyzing Survey Data...
+                                   </>
+                                 ) : (
+                                   <>
+                                     🚀 Generate AI Action Plans
+                                   </>
+                                 )}
+                               </Button>
+                             </div>
+                                                           <div>
+                                <div className="space-y-3">
+                                 <div>
+                                   <label className="block text-sm font-medium text-slate-300 mb-2">Analysis Scope</label>
+                                   <Select
+                                     value={aiAnalysisScope}
+                                     onValueChange={setAiAnalysisScope}
+                                     options={[
+                                       { value: "all", label: "All Categories & Departments" },
+                                       { value: "categories", label: "By Categories Only" },
+                                       { value: "departments", label: "By Departments Only" }
+                                     ]}
+                                     className="w-full bg-gray-800 border-gray-600 text-white"
+                                   />
+                                 </div>
+                                 <div>
+                                   <label className="block text-sm font-medium text-slate-300 mb-2">Priority Focus</label>
+                                   <Select
+                                     value={aiPriorityFocus}
+                                     onValueChange={setAiPriorityFocus}
+                                     options={[
+                                       { value: "all", label: "All Priorities" },
+                                       { value: "high", label: "High Priority (Low Ratings)" },
+                                       { value: "medium", label: "Medium Priority" },
+                                       { value: "low", label: "Low Priority (High Ratings)" }
+                                     ]}
+                                     className="w-full bg-gray-800 border-gray-600 text-white"
+                                   />
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         </CardContent>
+                       </Card>
+
+              {/* AI Generated Action Plans */}
+              {aiGeneratedPlans.length > 0 && (
+                <>
+                  {/* Progress Summary */}
+                  <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl mb-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-white font-medium">Generated {aiGeneratedPlans.length} Action Plans</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-green-400">{aiGeneratedPlans.filter(p => p.priority === 'high').length}</div>
+                            <div className="text-xs text-gray-400">High Priority</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-yellow-400">{aiGeneratedPlans.filter(p => p.priority === 'medium').length}</div>
+                            <div className="text-xs text-gray-400">Medium Priority</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-blue-400">{aiGeneratedPlans.filter(p => p.priority === 'low').length}</div>
+                            <div className="text-xs text-gray-400">Low Priority</div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+                  <CardHeader className="border-b border-gray-700 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
+                    <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                      <div className="w-2 h-8 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full shadow-lg"></div>
+                      AI Generated Action Plans ({aiGeneratedPlans.length})
+                    </CardTitle>
+                    <p className="text-sm text-gray-400 mt-3 leading-relaxed">
+                      Action plans generated based on AI Summary analysis of survey responses. Click "Assign" to assign to users or "Edit" to modify the plan.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <div className="space-y-8">
+                      {aiGeneratedPlans.map((plan, index) => (
+                        <div key={index} className="p-8 bg-gradient-to-br from-gray-800/70 to-gray-900/70 rounded-2xl border border-gray-600/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-blue-400/40 hover:scale-[1.02] backdrop-blur-sm animate-in slide-in-from-bottom-4 duration-500 relative overflow-hidden">
+                          {/* Subtle background pattern */}
+                          <div className="absolute inset-0 opacity-5 pointer-events-none">
+                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-400/20 to-purple-400/20 transform rotate-12 scale-150"></div>
+                          </div>
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <div className="mb-4">
+                                <h4 className="text-xl font-bold text-white mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                  {plan.title}
+                                </h4>
+                                <div className="w-24 h-1.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full shadow-lg"></div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div className="p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-xl border border-gray-600/40 shadow-lg hover:border-blue-400/30 transition-all duration-200">
+                                  <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">Category</span>
+                                  <p className="text-white font-bold text-lg mt-1">{capitalizeFirstLetter(plan.category)}</p>
+                                </div>
+                                <div className="p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-xl border border-gray-600/40 shadow-lg hover:border-blue-400/30 transition-all duration-200">
+                                  <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">Priority</span>
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={`mt-2 ${
+                                      plan.priority === 'high' ? 'bg-gradient-to-r from-red-500/30 to-red-600/20 text-red-200 border-red-400/50' :
+                                      plan.priority === 'medium' ? 'bg-gradient-to-r from-yellow-500/30 to-yellow-600/20 text-yellow-200 border-yellow-400/50' :
+                                      'bg-gradient-to-r from-green-500/30 to-green-600/20 text-green-200 border-green-400/50'
+                                    }`}
+                                  >
+                                    {plan.priority === 'high' ? 'High' : plan.priority === 'medium' ? 'Medium' : 'Low'}
+                                  </Badge>
+                                </div>
+
+                              </div>
+                              <div className="mb-4">
+                                <span className="text-sm text-gray-400 uppercase tracking-wider font-medium">Summary:</span>
+                                <div className="mt-3 p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-xl border border-gray-600/40 shadow-lg">
+                                  <p className="text-white text-sm leading-relaxed">{plan.summary}</p>
+                                </div>
+                              </div>
+                              <div className="mb-4">
+                                <span className="text-sm text-gray-400 uppercase tracking-wider font-medium">Recommended Actions:</span>
+                                <div className="mt-3 space-y-3">
+                                  {plan.recommendedActions.map((action, actionIndex) => (
+                                    <div key={actionIndex} className="flex items-start gap-3 p-4 bg-gradient-to-br from-gray-700/50 to-gray-800/50 rounded-xl border border-gray-600/50 hover:border-blue-400/40 hover:shadow-lg transition-all duration-200">
+                                      <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mt-2 flex-shrink-0 shadow-sm"></div>
+                                      <span className="text-white text-sm leading-relaxed">{action}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Source Responses Section */}
+                              {plan.groupData && plan.groupData.responses && (
+                                <div className="mb-4">
+                                  <span className="text-sm text-gray-400 uppercase tracking-wider font-medium">Source Responses:</span>
+                                  <div className="mt-3 space-y-3 max-h-32 overflow-y-auto">
+                                    {plan.groupData.responses.map((response, respIdx) => (
+                                      <div key={respIdx} className="flex items-start gap-3 p-3 bg-gradient-to-br from-gray-700/30 to-gray-800/30 rounded-lg border border-gray-600/30 hover:border-yellow-400/40 transition-all duration-200">
+                                        <div className="w-2 h-2 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full mt-2 flex-shrink-0 shadow-sm"></div>
+                                        <span className="text-white text-xs leading-relaxed italic">"{response}"</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-4 ml-8">
+                              {/* Generated Plan Status */}
+                              <div className="text-center p-3 bg-gradient-to-r from-green-500/30 to-emerald-500/20 border border-green-400/40 rounded-xl shadow-lg">
+                                <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">✓ Generated Plan</span>
+                              </div>
+                              
+                              <div className="text-center">
+                                <button
+                                  type="button"
+                                  style={{ width: '160px', height: '44px' }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    console.log('Edit button mousedown for plan:', plan.title);
+                                  }}
+                                  onMouseUp={(e) => {
+                                    e.preventDefault();
+                                    console.log('Edit button mouseup for plan:', plan.title);
+                                  }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Edit button clicked for plan:', plan.title);
+                                    handleEditAI(plan, index);
+                                  }}
+                                  className="bg-blue-600 text-white font-medium rounded-lg border border-blue-500 hover:bg-blue-700 active:bg-blue-800 cursor-pointer"
+                                >
+                                  ✏️ Edit
+                                </button>
+                              </div>
+                              
+                              <div className="text-center">
+                                <button
+                                  type="button"
+                                  style={{ width: '160px', height: '44px' }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    console.log('Assign button mousedown for plan:', plan.title);
+                                  }}
+                                  onMouseUp={(e) => {
+                                    e.preventDefault();
+                                    console.log('Assign button mouseup for plan:', plan.title);
+                                  }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Assign button clicked for plan:', plan.title);
+                                    handleAssignFromAI(plan);
+                                  }}
+                                  className="bg-green-600 text-white font-medium rounded-lg border border-green-500 hover:bg-green-700 active:bg-green-800 cursor-pointer"
+                                >
+                                  📋 Assign Action Plan
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                </>
+              )}
+
+              {/* AI Analysis Progress */}
+              {isGeneratingAI && (
+                <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+                  <CardHeader className="border-b border-gray-700 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
+                    <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                      <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full shadow-lg"></div>
+                      AI Analysis in Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 shadow-lg"></div>
+                        <span className="text-white text-lg font-medium">Analyzing survey responses...</span>
+                      </div>
+                      <div className="w-full bg-gray-700/50 rounded-full h-3 shadow-inner">
+                        <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500 shadow-lg" style={{ width: `${aiProgress}%` }}></div>
+                      </div>
+                      <p className="text-slate-300 text-base font-medium text-center">{aiProgress}% Complete</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Assign Action Plan Modal - Positioned within AI Action Plans tab */}
+              
+
+              {/* AI Plan Edit Modal - Also positioned within AI Action Plans tab */}
+              <Dialog open={aiPlanEditModalOpen && editingPlan} onOpenChange={(open) => {
+                if (!open) {
+                  setAiPlanEditModalOpen(false);
+                  setEditingPlan(null);
+                }
+              }}>
+                <DialogContent className="bg-slate-900/95 backdrop-blur-sm border border-white/10 shadow-2xl max-w-4xl max-h-[90vh] flex flex-col">
+                  <DialogHeader className="border-b border-white/10 flex-shrink-0">
+                    <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                      <div className="w-2 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                      Edit AI Action Plan
+                    </DialogTitle>
+                  </DialogHeader>
+                  {editingPlan && (
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveEditedAI(editingPlan);
+                    }} className="flex-1 overflow-y-auto p-6 space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Title</label>
+                          <Input
+                            value={editingPlan.title}
+                            onChange={(e) => setEditingPlan({...editingPlan, title: e.target.value})}
+                            className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Category</label>
+                          <Input
+                            value={editingPlan.category}
+                            onChange={(e) => setEditingPlan({...editingPlan, category: e.target.value})}
+                            className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Priority</label>
+                          <Select
+                            value={editingPlan.priority}
+                            onValueChange={(val) => setEditingPlan({...editingPlan, priority: val})}
+                            options={[
+                              { value: 'high', label: 'High' },
+                              { value: 'medium', label: 'Medium' },
+                              { value: 'low', label: 'Low' }
+                            ]}
+                            className="bg-white/5 border-white/20 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Impact Score</label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={editingPlan.impactScore}
+                            onChange={(e) => setEditingPlan({...editingPlan, impactScore: parseInt(e.target.value)})}
+                            className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                            required
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Summary</label>
+                        <Textarea
+                          value={editingPlan.summary}
+                          onChange={(e) => setEditingPlan({...editingPlan, summary: e.target.value})}
+                          placeholder="Summary of the action plan"
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Recommended Actions</label>
+                        <div className="space-y-3">
+                          {editingPlan.recommendedActions.map((action, index) => (
+                            <div key={index} className="flex items-center gap-3">
+                              <Input
+                                value={action}
+                                onChange={(e) => {
+                                  const newActions = [...editingPlan.recommendedActions];
+                                  newActions[index] = e.target.value;
+                                  setEditingPlan({...editingPlan, recommendedActions: newActions});
+                                }}
+                                className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                                placeholder={`Action ${index + 1}`}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newActions = editingPlan.recommendedActions.filter((_, i) => i !== index);
+                                  setEditingPlan({...editingPlan, recommendedActions: newActions});
+                                }}
+                                className="bg-red-500/20 border-red-400/30 text-red-300 hover:bg-red-500/30"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingPlan({
+                                ...editingPlan, 
+                                recommendedActions: [...editingPlan.recommendedActions, '']
+                              });
+                            }}
+                            className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"
+                          >
+                            + Add Action
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Supporting Data</label>
+                        <Textarea
+                          value={editingPlan.supportingData}
+                          onChange={(e) => setEditingPlan({...editingPlan, supportingData: e.target.value})}
+                          placeholder="Supporting data for this action plan"
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
+                        />
+                      </div>
+                      
+                      <DialogFooter>
+                        <Button type="submit" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white">
+                          Save Changes
+                        </Button>
+                        <DialogClose asChild>
+                          <Button type="button" variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
+                            Cancel
+                          </Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </form>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        )}
 
         
       </div>

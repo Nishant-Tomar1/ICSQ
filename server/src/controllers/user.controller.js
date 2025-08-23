@@ -250,17 +250,3 @@ export async function resetCurrentDepartment(req, res) {
   }
 }
 
-// Get users by department (excluding HODs and admins)
-export async function getUsersByDepartment(req, res) {
-  try {
-    const { departmentId } = req.params;
-    if (!departmentId) {
-      return res.status(400).json({ message: "departmentId is required" });
-    }
-    const users = await User.find({ department: departmentId, role: "user" }).select("_id name email");
-    return res.json(users);
-  } catch (error) {
-    console.error("Error fetching users by department:", error);
-    return res.status(500).json({ message: "Failed to fetch users by department" });
-  }
-}
