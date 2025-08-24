@@ -579,11 +579,8 @@ export async function getClusteredResponses(req, res) {
       }
     ]);
 
-    console.log(`Found ${surveys.length} surveys for clustering across all categories`);
-
     // If no real data, return mock clustered data to demonstrate cross-category clustering
     if (surveys.length === 0) {
-      console.log('No survey data found, returning mock cross-category clustered data');
       
       const mockClusters = [
         {
@@ -619,7 +616,6 @@ export async function getClusteredResponses(req, res) {
         }
       ];
       
-      console.log('Returning mock clusters:', mockClusters);
       return res.json(mockClusters);
     }
 
@@ -715,7 +711,6 @@ export async function getClusteredResponses(req, res) {
       });
     }
 
-    console.log(`Created ${clusters.length} cross-category clusters from ${surveys.length} surveys`);
     return res.json(clusters);
   } catch (error) {
     console.error("Error clustering responses:", error);

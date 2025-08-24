@@ -52,7 +52,7 @@ export async function summarizeExpectationsRuleBased(req, res) {
 // AI-based: Use Gemini API to generate smart action plans and insights
 export async function summarizeExpectationsAI(req, res) {
   try {
-    const { departmentId, category } = req.query;
+    const { departmentId, category, priority } = req.query;
     if (!departmentId) {
       return res.status(400).json({ message: "departmentId is required" });
     }
@@ -89,46 +89,61 @@ export async function summarizeExpectationsAI(req, res) {
     // Calculate average rating if available
     const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
     
-    // Enhanced prompt for grouped analysis by emotions and types
-    const prompt = `Analyze these department expectations and group them by emotions and types of responses. 
+    // Get eligible categories for this department
+    const { Category } = await import("../models/Category.model.js");
+    const eligibleCategories = await Category.find({
+      $or: [
+        { department: null }, // Global categories
+        { department: departmentId } // Department-specific categories
+      ]
+    }).lean();
+    
+    // Enhanced prompt for structured AI response
+    const prompt = `Analyze these department expectations and provide structured responses with category assignments and priority analysis.
 
 EXPECTATIONS DATA:
 ${expectations.join("\n")}
 
 AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
 
-Please analyze and group the responses into the following categories based on common themes, emotions, and types of issues mentioned:
+ELIGIBLE CATEGORIES (use these exact names and IDs):
+${eligibleCategories.map(cat => `${cat.name} (ID: ${cat._id})`).join('\n')}
 
-1. TIME-RELATED ISSUES (e.g., delays, response time, waiting, slow service)
-2. SUPPORT & COMMUNICATION ISSUES (e.g., lack of support, poor communication, unhelpful staff)
-3. QUALITY & STANDARDS ISSUES (e.g., poor quality, low standards, subpar work)
-4. RESOURCE & PROCESS ISSUES (e.g., insufficient resources, broken processes, lack of tools)
-5. POSITIVE FEEDBACK (e.g., appreciation, good service, helpful staff)
-6. OTHER ISSUES (e.g., miscellaneous concerns not fitting above categories)
+PRIORITY FOCUS: ${priority || 'all'}
 
-For each group, provide:
-- A clear heading (e.g., "TIME-RELATED ISSUES")
-- A brief summary of the common theme
-- The specific responses that belong to that group
+CRITICAL REQUIREMENT: You MUST generate exactly 1 response for each of the ${eligibleCategories.length} eligible categories listed above. Do not skip any category.
 
-Format your response exactly like this:
+INSTRUCTIONS:
+- Analyze the survey responses and identify the most important expectations
+- ${priority === 'high' ? 'Focus on URGENT issues that need immediate attention (low ratings, critical problems)' : 
+    priority === 'medium' ? 'Focus on MODERATE issues that need attention but are not critical' :
+    priority === 'low' ? 'Focus on areas of GOOD performance that could be improved further' :
+    'Focus on areas that need improvement (low ratings) and common themes'}
+- For each of the ${eligibleCategories.length} eligible categories, generate exactly 1 expectation
+- Assign each expectation to its corresponding category from the eligible categories list
+- Determine priority level (High/Medium/Low) based on rating analysis
+- Reference the original data that led to each summary
+- If a category has no specific survey data, create a general expectation based on the category's purpose
 
-=== TIME-RELATED ISSUES ===
-Summary: [Brief description of the time-related issues found]
-Responses:
-• [Specific response 1]
-• [Specific response 2]
-• [Specific response 3]
+FORMAT: Return exactly ${eligibleCategories.length} expectations, one for each category:
 
-=== SUPPORT & COMMUNICATION ISSUES ===
-Summary: [Brief description of support/communication issues found]
-Responses:
-• [Specific response 1]
-• [Specific response 2]
+SUMMARY: [Clear, actionable expectation for Category 1]
+CATEGORY: [Category 1 Name] (ID: [Category 1 ID])
+PRIORITY: [High/Medium/Low]
+ORIGINAL_DATA: [Brief reference to survey data - e.g., "Based on 15 responses with avg rating 2.8/5"]
 
-[Continue for other groups...]
+---
 
-Keep each point concise and focus on practical, implementable solutions. Group similar responses together to make it easier for managers to review and take action.`;
+SUMMARY: [Clear, actionable expectation for Category 2]
+CATEGORY: [Category 2 Name] (ID: [Category 2 ID])
+PRIORITY: [High/Medium/Low]
+ORIGINAL_DATA: [Brief reference to survey data]
+
+---
+
+[Continue for all ${eligibleCategories.length} categories...]
+
+IMPORTANT: You must return exactly ${eligibleCategories.length} expectations, one for each eligible category. Do not skip any category.`;
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -159,12 +174,13 @@ Keep each point concise and focus on practical, implementable solutions. Group s
       return res.json({ summary: expectations.join("\n") });
     }
     
-    // Clean up and format the response - keep the grouped structure
-    summary = summary.split('\n')
-      .filter(line => line.trim().length > 0) // Keep all non-empty lines to preserve grouping
-      .join('\n');
+    // Parse the structured AI response
+    const parsedResponse = parseStructuredAIResponse(summary, eligibleCategories);
     
-    return res.json({ summary: summary || expectations.join("\n") });
+    return res.json({ 
+      summary: parsedResponse,
+      eligibleCategories: eligibleCategories.map(cat => ({ id: cat._id, name: cat.name }))
+    });
   } catch (error) {
     console.error("AI summarization error:", error?.response?.data || error);
     return res.status(500).json({ message: "Failed to summarize expectations with AI" });
@@ -362,5 +378,124 @@ Focus on actionable insights and specific recommendations.`;
   } catch (error) {
     console.error("Trend analysis error:", error?.response?.data || error);
     return res.status(500).json({ message: "Failed to analyze trends" });
+  }
+}
+
+// Helper function to parse structured AI response
+function parseStructuredAIResponse(aiResponse, eligibleCategories) {
+  try {
+    const lines = aiResponse.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const expectations = [];
+    let currentExpectation = {};
+    
+    for (const line of lines) {
+      if (line.startsWith('SUMMARY:')) {
+        // Save previous expectation if exists
+        if (currentExpectation.summary) {
+          expectations.push(currentExpectation);
+        }
+        // Start new expectation
+        currentExpectation = {
+          summary: line.replace('SUMMARY:', '').trim(),
+          category: '',
+          categoryId: '',
+          priority: '',
+          originalData: ''
+        };
+      } else if (line.startsWith('CATEGORY:')) {
+        const categoryText = line.replace('CATEGORY:', '').trim();
+        // Extract category name and ID
+        const match = categoryText.match(/^(.+?)\s*\(ID:\s*([a-f0-9]{24})\)$/);
+        if (match) {
+          currentExpectation.category = match[1].trim();
+          currentExpectation.categoryId = match[2].trim();
+        } else {
+          currentExpectation.category = categoryText;
+          // Try to find category ID by name
+          const foundCategory = eligibleCategories.find(cat => cat.name === categoryText);
+          if (foundCategory) {
+            currentExpectation.categoryId = foundCategory._id;
+          }
+        }
+      } else if (line.startsWith('PRIORITY:')) {
+        currentExpectation.priority = line.replace('PRIORITY:', '').trim();
+      } else if (line.startsWith('ORIGINAL_DATA:')) {
+        currentExpectation.originalData = line.replace('ORIGINAL_DATA:', '').trim();
+      } else if (line === '---') {
+        // Separator - save current expectation
+        if (currentExpectation.summary) {
+          expectations.push(currentExpectation);
+          currentExpectation = {};
+        }
+      }
+    }
+    
+    // Add the last expectation if exists
+    if (currentExpectation.summary) {
+      expectations.push(currentExpectation);
+    }
+    
+    // Validate that we have exactly one response per category
+    const expectedCount = eligibleCategories.length;
+    const actualCount = expectations.length;
+    
+    if (actualCount < expectedCount) {
+      console.warn(`AI generated only ${actualCount} responses, expected ${expectedCount}. Adding fallback responses for missing categories.`);
+      
+      // Find categories that don't have responses
+      const categoriesWithResponses = new Set(expectations.map(exp => exp.categoryId));
+      const missingCategories = eligibleCategories.filter(cat => !categoriesWithResponses.has(cat._id.toString()));
+      
+      // Add fallback responses for missing categories
+      missingCategories.forEach(cat => {
+        expectations.push({
+          summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
+          category: cat.name,
+          categoryId: cat._id,
+          priority: 'Medium',
+          originalData: 'Generated fallback expectation for category with no specific survey data'
+        });
+      });
+    }
+    
+    // Ensure we don't have duplicates and have exactly the right number
+    const uniqueExpectations = [];
+    const seenCategories = new Set();
+    
+    expectations.forEach(exp => {
+      if (exp.categoryId && !seenCategories.has(exp.categoryId)) {
+        seenCategories.add(exp.categoryId);
+        uniqueExpectations.push(exp);
+      }
+    });
+    
+    // If we still don't have enough, add more fallbacks
+    while (uniqueExpectations.length < expectedCount) {
+      const missingCat = eligibleCategories.find(cat => !seenCategories.has(cat._id.toString()));
+      if (missingCat) {
+        uniqueExpectations.push({
+          summary: `Focus on improving ${missingCat.name.toLowerCase()} processes and outcomes`,
+          category: missingCat.name,
+          categoryId: missingCat._id,
+          priority: 'Medium',
+          originalData: 'Generated fallback expectation to ensure category coverage'
+        });
+        seenCategories.add(missingCat._id.toString());
+      } else {
+        break;
+      }
+    }
+    
+    return uniqueExpectations;
+  } catch (error) {
+    console.error("Error parsing AI response:", error);
+    // Fallback: return one expectation per category
+    return eligibleCategories.map(cat => ({
+      summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
+      category: cat.name,
+      categoryId: cat._id,
+      priority: 'Medium',
+      originalData: 'Based on survey responses (fallback parsing)'
+    }));
   }
 }

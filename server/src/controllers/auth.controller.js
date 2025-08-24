@@ -13,19 +13,20 @@ const msalConfig = {
   },
 }
 
-// Create MSAL application only if credentials are provided
-let msalClient = null;
+// Initialize Azure MSAL client for Microsoft Teams SSO
+let msalClient = null
 try {
-  // Ensure all necessary MSAL config values are present from environment variables
-  if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_TENANT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
-    msalClient = new ConfidentialClientApplication(msalConfig);
-    console.log("Azure MSAL client initialized successfully");
-  } else {
-    console.log("Azure MSAL credentials not provided, Microsoft Teams SSO disabled");
+  if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET && process.env.MICROSOFT_TENANT_ID) {
+    msalClient = new ConfidentialClientApplication({
+      auth: {
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        authority: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}`,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET
+      }
+    })
   }
 } catch (error) {
-  console.log("Failed to initialize Azure MSAL client:", error.message);
-  console.log("Microsoft Teams SSO will be disabled");
+  console.error("Failed to initialize Azure MSAL client:", error.message)
 }
 
 // Helper function to get the correct redirect URI based on environment
@@ -152,32 +153,18 @@ export async function getCurrentUser(req, res) {
 // Get Microsoft Teams login URL
 export async function getMicrosoftLoginUrl(req, res) {
   try {
-    console.log("=== Microsoft Login URL Request ===");
-    console.log("MSAL Client initialized:", !!msalClient);
-    console.log("Environment variables:");
-    console.log("- MICROSOFT_CLIENT_ID:", process.env.MICROSOFT_CLIENT_ID ? "SET" : "NOT SET");
-    console.log("- MICROSOFT_TENANT_ID:", process.env.MICROSOFT_TENANT_ID ? "SET" : "NOT SET");
-    console.log("- MICROSOFT_CLIENT_SECRET:", process.env.MICROSOFT_CLIENT_SECRET ? "SET" : "NOT SET");
-    console.log("- NODE_ENV:", process.env.NODE_ENV);
-    
     if (!msalClient) {
-      console.log("MSAL client not available, returning 503");
       return res.status(503).json({ message: "Microsoft Teams SSO is not configured" });
     }
 
     const redirectUri = getRedirectUri(req)
-    console.log("Generated redirect URI:", redirectUri);
 
     const authCodeUrlParameters = {
       scopes: ["user.read"],
       redirectUri,
     }
 
-    console.log("Auth code URL parameters:", authCodeUrlParameters);
-
     const loginUrl = await msalClient.getAuthCodeUrl(authCodeUrlParameters)
-    console.log("Generated Microsoft login URL:", loginUrl);
-    console.log("=== End Microsoft Login URL Request ===");
 
     return res.json({ loginUrl })
   } catch (error) {
@@ -200,8 +187,6 @@ export async function handleMicrosoftCallback(req, res) {
     if (!code) {
       return res.redirect(`${process.env.CLIENT_URL}/login?error=no_code`)
     }
-
-    console.log("Processing Microsoft callback with redirect URI:", redirectUri)
 
     // Exchange code for token
     const tokenResponse = await msalClient.acquireTokenByCode({

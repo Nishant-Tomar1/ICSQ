@@ -1,7 +1,7 @@
 import { logActivity } from "../utils/logger.js"
 
 /**
- * Middleware to log all API requests and responses
+ * Middleware to log only important API events and errors
  */
 export const requestLogger = (req, res, next) => {
   const startTime = Date.now()
@@ -9,75 +9,60 @@ export const requestLogger = (req, res, next) => {
   // Store original send method
   const originalSend = res.send
   
-  // Override send method to capture response
+  // Override send method to capture only important events
   res.send = function(data) {
     const responseTime = Date.now() - startTime
     
-    // Create a more readable action name
+    // Only log important events, not every API call
+    let shouldLog = false
     let action = 'API_REQUEST'
     const method = req.method
     const path = req.route?.path || req.path
     
-    // Map common endpoints to readable actions
-    if (path.includes('/analytics')) {
-      action = 'ANALYTICS_VIEWED'
-    } else if (path.includes('/department-scores')) {
-      action = 'DEPARTMENT_SCORES_VIEWED'
-    } else if (path.includes('/expectation-data')) {
-      action = 'EXPECTATION_DATA_VIEWED'
-    } else if (path.includes('/surveys')) {
-      if (method === 'GET') action = 'SURVEY_VIEWED'
-      else if (method === 'POST') action = 'SURVEY_CREATED'
-      else if (method === 'PUT') action = 'SURVEY_UPDATED'
-      else if (method === 'DELETE') action = 'SURVEY_DELETED'
-    } else if (path.includes('/sipoc')) {
-      if (method === 'GET') action = 'SIPOC_VIEWED'
-      else if (method === 'POST') action = 'SIPOC_CREATED'
-      else if (method === 'PUT') action = 'SIPOC_UPDATED'
-      else if (method === 'DELETE') action = 'SIPOC_DELETED'
-    } else if (path.includes('/users')) {
-      if (method === 'GET') action = 'USER_VIEWED'
-      else if (method === 'POST') action = 'USER_CREATED'
-      else if (method === 'PUT') action = 'USER_UPDATED'
-      else if (method === 'DELETE') action = 'USER_DELETED'
-    } else if (path.includes('/departments')) {
-      if (method === 'GET') action = 'DEPARTMENT_VIEWED'
-      else if (method === 'POST') action = 'DEPARTMENT_CREATED'
-      else if (method === 'PUT') action = 'DEPARTMENT_UPDATED'
-      else if (method === 'DELETE') action = 'DEPARTMENT_DELETED'
-    } else if (path.includes('/auth')) {
-      // Handle auth endpoints with valid action names
-      if (path.includes('/login')) {
-        action = res.statusCode === 200 ? 'LOGIN' : 'LOGIN_FAILED'
-      } else if (path.includes('/register')) {
-        action = res.statusCode === 201 ? 'REGISTER' : 'REGISTER_FAILED'
-      } else if (path.includes('/logout')) {
-        action = 'LOGOUT'
-      } else {
-        action = 'AUTH_REQUEST'
+    // Log only important operations (CREATE, UPDATE, DELETE)
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+      shouldLog = true
+      
+      // Map common endpoints to readable actions
+      if (path.includes('/surveys')) {
+        if (method === 'POST') action = 'SURVEY_CREATED'
+        else if (method === 'PUT') action = 'SURVEY_UPDATED'
+        else if (method === 'DELETE') action = 'SURVEY_DELETED'
+      } else if (path.includes('/sipoc')) {
+        if (method === 'POST') action = 'SIPOC_CREATED'
+        else if (method === 'PUT') action = 'SIPOC_UPDATED'
+        else if (method === 'DELETE') action = 'SIPOC_DELETED'
+      } else if (path.includes('/users')) {
+        if (method === 'POST') action = 'USER_CREATED'
+        else if (method === 'PUT') action = 'USER_UPDATED'
+        else if (method === 'DELETE') action = 'USER_DELETED'
+      } else if (path.includes('/departments')) {
+        if (method === 'POST') action = 'DEPARTMENT_CREATED'
+        else if (method === 'PUT') action = 'DEPARTMENT_UPDATED'
+        else if (method === 'DELETE') action = 'DEPARTMENT_DELETED'
+      } else if (path.includes('/action-plans')) {
+        if (method === 'POST') action = 'ACTION_PLAN_CREATED'
+        else if (method === 'PUT') action = 'ACTION_PLAN_UPDATED'
+        else if (method === 'DELETE') action = 'ACTION_PLAN_DELETED'
       }
-    } else {
-      // For other endpoints, use a generic API_REQUEST
-      action = 'API_REQUEST'
     }
     
-    // Log the request/response
-    logActivity({
-      action,
-      resourceType: 'SYSTEM',
-      user: req.user,
-      details: {
-        method: req.method,
-        path: req.originalUrl || req.url,
-        statusCode: res.statusCode,
-        responseSize: data ? JSON.stringify(data).length : 0,
-        query: req.query,
-        body: req.method !== 'GET' ? req.body : undefined
-      },
-      request: req,
-      status: res.statusCode < 400 ? 'SUCCESS' : 'FAILURE',
-      responseTime
-    })
+    // Log only if it's an important event or if there's an error
+    if (shouldLog || res.statusCode >= 400) {
+      logActivity({
+        action,
+        resourceType: 'SYSTEM',
+        user: req.user,
+        details: {
+          method: req.method,
+          path: req.originalUrl || req.url,
+          statusCode: res.statusCode,
+          responseTime
+        },
+        request: req,
+        status: res.statusCode < 400 ? 'SUCCESS' : 'FAILURE'
+      })
+    }
     
     // Call original send method
     return originalSend.call(this, data)
@@ -156,7 +141,7 @@ export const authLogger = (req, res, next) => {
 }
 
 /**
- * Error logging middleware
+ * Error logging middleware - keep this for error tracking
  */
 export const errorLogger = (error, req, res, next) => {
   // Log the error
@@ -179,41 +164,4 @@ export const errorLogger = (error, req, res, next) => {
   next(error)
 }
 
-/**
- * Performance monitoring middleware
- */
-export const performanceLogger = (req, res, next) => {
-  const startTime = process.hrtime()
-  
-  // Store original send method
-  const originalSend = res.send
-  
-  // Override send method to capture performance data
-  res.send = function(data) {
-    const [seconds, nanoseconds] = process.hrtime(startTime)
-    const responseTime = (seconds * 1000) + (nanoseconds / 1000000) // Convert to milliseconds
-    
-    // Log slow requests (over 1 second)
-    if (responseTime > 1000) {
-      logActivity({
-        action: 'SLOW_REQUEST',
-        resourceType: 'SYSTEM',
-        user: req.user,
-        details: {
-          method: req.method,
-          path: req.originalUrl || req.url,
-          responseTime: Math.round(responseTime),
-          statusCode: res.statusCode
-        },
-        request: req,
-        status: 'SUCCESS',
-        responseTime: Math.round(responseTime)
-      })
-    }
-    
-    // Call original send method
-    return originalSend.call(this, data)
-  }
-  
-  next()
-} 
+// Removed performanceLogger middleware as it was logging too many events 

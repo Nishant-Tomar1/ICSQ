@@ -2,7 +2,7 @@ import { Log } from "../models/Log.model.js"
 import { Department } from "../models/Department.model.js"
 
 /**
- * Log an activity in the system
+ * Log an activity in the system - simplified version
  * @param {Object} logData - The log data object
  * @param {string} logData.action - The action performed
  * @param {string} logData.resourceType - Type of resource (USER, SURVEY, SIPOC, etc.)
@@ -30,20 +30,16 @@ export async function logActivity(logData) {
       responseTime = null
     } = logData
 
-    // Get IP address and user agent from request
+    // Get minimal IP address and user agent from request
     let ipAddress = null
     let userAgent = null
-    let requestMethod = null
-    let requestUrl = null
 
     if (request) {
       ipAddress = request.ip || request.connection?.remoteAddress || request.headers['x-forwarded-for']
       userAgent = request.headers['user-agent']
-      requestMethod = request.method
-      requestUrl = request.originalUrl || request.url
     }
 
-    // Prepare log entry
+    // Prepare simplified log entry - only essential fields
     const logEntry = {
       action,
       resourceType,
@@ -52,13 +48,10 @@ export async function logActivity(logData) {
       errorMessage,
       responseTime,
       ipAddress,
-      userAgent,
-      requestMethod,
-      requestUrl,
-      details
+      userAgent
     }
 
-    // Add user information if available
+    // Add user information if available (only essential fields)
     if (user) {
       logEntry.userId = user._id
       logEntry.userEmail = user.email
@@ -71,11 +64,21 @@ export async function logActivity(logData) {
       logEntry.departmentName = department.name
     }
 
+    // Add only essential details (remove verbose request data)
+    if (Object.keys(details).length > 0) {
+      logEntry.details = details
+    }
+
     // Create and save the log entry
     const log = new Log(logEntry)
     await log.save()
 
-    console.log(`[LOG] ${action} - ${resourceType}${resourceId ? ` (${resourceId})` : ''} - ${status}`)
+    // Simplified console logging
+    if (status === 'FAILURE') {
+      console.error(`[ERROR] ${action} - ${resourceType}${resourceId ? ` (${resourceId})` : ''} - ${errorMessage || 'Unknown error'}`)
+    } else {
+      console.log(`[LOG] ${action} - ${resourceType}${resourceId ? ` (${resourceId})` : ''} - ${status}`)
+    }
   } catch (error) {
     console.error('Error logging activity:', error)
     // Don't throw error to avoid breaking the main functionality

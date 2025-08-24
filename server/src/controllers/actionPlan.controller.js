@@ -84,7 +84,6 @@ export async function createActionPlan(req, res) {
       if (assignedUser) {
         const assignedByUser = await User.findById(req.user._id).select('name email')
         await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
-        console.log(`Email notification sent to ${assignedUser.email} for action plan assignment`)
       }
     } catch (emailError) {
       console.error("Error sending email notification:", emailError)
@@ -143,7 +142,6 @@ export async function updateActionPlan(req, res) {
         if (assignedUser) {
           const assignedByUser = await User.findById(req.user._id).select('name email')
           await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
-          console.log(`Email notification sent to ${assignedUser.email} for action plan reassignment`)
         }
       } catch (emailError) {
         console.error("Error sending email notification for reassignment:", emailError)

@@ -9,7 +9,7 @@ import express from 'express'
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import bodyParser from 'body-parser';
-import { requestLogger, authLogger, errorLogger, performanceLogger } from "./middleware/logging.middleware.js"
+import { requestLogger, authLogger, errorLogger } from "./middleware/logging.middleware.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -61,7 +61,6 @@ app.use(express.static(path.join(__dirname, '../public')))
 // Add logging middleware
 app.use(requestLogger)
 app.use(authLogger)
-app.use(performanceLogger)
 
 app.get('/', ( _ , res) => {
   res.send("Server Working Successfully!");

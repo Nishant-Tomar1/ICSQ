@@ -211,7 +211,6 @@ export async function getSurveyAnalytics(req, res) {
     // Log the analytics view
     await logSurveyEvent('SURVEY_ANALYTICS_VIEWED', { count: surveys.length }, req.user, req, 'SUCCESS')
 
-    console.log("Survey analytics response:", surveys);
     return res.json(surveys);
   } catch (error) {
     console.error("Error fetching survey analytics:", error);
