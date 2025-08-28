@@ -98,13 +98,43 @@ export async function summarizeExpectationsAI(req, res) {
       ]
     }).lean();
     
-    // Enhanced prompt for structured AI response
+    // Create category-specific expectations for better analysis
+    const categoryExpectations = {};
+    const categoryRatings = {};
+    
+    // Group expectations by category
+    if (category) {
+      // Single category mode
+      categoryExpectations[category] = expectations;
+      categoryRatings[category] = ratings;
+    } else {
+      // Multi-category mode - group by category
+      for (const survey of surveys) {
+        for (const catKey in survey.responses) {
+          const resp = survey.responses[catKey];
+          if (resp && resp.expectations && typeof resp.expectations === 'string') {
+            if (!categoryExpectations[catKey]) {
+              categoryExpectations[catKey] = [];
+              categoryRatings[catKey] = [];
+            }
+            categoryExpectations[catKey].push(resp.expectations.trim());
+            if (resp.rating) categoryRatings[catKey].push(resp.rating);
+          }
+        }
+      }
+    }
+
+    // Enhanced prompt for structured AI response with category-specific data
     const prompt = `Analyze these department expectations and provide structured responses with category assignments and priority analysis.
 
-EXPECTATIONS DATA:
-${expectations.join("\n")}
+CATEGORY-SPECIFIC EXPECTATIONS DATA:
+${Object.entries(categoryExpectations).map(([catKey, catExpectations]) => {
+  const catRatings = categoryRatings[catKey] || [];
+  const avgCatRating = catRatings.length > 0 ? (catRatings.reduce((a, b) => a + b, 0) / catRatings.length).toFixed(1) : 'N/A';
+  return `\n=== ${catKey.toUpperCase()} ===\nAverage Rating: ${avgCatRating}/5 (based on ${catRatings.length} responses)\nSurvey Responses:\n${catExpectations.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}`;
+}).join('\n\n')}
 
-AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
+OVERALL AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
 
 ELIGIBLE CATEGORIES (use these exact names and IDs):
 ${eligibleCategories.map(cat => `${cat.name} (ID: ${cat._id})`).join('\n')}
@@ -114,7 +144,7 @@ PRIORITY FOCUS: ${priority || 'all'}
 CRITICAL REQUIREMENT: You MUST generate exactly 1 response for each of the ${eligibleCategories.length} eligible categories listed above. Do not skip any category.
 
 INSTRUCTIONS:
-- Analyze the survey responses and identify the most important expectations
+- Analyze the survey responses and identify the most important expectations for each category
 - ${priority === 'high' ? 'Focus on URGENT issues that need immediate attention (low ratings, critical problems)' : 
     priority === 'medium' ? 'Focus on MODERATE issues that need attention but are not critical' :
     priority === 'low' ? 'Focus on areas of GOOD performance that could be improved further' :
@@ -122,7 +152,8 @@ INSTRUCTIONS:
 - For each of the ${eligibleCategories.length} eligible categories, generate exactly 1 expectation
 - Assign each expectation to its corresponding category from the eligible categories list
 - Determine priority level (High/Medium/Low) based on rating analysis
-- Reference the original data that led to each summary
+- CRITICAL: In SOURCE_RESPONSES, include ALL survey responses listed under each category above - copy every single response verbatim from the category-specific data provided
+- Generate 3-5 specific, actionable recommendations in RECOMMENDED_ACTIONS for each category
 - If a category has no specific survey data, create a general expectation based on the category's purpose
 
 FORMAT: Return exactly ${eligibleCategories.length} expectations, one for each category:
@@ -131,6 +162,8 @@ SUMMARY: [Clear, actionable expectation for Category 1]
 CATEGORY: [Category 1 Name] (ID: [Category 1 ID])
 PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data - e.g., "Based on 15 responses with avg rating 2.8/5"]
+SOURCE_RESPONSES: [Complete list of all survey responses from this category - include every single response that contributed to this action plan]
+RECOMMENDED_ACTIONS: ["Specific action 1", "Specific action 2", "Specific action 3", "Specific action 4"]
 
 ---
 
@@ -138,6 +171,8 @@ SUMMARY: [Clear, actionable expectation for Category 2]
 CATEGORY: [Category 2 Name] (ID: [Category 2 ID])
 PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data]
+SOURCE_RESPONSES: [Complete list of all survey responses from this category - include every single response that contributed to this action plan]
+RECOMMENDED_ACTIONS: ["Specific action 1", "Specific action 2", "Specific action 3", "Specific action 4"]
 
 ---
 
@@ -400,7 +435,9 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
           category: '',
           categoryId: '',
           priority: '',
-          originalData: ''
+          originalData: '',
+          sourceResponses: [],
+          recommendedActions: []
         };
       } else if (line.startsWith('CATEGORY:')) {
         const categoryText = line.replace('CATEGORY:', '').trim();
@@ -421,6 +458,30 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
         currentExpectation.priority = line.replace('PRIORITY:', '').trim();
       } else if (line.startsWith('ORIGINAL_DATA:')) {
         currentExpectation.originalData = line.replace('ORIGINAL_DATA:', '').trim();
+      } else if (line.startsWith('SOURCE_RESPONSES:')) {
+        const responseText = line.replace('SOURCE_RESPONSES:', '').trim();
+        // Parse the array format ["quote1", "quote2"]
+        try {
+          const parsed = JSON.parse(responseText);
+          if (Array.isArray(parsed)) {
+            currentExpectation.sourceResponses = parsed;
+          }
+        } catch (e) {
+          // Fallback: if not valid JSON, treat as single response
+          currentExpectation.sourceResponses = [responseText];
+        }
+      } else if (line.startsWith('RECOMMENDED_ACTIONS:')) {
+        const actionsText = line.replace('RECOMMENDED_ACTIONS:', '').trim();
+        // Parse the array format ["action1", "action2", "action3"]
+        try {
+          const parsed = JSON.parse(actionsText);
+          if (Array.isArray(parsed)) {
+            currentExpectation.recommendedActions = parsed;
+          }
+        } catch (e) {
+          // Fallback: if not valid JSON, treat as single action
+          currentExpectation.recommendedActions = [actionsText];
+        }
       } else if (line === '---') {
         // Separator - save current expectation
         if (currentExpectation.summary) {
@@ -453,7 +514,9 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
           category: cat.name,
           categoryId: cat._id,
           priority: 'Medium',
-          originalData: 'Generated fallback expectation for category with no specific survey data'
+          originalData: 'Generated fallback expectation for category with no specific survey data',
+          sourceResponses: [`Need to improve in this area of ${cat.name.toLowerCase()}`, `This is an area that requires focused attention for improvement`],
+          recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
         });
       });
     }
@@ -478,7 +541,9 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
           category: missingCat.name,
           categoryId: missingCat._id,
           priority: 'Medium',
-          originalData: 'Generated fallback expectation to ensure category coverage'
+          originalData: 'Generated fallback expectation to ensure category coverage',
+          sourceResponses: [`Need to improve in this area of ${missingCat.name.toLowerCase()}`, `This is an area that requires focused attention for improvement`],
+          recommendedActions: [`Conduct regular team meetings to address ${missingCat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
         });
         seenCategories.add(missingCat._id.toString());
       } else {
@@ -495,7 +560,9 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
       category: cat.name,
       categoryId: cat._id,
       priority: 'Medium',
-      originalData: 'Based on survey responses (fallback parsing)'
+      originalData: 'Based on survey responses (fallback parsing)',
+      sourceResponses: [`Need to improve in this area of ${cat.name.toLowerCase()}`, `This is an area that requires focused attention for improvement`],
+      recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
     }));
   }
 }

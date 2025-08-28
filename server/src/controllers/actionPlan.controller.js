@@ -97,7 +97,7 @@ export async function createActionPlan(req, res) {
   }
 }
 
-// Update an action plan (HOD or admin)
+// Update an action plan (admin, HOD or assigned user)
 export async function updateActionPlan(req, res) {
   try {
     const { department, category, expectations, actions, instructions, assignedTo, targetDate, status } = req.body
@@ -180,13 +180,34 @@ export async function updateActionPlanStatus(req, res) {
   }
 }
 
-// Delete an action plan (admin only)
+// Delete an action plan (admin or HOD)
 export async function deleteActionPlan(req, res) {
   try {
     const plan = await ActionPlan.findById(req.params.id)
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
     }
+
+    // Authorization: allow admins to delete any action plan, HODs can only delete plans from their current department
+    const isAdmin = req.user.role === 'admin';
+    const isHOD = req.user.role === 'hod';
+    
+    if (!isAdmin && !isHOD) {
+      return res.status(403).json({ message: "Access denied (Only Admins and HODs are permitted)" })
+    }
+    
+    // If user is HOD (not admin), check if the action plan belongs to their current department
+    if (isHOD && !isAdmin) {
+      const hodCurrentDepartment = req.user.currentDepartment;
+      if (!hodCurrentDepartment) {
+        return res.status(400).json({ message: "No current department found for HOD" })
+      }
+      
+      if (String(plan.department) !== String(hodCurrentDepartment)) {
+        return res.status(403).json({ message: "Access denied (HOD can only delete action plans from their current department)" })
+      }
+    }
+
     await plan.deleteOne()
     return res.json({ message: "Action plan deleted successfully" })
   } catch (error) {

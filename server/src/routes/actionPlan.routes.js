@@ -28,8 +28,8 @@ router.post("/", requireHOD, createActionPlan)
 router.put("/:id", updateActionPlan)
 // User updates status of their assigned action plan
 router.patch("/:id/status", updateActionPlanStatus)
-// Delete an action plan (admin only)
-router.delete("/:id", requireAdmin, deleteActionPlan)
+// Delete an action plan (admin or HOD)
+router.delete("/:id", requireHOD, deleteActionPlan)
 
 // Test email configuration (admin only)
 router.get("/test-email", requireAdmin, testEmailConfig)

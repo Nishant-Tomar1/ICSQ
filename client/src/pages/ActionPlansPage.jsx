@@ -70,7 +70,7 @@ function ExpectationsTable({ data, categoryName }) {
                     : "bg-[#232026]/40 hover:bg-[#232026]/60"
                 }
               >
-                <td className="p-2 border-b border-muted-foreground/20 text-[#FFF8E7]">{capitalizeFirstLetter(dept.name)}</td>
+                <td className="p-2 border-b border-muted-foreground/20 text-[#FFF8E7]">{dept.name?.toUpperCase()}</td>
                 <td className="p-2 border-b border-muted-foreground/20 text-[#FFF8E7]">{user.name}</td>
                 <td className="p-2 border-b border-muted-foreground/20 text-[#FFF8E7]">
                   <ul className="list-disc list-inside">
@@ -170,7 +170,7 @@ function AllExpectationsTable({ data, onAssign, ratingFilter, currentDepartment 
                 <tbody className="divide-y divide-white/5">
                   {items.map((e, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
-                      <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.department)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-200 font-medium">{e.department?.toUpperCase()}</td>
                       <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.category)}</td>
                       {/* <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td> */}
                       <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={e.expectation}>
@@ -282,7 +282,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
                 <tbody className="divide-y divide-white/5">
                   {items.map((e, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
-                      <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.department)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-200 font-medium">{e.department?.toUpperCase()}</td>
                       {/* <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td> */}
                       <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={e.expectation}>{e.expectation?.length > 20 ? (e.expectation.substring(0, 20) + "...") : e.expectation}</td>
                       <td className="px-4 py-3 text-sm">
@@ -616,6 +616,7 @@ function ActionPlansPage() {
   const [aiGeneratedPlans, setAiGeneratedPlans] = useState([]);
   const [aiAnalysisScope, setAiAnalysisScope] = useState("all");
   const [aiPriorityFocus, setAiPriorityFocus] = useState("all");
+  const [aiEmptyReason, setAiEmptyReason] = useState(null); // "no_expectations" | "all_assigned" | null
   
   // AI Plan Editing state variables
   const [editingPlan, setEditingPlan] = useState(null);
@@ -861,11 +862,36 @@ function ActionPlansPage() {
   const handleAssignAllSummaryFormChange = (field, value) => {
     setAssignAllSummaryForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Handle delete action plan
+  const handleDeleteActionPlan = async (plan) => {
+    if (window.confirm(`Are you sure you want to delete this action plan?\n\nExpectations: ${plan.expectations}\nAssigned to: ${plan.assignedTo?.name}\n\nThis action cannot be undone.`)) {
+      setIsSubmitting(true);
+      try {
+        await axios.delete(`${Server}/action-plans/${plan._id}`, { withCredentials: true });
+        fetchData(); // Refresh the action plans list
+        toast({ 
+          title: "Success", 
+          description: "Action plan deleted successfully", 
+          variant: "success" 
+        });
+      } catch (error) {
+        console.error('Error deleting action plan:', error);
+        toast({ 
+          title: "Error", 
+          description: "Failed to delete action plan", 
+          variant: "destructive" 
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
   // Handle create action plan submit
   const handleCreateActionPlan = async (e) => {
     e.preventDefault();
-    if (!createForm.expectations.trim()) {
-      toast({ title: "Error", description: "Expectations are required.", variant: "destructive" });
+    if (!createForm.instructions.trim()) {
+      toast({ title: "Error", description: "Instructions are required.", variant: "destructive" });
       return;
     }
     if (!selectedCategoryForForm.trim()) {
@@ -895,7 +921,7 @@ function ActionPlansPage() {
         {
           departmentId: getCurrentDepartment()?._id,
           categoryId: existingCategory?._id || selectedCategoryForForm,
-          expectations: createForm.expectations,
+          expectations: createForm.instructions, // Use instructions as expectations since we removed the expectations field
           instructions: createForm.instructions,
             assignedTo: userId,
           targetDate: createForm.targetDate,
@@ -1404,103 +1430,189 @@ function ActionPlansPage() {
     return (
       <div className="bg-[#29252c]">
         <DashboardHeader title="My Action Plans" />
-        <Card className="m-4">
-          <CardHeader>
-            <CardTitle className="text-center mt-2">ACTION PLANS ASSIGNED TO ME</CardTitle>
+        <Card className="m-4 bg-gradient-to-br from-[#29252c]/90 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+          <CardHeader className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                <div className="w-2 h-8 bg-gradient-to-b from-orange-500 to-amber-500 rounded-full shadow-lg"></div>
+                Action Plans Assigned to Me
+              </CardTitle>
+              <div className="text-sm text-slate-300 bg-orange-500/20 px-3 py-1 rounded-full border border-orange-400/30">
+                {filteredPlans.length} Plans
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 text-sm text-blue-300">
+              <span>👆</span>
+              <span>Scroll horizontally to view all columns</span>
+              <div className="flex gap-1 ml-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-blue-400/60 rounded-full animate-pulse delay-75"></div>
+                <div className="w-2 h-2 bg-blue-400/40 rounded-full animate-pulse delay-150"></div>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <Table className="border-2 border-[#83725E] [&_td]:border-r [&_td]:border-[#83725E]/30 [&_th]:border-r [&_th]:border-[#83725E]/30">
-              <TableHeader className="bg-[#93725E]">
-                <TableRow>
-                  <TableHead className="w-[120px] font-semibold text-slate-800">Department</TableHead>
-                  <TableHead className="w-[120px] font-semibold text-slate-800">Category</TableHead>
-                  <TableHead className="w-[220px] font-semibold text-slate-800">Expectations</TableHead>
-                  <TableHead className="w-[180px] font-semibold text-slate-800">Instructions</TableHead>
-                  <TableHead className="w-[160px] font-semibold text-slate-800">Target Date</TableHead>
-                  <TableHead className="w-[120px] font-semibold text-slate-800">Status</TableHead>
-                  <TableHead className="w-[140px] font-semibold text-slate-800">Update Status</TableHead>
-                  <TableHead className="w-[100px] font-semibold text-slate-800 border-r-0">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPlans
-                  .sort((a, b) => {
-                    const statusOrder = { pending: 0, "in-progress": 1, completed: 2 };
-                    return statusOrder[a.status] - statusOrder[b.status];
-                  })
-                  .map((plan) => (
-                  <TableRow key={plan._id}>
-                      <TableCell 
-                        className="max-w-[120px] truncate" 
-                        title={plan.department?.name ? capitalizeFirstLetter(plan.department.name) : ''}
+          <CardContent className="p-0">
+            <div className="relative">
+              {/* Left scroll indicator */}
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div>
+              {/* Right scroll indicator */}
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-900/80 to-transparent z-10 pointer-events-none flex items-center justify-center">
+                <div className="text-blue-400 text-xs animate-bounce">→</div>
+              </div>
+              
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                <Table className="min-w-[1200px] border-separate border-spacing-0">
+                  <TableHeader className="bg-gradient-to-r from-gray-800 to-gray-900 sticky top-0 z-5">
+                    <TableRow>
+                      <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Department
+                      </TableHead>
+                      <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Category
+                      </TableHead>
+                      <TableHead className="w-[280px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Expectations
+                      </TableHead>
+                      <TableHead className="w-[220px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Instructions
+                      </TableHead>
+                      <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Target Date
+                      </TableHead>
+                      <TableHead className="w-[120px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Status
+                      </TableHead>
+                      <TableHead className="w-[160px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Update Status
+                      </TableHead>
+                      <TableHead className="w-[160px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 px-4 py-4 text-center">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlans
+                      .sort((a, b) => {
+                        const statusOrder = { pending: 0, "in-progress": 1, completed: 2 };
+                        return statusOrder[a.status] - statusOrder[b.status];
+                      })
+                      .map((plan, index) => (
+                      <TableRow 
+                        key={plan._id}
+                        className={`${index % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-900/40'} hover:bg-blue-600/20 transition-all duration-200 border-b border-gray-700/30`}
                       >
-                        {capitalizeFirstLetter(plan.department?.name)}
-                      </TableCell>
-                      <TableCell 
-                        className="max-w-[120px] truncate" 
-                        title={plan.category?.name ? capitalizeFirstLetter(plan.category.name) : ''}
-                      >
-                        {capitalizeFirstLetter(plan.category?.name)}
-                      </TableCell>
-                      <TableCell 
-                        className="max-w-[220px] truncate" 
-                        title={plan.expectations}
-                      >
-                        {plan.expectations}
-                      </TableCell>
-                      <TableCell 
-                        className="max-w-[180px] truncate" 
-                        title={plan.instructions}
-                      >
-                        {plan.instructions}
-                      </TableCell>
-                      <TableCell 
-                        className="max-w-[120px] truncate"
-                          title={new Date(plan.targetDate).toLocaleDateString('en-GB')}
-                        >
-                          {new Date(plan.targetDate).toLocaleDateString('en-GB')}
-                      </TableCell>
-                      <TableCell 
-                        className="max-w-[120px]"
-                        title={plan.status}
-                      >
-                        {getStatusBadge(plan.status)}
-                      </TableCell>
-                      <TableCell className="max-w-[170px]">
-                      <Select
-                        value={plan.status}
-                        onValueChange={async (value) => {
-                          setIsSubmitting(true);
-                          try {
-                            await axios.patch(`${Server}/action-plans/${plan._id}/status`, { status: value }, { withCredentials: true });
-                            fetchData();
-                            toast({ title: "Success", description: "Status updated successfully", variant: "success" });
-                          } catch (e) {
-                            toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
-                          } finally {
-                            setIsSubmitting(false);
-                          }
-                        }}
-                        options={statusOptions.filter(opt => opt.value !== "all")}
-                          className="h-8 text-xs"
-                        disabled={isSubmitting}
-                      />
-                    </TableCell>
-                      <TableCell className="max-w-[100px] border-r-0">
-                      <Button size="sm" variant="primary" onClick={() => openActionModal(plan)}>
-                        {plan.actions ? "Edit Actions" : "Add Actions"}
-                      </Button>
-                    </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30 text-center" 
+                            title={plan.department?.name ? capitalizeFirstLetter(plan.department.name) : ''}
+                          >
+                            <span className="text-white font-medium text-sm">
+                              {capitalizeFirstLetter(plan.department?.name)}
+                            </span>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30 text-center" 
+                            title={plan.category?.name ? capitalizeFirstLetter(plan.category.name) : ''}
+                          >
+                            <span className="text-white font-medium text-sm">
+                              {capitalizeFirstLetter(plan.category?.name)}
+                            </span>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30" 
+                            title={plan.expectations}
+                          >
+                            <div className="text-slate-200 text-sm leading-relaxed max-w-[260px] overflow-hidden">
+                              <span className="line-clamp-2">{plan.expectations}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30" 
+                            title={plan.instructions}
+                          >
+                            <div className="text-slate-300 text-sm leading-relaxed max-w-[200px] overflow-hidden">
+                              <span className="line-clamp-2">{plan.instructions}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30 text-center"
+                              title={new Date(plan.targetDate).toLocaleDateString('en-GB')}
+                            >
+                            <span className="text-white font-medium text-sm">
+                              {new Date(plan.targetDate).toLocaleDateString('en-GB')}
+                            </span>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30 text-center"
+                            title={plan.status}
+                          >
+                            <div className="flex justify-center">
+                              {getStatusBadge(plan.status)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-4 border-r border-gray-700/30">
+                            <div className="flex justify-center">
+                              <Select
+                                value={plan.status}
+                                onValueChange={async (value) => {
+                                  setIsSubmitting(true);
+                                  try {
+                                    await axios.patch(`${Server}/action-plans/${plan._id}/status`, { status: value }, { withCredentials: true });
+                                    fetchData();
+                                    toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                                  } catch (e) {
+                                    toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                                  } finally {
+                                    setIsSubmitting(false);
+                                  }
+                                }}
+                                options={statusOptions.filter(opt => opt.value !== "all")}
+                                className="h-9 text-xs bg-gray-700/50 border-gray-600"
+                                disabled={isSubmitting}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-4">
+                            <div className="flex gap-2 justify-center">
+                              <Button 
+                                size="sm" 
+                                variant="primary" 
+                                onClick={() => openActionModal(plan)}
+                                className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-2"
+                              >
+                                {plan.actions ? "Edit" : "Add"}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                onClick={() => handleDeleteActionPlan(plan)}
+                                disabled={isSubmitting}
+                                className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-2"
+                                title="Delete Action Plan"
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </TableCell>
                   </TableRow>
                 ))}
-                {filteredPlans.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4 border-r-0">No action plans assigned to you.</TableCell>
-                  </TableRow>
-                )}
-                
-              </TableBody>
-            </Table>
+                    {filteredPlans.length === 0 && (
+                      <TableRow className="bg-gray-800/20">
+                        <TableCell colSpan={8} className="text-center py-12">
+                          <div className="flex flex-col items-center gap-4">
+                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center">
+                              <span className="text-3xl">📋</span>
+                            </div>
+                            <div className="text-slate-300 text-lg font-medium">No action plans assigned to you</div>
+                            <div className="text-slate-400 text-sm">Check back later or contact your supervisor</div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
         {/* Modal for adding/updating actions */}
@@ -1665,11 +1777,55 @@ function ActionPlansPage() {
   //   );
   // }
 
+  // Helper function to check if expectations already have action plans assigned
+  const checkExistingActionPlans = (generatedPlans) => {
+    console.log('Checking for existing action plans...');
+    console.log('Current action plans:', actionPlans);
+    console.log('Generated plans to check:', generatedPlans);
+    
+    if (!actionPlans || actionPlans.length === 0) {
+      console.log('No existing action plans found, returning all generated plans');
+      return generatedPlans;
+    }
+    
+    const filteredPlans = generatedPlans.filter(plan => {
+      // Check if any existing action plan has similar expectations/instructions
+      const hasExistingPlan = actionPlans.some(existingPlan => {
+        // Check if the category matches
+        const categoryMatch = plan.category && existingPlan.category && 
+          plan.category.toLowerCase().includes(existingPlan.category.toLowerCase()) ||
+          existingPlan.category.toLowerCase().includes(plan.category.toLowerCase());
+        
+        // Check if the summary/expectations are similar
+        const summaryMatch = plan.summary && existingPlan.expectations &&
+          (plan.summary.toLowerCase().includes(existingPlan.expectations.toLowerCase()) ||
+           existingPlan.expectations.toLowerCase().includes(plan.summary.toLowerCase()));
+        
+        // Check if the instructions are similar
+        const instructionsMatch = plan.summary && existingPlan.instructions &&
+          (plan.summary.toLowerCase().includes(existingPlan.instructions.toLowerCase()) ||
+           existingPlan.instructions.toLowerCase().includes(plan.summary.toLowerCase()));
+        
+        const isMatch = categoryMatch && (summaryMatch || instructionsMatch);
+        if (isMatch) {
+          console.log(`Filtering out plan "${plan.summary}" - matches existing plan "${existingPlan.expectations}"`);
+        }
+        return isMatch;
+      });
+      
+      return !hasExistingPlan;
+    });
+    
+    console.log(`Filtered ${generatedPlans.length - filteredPlans.length} plans that already have action plans assigned`);
+    return filteredPlans;
+  };
+
   // AI Action Plans Functions
   const handleGenerateAIActionPlans = async () => {
     setIsGeneratingAI(true);
     setAiProgress(0);
     setAiGeneratedPlans([]);
+    setAiEmptyReason(null);
     
     try {
       // Simulate progress
@@ -1703,13 +1859,39 @@ function ActionPlansPage() {
       
       const generatedPlans = await processAIResponse(aiSummary);
       console.log('Generated Plans:', generatedPlans);
-      setAiGeneratedPlans(generatedPlans);
+      
+      // Filter out plans that already have action plans assigned
+      const filteredPlans = checkExistingActionPlans(generatedPlans);
+      console.log('Filtered Plans:', filteredPlans);
+      setAiGeneratedPlans(filteredPlans);
 
-      toast({ 
-        title: "Success", 
-        description: `Generated ${generatedPlans.length} summarized expectations`, 
-        variant: "success" 
-      });
+      const skippedCount = generatedPlans.length - filteredPlans.length;
+      
+      if (filteredPlans.length === 0 && generatedPlans.length > 0) {
+        // All expectations are already assigned
+        setAiEmptyReason("all_assigned");
+        toast({ 
+          title: "All Expectations Already Assigned", 
+          description: `All ${generatedPlans.length} expectations from this analysis already have action plans assigned to team members. No new summaries to display.`, 
+          variant: "default" 
+        });
+      } else if (filteredPlans.length === 0 && generatedPlans.length === 0) {
+        // No expectations found at all
+        setAiEmptyReason("no_expectations");
+        toast({ 
+          title: "No Expectations Found", 
+          description: "No expectations were found in the survey data for the selected priority focus.", 
+          variant: "default" 
+        });
+      } else {
+        // Normal case with some new expectations
+        setAiEmptyReason(null);
+        toast({ 
+          title: "Success", 
+          description: `Generated ${filteredPlans.length} new summarized expectations${skippedCount > 0 ? ` (${skippedCount} skipped - already assigned)` : ''}`, 
+          variant: "success" 
+        });
+      }
 
     } catch (error) {
       console.error('Error generating AI summaries:', error);
@@ -1736,7 +1918,9 @@ function ActionPlansPage() {
         category: item.category || 'General',
         categoryId: item.categoryId || '',
         priority: item.priority || 'Medium',
-        originalData: item.originalData || 'Based on survey responses'
+        originalData: item.originalData || 'Based on survey responses',
+        recommendedActions: item.recommendedActions || [],
+        sourceResponses: item.sourceResponses || []
       }));
     }
 
@@ -1774,7 +1958,9 @@ function ActionPlansPage() {
             category: 'General',
             categoryId: '',
             priority: 'Medium',
-            originalData: 'Based on survey responses'
+            originalData: 'Based on survey responses',
+            recommendedActions: [],
+            sourceResponses: []
           });
         }
       });
@@ -1799,19 +1985,38 @@ function ActionPlansPage() {
       category: 'General',
       categoryId: '',
       priority: 'Medium',
-      originalData: 'Based on survey responses'
+      originalData: 'Based on survey responses',
+      recommendedActions: [],
+      sourceResponses: []
     }];
   };
+
+
+
+
 
 
 
   const handleAssignFromAI = async (aiPlan) => {
     console.log('handleAssignFromAI called with:', aiPlan);
     try {
+      // Build instructions with recommended actions only
+      let instructions = '';
+      
+      if (aiPlan.recommendedActions && aiPlan.recommendedActions.length > 0) {
+        instructions = 'Recommended Actions:\n';
+        aiPlan.recommendedActions.forEach((action, index) => {
+          instructions += `${index + 1}. ${action}\n`;
+        });
+      } else {
+        // Fallback to summary if no recommended actions
+        instructions = aiPlan.summary;
+      }
+      
       // Pre-fill the create form with AI-generated content for assignment
       setCreateForm({
-        expectations: aiPlan.summary,
-        instructions: `AI Generated Summary: ${aiPlan.summary}`,
+        expectations: '', // Remove expectations since they're shown in instructions
+        instructions: instructions,
         assignedTo: [], // Initialize as empty array for multiple user selection
         targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
         status: 'pending',
@@ -1864,7 +2069,10 @@ function ActionPlansPage() {
       // Open edit modal with current plan data
       setAiPlanEditModalOpen(true);
       setEditingPlanIndex(index);
-      setEditingPlan({ ...aiPlan });
+      setEditingPlan({ 
+        ...aiPlan,
+        recommendedActions: aiPlan.recommendedActions || []
+      });
 
       toast({ 
         title: "Edit Mode", 
@@ -1889,9 +2097,7 @@ function ActionPlansPage() {
       updatedPlans[editingPlanIndex] = {
         ...updatedPlans[editingPlanIndex],
         summary: editedPlan.summary,
-        category: editedPlan.category,
-        priority: editedPlan.priority,
-        originalData: editedPlan.originalData
+        priority: editedPlan.priority
       };
       
       setAiGeneratedPlans(updatedPlans);
@@ -2223,95 +2429,157 @@ function ActionPlansPage() {
         {activeTab === "overview" && currentUser.role === "hod" && (
           <div className="px-6 py-6">
             <div className="max-w-7xl mx-auto">
-              <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-2xl">
-                <CardHeader className="border-b border-gray-700">
-                  <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
-                    <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
-                    Action Plans Assigned by You ({getCurrentDepartment()?.name || 'Current Department'})
-                    <Badge variant="secondary" className="ml-auto bg-[goldenrod]/20 text-gray-600 border-[goldenrod]/30">
+              <Card className="bg-gradient-to-br from-[#29252c]/90 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+                <CardHeader className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                      <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full shadow-lg"></div>
+                      Action Plans Assigned by You ({getCurrentDepartment()?.name || 'Current Department'})
+                    </CardTitle>
+                    <div className="text-sm text-slate-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-400/30">
                       {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length} Plans
-                    </Badge>
-                  </CardTitle>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 text-sm text-blue-300">
+                    <span>👆</span>
+                    <span>Scroll horizontally to view all columns</span>
+                    <div className="flex gap-1 ml-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-blue-400/60 rounded-full animate-pulse delay-75"></div>
+                      <div className="w-2 h-2 bg-blue-400/40 rounded-full animate-pulse delay-150"></div>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-0">
                   {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length > 0 ? (
-                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                      <table className="w-full">
-                        <thead className="bg-gradient-to-r from-gray-800 to-gray-700 sticky top-0 z-10">
-                          <tr>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Department</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Category</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Expectations</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Actions</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Instructions</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Assigned To</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Target Date</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">Status</th>
-                            <th className="px-2 py-4 text-left text-sm font-semibold text-white">Update Status</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-white">View</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-700">
-                          {actionPlans
-                            .filter(plan => plan.assignedBy?._id === currentUser._id)
-                            .sort((a, b) => {
-                              const statusOrder = { pending: 0, "in-progress": 1, completed: 2 };
-                              return statusOrder[a.status] - statusOrder[b.status];
-                            })
-                            .map((plan, idx) => (
-                            <tr key={plan._id} className="hover:bg-gray-800/50 transition-colors duration-200">
-                              <td className="px-6 py-4 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(plan.department?.name)}</td>
-                              <td className="px-6 py-4 text-sm text-slate-200">{capitalizeFirstLetter(plan.category?.name)}</td>
-                              <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.expectations}>{plan.expectations}</td>
-                              <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.actions}>
-                                <span>{plan.actions || "No actions yet"}</span>
-                              </td>
-                              <td className="px-6 py-4 text-sm text-slate-300 max-w-xs truncate" title={plan.instructions}>{plan.instructions || "No instructions"}</td>
-                              <td className="px-6 py-4 text-sm text-slate-200 font-medium">{plan.assignedTo?.name}</td>
-                              <td className="px-6 py-4 text-sm text-slate-200">{new Date(plan.targetDate).toLocaleDateString('en-GB')}</td>
-                              <td className="px-6 py-4">{getStatusBadge(plan.status)}</td>
-                              <td className=" py-4 w-[120px]">
-                                <Select
-                                  value={plan.status}
-                                  onValueChange={async (value) => {
-                                    setIsSubmitting(true);
-                                    try {
-                                      await axios.put(
-                                        `${Server}/action-plans/${plan._id}`,
-                                        { status: value },
-                                        { withCredentials: true }
-                                      );
-                                      fetchData();
-                                      toast({ title: "Success", description: "Status updated successfully", variant: "success" });
-                                    } catch (e) {
-                                      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
-                                    } finally {
-                                      setIsSubmitting(false);
-                                    }
-                                  }}
-                                  options={statusOptions.filter(opt => opt.value !== "all")}
-                                  className="h-9 bg-gray-700 border-gray-600 text-white"
-                                  disabled={isSubmitting}
-                                />
-                              </td>
-                              <td className="px-6 py-4">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openExpandedView(plan)}
-                                  className="bg-[goldenrod] hover:bg-gray-600 border-[goldenrod] text-teal-500 font-medium"
-                                >
-                                  👁️ View
-                                </Button>
-                              </td>
+                    <div className="relative">
+                      {/* Left scroll indicator */}
+                      <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div>
+                      {/* Right scroll indicator */}
+                      <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-900/80 to-transparent z-10 pointer-events-none flex items-center justify-center">
+                        <div className="text-blue-400 text-xs animate-bounce">→</div>
+                      </div>
+                      
+                      <div className="overflow-x-auto max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                        <table className="w-full min-w-[1400px] border-separate border-spacing-0">
+                          <thead className="bg-gradient-to-r from-gray-800 to-gray-900 sticky top-0 z-20">
+                            <tr>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Department</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Category</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Expectations</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Actions</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Instructions</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Assigned To</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Target Date</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Status</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Update</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900">Actions</th>
                             </tr>
-                          ))}
+                          </thead>
+                          <tbody>
+                            {actionPlans
+                              .filter(plan => plan.assignedBy?._id === currentUser._id)
+                              .sort((a, b) => {
+                                const statusOrder = { pending: 0, "in-progress": 1, completed: 2 };
+                                return statusOrder[a.status] - statusOrder[b.status];
+                              })
+                              .map((plan, idx) => (
+                              <tr key={plan._id} className={`${idx % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-900/40'} hover:bg-blue-600/20 transition-all duration-200 border-b border-gray-700/30`}>
+                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <span className="text-white font-medium text-sm">{capitalizeFirstLetter(plan.department?.name)}</span>
+                                </td>
+                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <span className="text-white font-medium text-sm">{capitalizeFirstLetter(plan.category?.name)}</span>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-700/30" title={plan.expectations}>
+                                  <div className="text-slate-200 text-sm leading-relaxed max-w-[200px] overflow-hidden">
+                                    <span className="line-clamp-2">{plan.expectations}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-700/30" title={plan.actions}>
+                                  <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
+                                    <span className="line-clamp-2">{plan.actions || "No actions yet"}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-700/30" title={plan.instructions}>
+                                  <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
+                                    <span className="line-clamp-2">{plan.instructions || "No instructions"}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <span className="text-white font-medium text-sm">{plan.assignedTo?.name}</span>
+                                </td>
+                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <span className="text-white font-medium text-sm">{new Date(plan.targetDate).toLocaleDateString('en-GB')}</span>
+                                </td>
+                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <div className="flex justify-center">
+                                    {getStatusBadge(plan.status)}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 border-r border-gray-700/30">
+                                  <div className="flex justify-center">
+                                    <Select
+                                      value={plan.status}
+                                      onValueChange={async (value) => {
+                                        setIsSubmitting(true);
+                                        try {
+                                          await axios.put(
+                                            `${Server}/action-plans/${plan._id}`,
+                                            { status: value },
+                                            { withCredentials: true }
+                                          );
+                                          fetchData();
+                                          toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                                        } catch (e) {
+                                          toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                                        } finally {
+                                          setIsSubmitting(false);
+                                        }
+                                      }}
+                                      options={statusOptions.filter(opt => opt.value !== "all")}
+                                      className="h-9 text-xs bg-gray-700/50 border-gray-600"
+                                      disabled={isSubmitting}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4">
+                                  <div className="flex gap-2 justify-center">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openExpandedView(plan)}
+                                      className="bg-slate-700 hover:bg-slate-600 border-slate-600 text-white font-medium text-xs px-3 py-2"
+                                    >
+                                      View
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="destructive" 
+                                      onClick={() => handleDeleteActionPlan(plan)}
+                                      disabled={isSubmitting}
+                                      className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-2"
+                                      title="Delete Action Plan"
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-slate-300">
-                      No action plans assigned by you in {getCurrentDepartment()?.name || 'your current department'} yet
+                    <div className="text-center py-12">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center">
+                          <span className="text-3xl">📋</span>
+                        </div>
+                        <div className="text-slate-300 text-lg font-medium">No action plans assigned by you</div>
+                        <div className="text-slate-400 text-sm">Create action plans in the "Expectations" tab</div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -2631,9 +2899,8 @@ function ActionPlansPage() {
                               setSelectedCategoryForForm(expObj.category || "");
                               setCreateForm(f => ({
                                 ...f,
-                                expectations: expObj.expectation,
                                 department: expObj.department || "",
-                                instructions: '',
+                                instructions: expObj.expectation,
                                 assignedTo: expObj.userId || '',
                               }));
                             }}
@@ -2719,9 +2986,8 @@ function ActionPlansPage() {
                             setSelectedCategoryForForm(expObj.category || selectedCategory);
                         setCreateForm(f => ({
                           ...f,
-                          expectations: expObj.expectation,
                               department: expObj.department || "",
-                          instructions: '',
+                          instructions: expObj.expectation,
                           assignedTo: expObj.userId || '',
                         }));
                       }}
@@ -2809,9 +3075,8 @@ function ActionPlansPage() {
                           setSelectedCategoryForForm(expObj.category || "");
                           setCreateForm(f => ({
                             ...f,
-                            expectations: expObj.expectation,
                             department: expObj.department || "",
-                            instructions: '',
+                            instructions: expObj.expectation,
                             assignedTo: expObj.userId || '',
                           }));
                         }}
@@ -2826,7 +3091,7 @@ function ActionPlansPage() {
               setCreateModalOpen(open);
               if (!open) {
                 // Reset form when modal is closed
-                setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                setCreateForm({ instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
                 setSelectedCategoryForForm("");
               }
             }}>
@@ -2872,22 +3137,14 @@ function ActionPlansPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
-                    <Input
-                      value={createForm.expectations}
-                      onChange={e => handleCreateFormChange('expectations', e.target.value)}
-                      placeholder="Expectations for this action plan"
-                      className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-200">Instructions (optional)</label>
-                    <Input
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
+                    <Textarea
                       value={createForm.instructions}
                       onChange={e => handleCreateFormChange('instructions', e.target.value)}
-                      placeholder="Any extra instructions from HOD"
-                      className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                      placeholder="Instructions for this action plan"
+                      className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
+                      rows={5}
+                      required
                     />
                   </div>
                   <div>
@@ -3012,15 +3269,6 @@ function ActionPlansPage() {
                         <Input
                           value={editingPlan.title}
                           onChange={(e) => setEditingPlan({...editingPlan, title: e.target.value})}
-                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Category</label>
-                        <Input
-                          value={editingPlan.category}
-                          onChange={(e) => setEditingPlan({...editingPlan, category: e.target.value})}
                           className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
                           required
                         />
@@ -3463,6 +3711,27 @@ function ActionPlansPage() {
                 </div>
               )}
             </div>
+            
+            <DialogFooter className="border-t border-gray-700 pt-6">
+              <div className="flex gap-3 w-full justify-between">
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    handleDeleteActionPlan(selectedPlanForExpandedView);
+                    setExpandedViewModal(false);
+                  }}
+                  disabled={isSubmitting}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  🗑️ Delete Action Plan
+                </Button>
+                <DialogClose asChild>
+                  <Button variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
+                    Close
+                  </Button>
+                </DialogClose>
+              </div>
+            </DialogFooter>
 
           </DialogContent>
         </Dialog>
@@ -3542,98 +3811,110 @@ function ActionPlansPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {aiGeneratedPlans && aiGeneratedPlans.map((plan, index) => (
                         <div key={index} className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-600/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-blue-400/40 hover:scale-[1.02] backdrop-blur-sm overflow-hidden">
-                          {/* Header with Summary Number */}
+                          {/* Header with Category and Priority */}
                           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-600/50 px-6 py-4">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                  {index + 1}
-                          </div>
-                                <span className="text-white font-semibold text-lg">Summary #{index + 1}</span>
+                              <div className="flex flex-col gap-2">
+                                {plan.category && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-orange-400 text-sm font-medium">🏷️ Category:</span>
+                                    <span className="text-white text-base font-semibold bg-blue-600/30 px-3 py-2 rounded-md border border-blue-500/30">
+                                      {plan.category}
+                                    </span>
+                                  </div>
+                                )}
+                                {plan.priority && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-orange-400 text-sm font-medium">⚡ Priority:</span>
+                                    <span className={`text-white text-base font-semibold px-3 py-2 rounded-md border ${
+                                      plan.priority === 'High' 
+                                        ? 'bg-red-600/30 border-red-500/30' 
+                                        : plan.priority === 'Medium' 
+                                        ? 'bg-yellow-600/30 border-yellow-500/30' 
+                                        : 'bg-green-600/30 border-green-500/30'
+                                    }`}>
+                                      {plan.priority}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-pulse"></div>
-                                </div>
-                                </div>
+                            </div>
+                          </div>
 
                           {/* Content */}
-                          <div className="p-6">
-                            {/* Summary */}
-                              <div className="mb-4">
+                          <div className="p-6 space-y-6">
+                            {/* Summary Section */}
+                            <div>
+                              <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">SUMMARY:</h4>
                               <div className="p-4 bg-gradient-to-br from-gray-700/50 to-gray-800/50 rounded-xl border border-gray-600/50 shadow-lg">
-                                  <p className="text-white text-sm leading-relaxed">{plan.summary}</p>
-                                </div>
+                                <p className="text-white text-sm leading-relaxed">{plan.summary}</p>
                               </div>
-                            
-                            {/* Additional Fields */}
-                            <div className="space-y-3 mb-6">
-                              {/* Category */}
-                              {plan.category && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-gray-400 text-xs font-medium">🏷️ Category:</span>
-                                  <span className="text-white text-sm font-medium bg-blue-600/20 px-2 py-1 rounded-md border border-blue-500/30">
-                                    {plan.category}
-                                  </span>
+                            </div>
+
+                            {/* Recommended Actions Section */}
+                            {plan.recommendedActions && plan.recommendedActions.length > 0 && (
+                              <div>
+                                <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">RECOMMENDED ACTIONS:</h4>
+                                <div className="space-y-2">
+                                  {plan.recommendedActions.map((action, actionIndex) => (
+                                    <div key={actionIndex} className="flex items-start gap-3 p-3 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                                      <p className="text-slate-300 text-sm leading-relaxed">{action}</p>
                                     </div>
-                              )}
-                              
-                              {/* Priority */}
-                              {plan.priority && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-gray-400 text-xs font-medium">⚡ Priority:</span>
-                                  <span className={`text-white text-sm font-medium px-2 py-1 rounded-md border ${
-                                    plan.priority === 'High' 
-                                      ? 'bg-red-600/20 border-red-500/30' 
-                                      : plan.priority === 'Medium' 
-                                      ? 'bg-yellow-600/20 border-yellow-500/30' 
-                                      : 'bg-green-600/20 border-green-500/30'
-                                  }`}>
-                                    {plan.priority}
-                                  </span>
+                                  ))}
                                 </div>
-                              )}
-                              
-                              {/* Original Data */}
-                              {plan.originalData && (
-                                <div className="flex items-start gap-2">
-                                  <span className="text-gray-400 text-xs font-medium mt-0.5">📊 Data:</span>
-                                  <span className="text-gray-300 text-xs leading-relaxed bg-gray-700/30 px-2 py-1 rounded-md border border-gray-600/30">
-                                    {plan.originalData}
-                                  </span>
-                                </div>
-                              )}
                               </div>
+                            )}
+
+                            {/* Source Responses Section */}
+                            {plan.sourceResponses && plan.sourceResponses.length > 0 && (
+                              <div>
+                                <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">SOURCE RESPONSES:</h4>
+                                <div className="space-y-2">
+                                  {plan.sourceResponses.map((response, responseIndex) => (
+                                    <div key={responseIndex} className="flex items-start gap-3 p-3 bg-gray-700/20 rounded-lg border border-gray-600/20">
+                                      <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                                      <p className="text-slate-300 text-sm leading-relaxed italic">"{response}"</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+
                               
                             {/* Action Buttons */}
-                            <div className="flex gap-3">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleEditAI(plan, index);
-                                  }}
+                            <div className="flex gap-3 pt-4 border-t border-gray-600/30">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleEditAI(plan, index);
+                                }}
                                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl border border-blue-500 hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 cursor-pointer px-4 py-3 transition-all duration-200 shadow-lg hover:shadow-xl"
-                                >
+                              >
                                 <span className="flex items-center justify-center gap-2">
                                   <span>✏️</span>
                                   <span>Edit</span>
                                 </span>
-                                </button>
-                              
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleAssignFromAI(plan);
-                                  }}
+                              </button>
+                            
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleAssignFromAI(plan);
+                                }}
                                 className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-xl border border-green-500 hover:from-green-700 hover:to-green-800 active:from-green-800 active:to-green-900 cursor-pointer px-4 py-3 transition-all duration-200 shadow-lg hover:shadow-xl"
-                                >
+                              >
                                 <span className="flex items-center justify-center gap-2">
                                   <span>📋</span>
                                   <span>Assign</span>
                                 </span>
-                                </button>
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -3642,6 +3923,52 @@ function ActionPlansPage() {
                   </CardContent>
                 </Card>
                 </>
+              )}
+
+              {/* Empty State Message - differentiate between no expectations vs all assigned */}
+              {!isGeneratingAI && aiGeneratedPlans && aiGeneratedPlans.length === 0 && aiEmptyReason === "all_assigned" && (
+                <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+                  <CardContent className="p-8">
+                    <div className="text-center py-12">
+                      <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-blue-400/30">
+                        <span className="text-4xl">✅</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-4">All Expectations Already Assigned</h3>
+                      <p className="text-slate-300 text-lg leading-relaxed max-w-2xl mx-auto mb-6">
+                        Great work! All expectations from the survey data analysis already have action plans assigned to team members. 
+                        There are no new summaries to display at this time.
+                      </p>
+                      <div className="bg-blue-600/10 border border-blue-400/20 rounded-lg p-4 max-w-xl mx-auto">
+                        <p className="text-blue-300 text-sm">
+                          💡 <strong>Tip:</strong> You can view all existing action plans in the "Overview" tab or try a different priority focus to see if there are unassigned expectations.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Empty State Message - no expectations found */}
+              {!isGeneratingAI && aiGeneratedPlans && aiGeneratedPlans.length === 0 && aiEmptyReason === "no_expectations" && (
+                <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+                  <CardContent className="p-8">
+                    <div className="text-center py-12">
+                      <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full flex items-center justify-center border border-yellow-400/30">
+                        <span className="text-4xl">📭</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-4">No Expectations Found</h3>
+                      <p className="text-slate-300 text-lg leading-relaxed max-w-2xl mx-auto mb-6">
+                        No expectations were found in the survey data for the selected priority focus. 
+                        This might be because there are no survey responses yet or the priority filter is too restrictive.
+                      </p>
+                      <div className="bg-yellow-600/10 border border-yellow-400/20 rounded-lg p-4 max-w-xl mx-auto">
+                        <p className="text-yellow-300 text-sm">
+                          💡 <strong>Tip:</strong> Try changing the priority focus to "All Priorities" or check if there are survey responses for this department.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* AI Analysis Progress */}
@@ -3703,29 +4030,7 @@ function ActionPlansPage() {
                           />
                         </div>
 
-                        {/* Category and Priority Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <label className="block text-sm font-medium mb-3 text-slate-200">Category</label>
-                            <Select
-                              value={editingPlan.categoryId || ''}
-                              onValueChange={(val) => {
-                                const selectedCat = allCategories.find(cat => cat._id === val);
-                                setEditingPlan({
-                                  ...editingPlan, 
-                                  categoryId: val,
-                                  category: selectedCat?.name || ''
-                                });
-                              }}
-                              options={allCategories
-                                .filter(cat => !cat.department || cat.department === getCurrentDepartment()?._id)
-                                .map((cat) => ({ value: cat._id, label: cat.name }))
-                              }
-                              className="bg-white/5 border-white/20 text-white"
-                              placeholder="Select a category"
-                            />
-                          </div>
-                          
+                        {/* Priority Section */}
                           <div>
                             <label className="block text-sm font-medium mb-3 text-slate-200">Priority</label>
                             <Select
@@ -3739,19 +4044,57 @@ function ActionPlansPage() {
                               className="bg-white/5 border-white/20 text-white"
                               placeholder="Select priority"
                             />
+                        </div>
+
+                        {/* Recommended Actions Section */}
+                        <div>
+                          <label className="block text-sm font-medium mb-3 text-slate-200">Recommended Actions</label>
+                          <div className="space-y-3">
+                            {editingPlan.recommendedActions && editingPlan.recommendedActions.map((action, index) => (
+                              <div key={index} className="flex items-center gap-3">
+                                <Input
+                                  value={action}
+                                  onChange={(e) => {
+                                    const newActions = [...editingPlan.recommendedActions];
+                                    newActions[index] = e.target.value;
+                                    setEditingPlan({...editingPlan, recommendedActions: newActions});
+                                  }}
+                                  className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                                  placeholder={`Action ${index + 1}`}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newActions = editingPlan.recommendedActions.filter((_, i) => i !== index);
+                                    setEditingPlan({...editingPlan, recommendedActions: newActions});
+                                  }}
+                                  className="bg-red-500/20 border-red-400/30 text-red-300 hover:bg-red-500/30"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingPlan({
+                                  ...editingPlan, 
+                                  recommendedActions: [...(editingPlan.recommendedActions || []), '']
+                                });
+                              }}
+                              className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10"
+                            >
+                              + Add Action
+                            </Button>
                           </div>
                         </div>
 
-                        {/* Original Data Section */}
-                        <div>
-                          <label className="block text-sm font-medium mb-3 text-slate-200">Original Data</label>
-                          <Textarea
-                            value={editingPlan.originalData || ''}
-                            onChange={(e) => setEditingPlan({...editingPlan, originalData: e.target.value})}
-                            placeholder="Reference to original survey data"
-                            className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[100px] w-full"
-                          />
-                        </div>
+
+
+
                       </div>
                       
                       <DialogFooter className="mt-8 pt-6 border-t border-white/10">
@@ -3774,7 +4117,7 @@ function ActionPlansPage() {
                 if (!open) {
                   setAiCreateModalOpen(false);
                   // Clear form data when modal is closed
-                  setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                  setCreateForm({ instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
                   setSelectedCategoryForForm('');
                 }
               }}>
@@ -3788,27 +4131,13 @@ function ActionPlansPage() {
                   <form onSubmit={handleCreateActionPlan} className="flex-1 overflow-y-auto p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
-                        <Textarea
-                          value={createForm.expectations}
-                          onChange={(e) => setCreateForm({...createForm, expectations: e.target.value})}
-                          placeholder="Expectations from AI summary"
-                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
-                          required
-                        />
-                      </div>
-                      <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Category</label>
-                        <Select
-                          value={selectedCategoryForForm}
-                          onValueChange={(val) => setSelectedCategoryForForm(val)}
-                          options={allCategories
-                            .filter(cat => !cat.department || cat.department === getCurrentDepartment()?._id)
-                            .map((cat) => ({ value: cat._id, label: cat.name }))
-                          }
-                          className="bg-white/5 border-white/20 text-white"
-                          placeholder="Select a category"
-                        />
+                        <div className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-md text-slate-200">
+                          {allCategories.find(cat => cat._id === selectedCategoryForForm)?.name || 'Quality of Work'}
+                          <div className="text-xs text-slate-400 mt-1">
+                            {/* Category determined by AI based on survey responses */}
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
@@ -3816,7 +4145,8 @@ function ActionPlansPage() {
                           value={createForm.instructions}
                           onChange={(e) => setCreateForm({...createForm, instructions: e.target.value})}
                           placeholder="Additional instructions or context"
-                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[80px]"
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[140px]"
+                          rows={6}
                         />
                       </div>
                       <div>
