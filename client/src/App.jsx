@@ -17,6 +17,7 @@ import ProfilePage from "./pages/ProfilePage"
 import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
 import Toast from "./components/ui/Toast"
+import ErrorBoundary from "./components/ErrorBoundary"
 import loaderImage from "./assets/icsq-loader.jpg"
 import bgImage from "./assets/bg-image.jpg"
 import {useState, useEffect} from 'react'
@@ -57,7 +58,7 @@ function App() {
 }
 
   return (
-    <>
+    <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -185,7 +186,7 @@ function App() {
         />
       </Routes>
       <Toast />
-    </>
+    </ErrorBoundary>
   )
 }
 

@@ -10,7 +10,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../co
 import logo from "../assets/logo.png"
 import teamsLogo from "../assets/microsoft.png"
 import bg from "../assets/bg-image.png"
-import bgImage from "../assets/bg-image.png";
+import bgImage from "../assets/bg-image.png"
+import PageErrorBoundary from "../components/PageErrorBoundary";
 
 function LoginPage() {
   const [email, setEmail] = useState("")
@@ -32,15 +33,10 @@ function LoginPage() {
   useEffect(() => {
     const fetchMicrosoftLoginUrl = async () => {
       try {
-        console.log("Frontend: Attempting to fetch Microsoft login URL...");
         const url = await getMicrosoftLoginUrl()
-        console.log("Frontend: Successfully got Microsoft login URL:", url);
         setMicrosoftLoginUrl(url)
       } catch (error) {
         console.error("Frontend: Error fetching Microsoft login URL:", error);
-        console.error("Frontend: Error response:", error.response);
-        console.error("Frontend: Error status:", error.response?.status);
-        console.error("Frontend: Error data:", error.response?.data);
       }
     }
 
@@ -185,4 +181,11 @@ function LoginPage() {
   )
 }
 
-export default LoginPage
+// Wrap the component with error boundary
+const LoginPageWithErrorBoundary = () => (
+  <PageErrorBoundary pageName="Login">
+    <LoginPage />
+  </PageErrorBoundary>
+);
+
+export default LoginPageWithErrorBoundary

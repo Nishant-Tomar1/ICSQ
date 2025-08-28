@@ -13,6 +13,7 @@ import axios from "axios"
 import "react-circular-progressbar/dist/styles.css"
 import WebChart from "../components/WebChart"
 import Progress from "../components/ui/Progress"
+import PageErrorBoundary from "../components/PageErrorBoundary"
 
 function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -279,4 +280,11 @@ function DashboardPage() {
   );
 }
 
-export default DashboardPage
+// Wrap the component with error boundary
+const DashboardPageWithErrorBoundary = () => (
+  <PageErrorBoundary pageName="Dashboard">
+    <DashboardPage />
+  </PageErrorBoundary>
+);
+
+export default DashboardPageWithErrorBoundary

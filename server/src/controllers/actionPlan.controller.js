@@ -15,8 +15,8 @@ export async function getActionPlansForAdmin(req, res) {
     const plans = await ActionPlan.find(filters)
       .populate('department')
       .populate('category')
-      .populate('assignedBy')
-      .populate('assignedTo')
+      .populate('assignedBy', 'name email role currentDepartment')
+      .populate('assignedTo', 'name email role currentDepartment')
     return res.json(plans)
   } catch (error) {
     console.error("Error fetching action plans (admin):", error)
@@ -32,8 +32,8 @@ export async function getActionPlansForHOD(req, res) {
     const plans = await ActionPlan.find({ department: departmentId })
       .populate('department')
       .populate('category')
-      .populate('assignedBy')
-      .populate('assignedTo')
+      .populate('assignedBy', 'name email role currentDepartment')
+      .populate('assignedTo', 'name email role currentDepartment')
     return res.json(plans)
   } catch (error) {
     console.error("Error fetching action plans (HOD):", error)
@@ -48,8 +48,8 @@ export async function getActionPlansForUser(req, res) {
     const plans = await ActionPlan.find({ assignedTo: userId })
       .populate('department')
       .populate('category')
-      .populate('assignedBy')
-      .populate('assignedTo')
+      .populate('assignedBy', 'name email role currentDepartment')
+      .populate('assignedTo', 'name email role currentDepartment')
     return res.json(plans)
   } catch (error) {
     console.error("Error fetching action plans (user):", error)

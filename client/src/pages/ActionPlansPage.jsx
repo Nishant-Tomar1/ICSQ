@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import DashboardHeader from "../components/DashboardHeader";
+import PageErrorBoundary from "../components/PageErrorBoundary";
 import {
   Card,
   CardHeader,
@@ -401,7 +402,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
                 <thead className="sticky top-0 z-10 bg-slate-700/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Category</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th>
+                    {/* <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th> */}
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Expectation</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Rating</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
@@ -411,7 +412,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
                   {items.map((e, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-4 py-3 text-sm text-slate-200 font-medium">{capitalizeFirstLetter(e.category)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td>
+                      {/* <td className="px-4 py-3 text-sm text-slate-200">{e.user}</td> */}
                       <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate" title={String(e.expectation || '')}>
                         {String(e.expectation || '').length > 20 ? (String(e.expectation || '').substring(0, 20) + "...") : String(e.expectation || '')}
                       </td>
@@ -455,8 +456,6 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
   );
 }
 
-// 1. Add summarization for all categories when no category is selected
-// Helper: summarize all expectations by category and rating
 function summarizeAllExpectations(expectationData) {
   if (!Array.isArray(expectationData)) return {};
   const summary = {};
@@ -643,8 +642,6 @@ function ActionPlansPage() {
       setUsersLoading(true);
       try {
         const res = await axios.get(`${Server}/users/by-department/${plan.department?._id}`, { withCredentials: true });
-        console.log("USERS OF THIS DEPARTMENT ::",res.data);
-        
         setDepartmentUsers(res.data || []);
       } catch (error) {
         console.error("Error fetching users for edit modal:", error);
@@ -890,6 +887,10 @@ function ActionPlansPage() {
   // Handle create action plan submit
   const handleCreateActionPlan = async (e) => {
     e.preventDefault();
+    if (!createForm.expectations.trim()) {
+      toast({ title: "Error", description: "Expectations are required.", variant: "destructive" });
+      return;
+    }
     if (!createForm.instructions.trim()) {
       toast({ title: "Error", description: "Instructions are required.", variant: "destructive" });
       return;
@@ -921,9 +922,9 @@ function ActionPlansPage() {
         {
           departmentId: getCurrentDepartment()?._id,
           categoryId: existingCategory?._id || selectedCategoryForForm,
-          expectations: createForm.instructions, // Use instructions as expectations since we removed the expectations field
+          expectations: createForm.expectations,
           instructions: createForm.instructions,
-            assignedTo: userId,
+          assignedTo: userId,
           targetDate: createForm.targetDate,
           status: createForm.status,
         },
@@ -1633,11 +1634,11 @@ function ActionPlansPage() {
                 </div>
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Expectations</div>
-                  <div className="text-[#FFF8E7]">{actionModalPlan.expectations}</div>
+                  <div className="text-[#FFF8E7] max-h-24 overflow-y-auto">{actionModalPlan.expectations}</div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Instructions</div>
-                  <div className="text-[#FFF8E7]">{actionModalPlan.instructions}</div>
+                  <div className="text-[#FFF8E7] max-h-24 overflow-y-auto">{actionModalPlan.instructions}</div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Actions Taken</label>
@@ -1777,48 +1778,7 @@ function ActionPlansPage() {
   //   );
   // }
 
-  // Helper function to check if expectations already have action plans assigned
-  const checkExistingActionPlans = (generatedPlans) => {
-    console.log('Checking for existing action plans...');
-    console.log('Current action plans:', actionPlans);
-    console.log('Generated plans to check:', generatedPlans);
-    
-    if (!actionPlans || actionPlans.length === 0) {
-      console.log('No existing action plans found, returning all generated plans');
-      return generatedPlans;
-    }
-    
-    const filteredPlans = generatedPlans.filter(plan => {
-      // Check if any existing action plan has similar expectations/instructions
-      const hasExistingPlan = actionPlans.some(existingPlan => {
-        // Check if the category matches
-        const categoryMatch = plan.category && existingPlan.category && 
-          plan.category.toLowerCase().includes(existingPlan.category.toLowerCase()) ||
-          existingPlan.category.toLowerCase().includes(plan.category.toLowerCase());
-        
-        // Check if the summary/expectations are similar
-        const summaryMatch = plan.summary && existingPlan.expectations &&
-          (plan.summary.toLowerCase().includes(existingPlan.expectations.toLowerCase()) ||
-           existingPlan.expectations.toLowerCase().includes(plan.summary.toLowerCase()));
-        
-        // Check if the instructions are similar
-        const instructionsMatch = plan.summary && existingPlan.instructions &&
-          (plan.summary.toLowerCase().includes(existingPlan.instructions.toLowerCase()) ||
-           existingPlan.instructions.toLowerCase().includes(plan.summary.toLowerCase()));
-        
-        const isMatch = categoryMatch && (summaryMatch || instructionsMatch);
-        if (isMatch) {
-          console.log(`Filtering out plan "${plan.summary}" - matches existing plan "${existingPlan.expectations}"`);
-        }
-        return isMatch;
-      });
-      
-      return !hasExistingPlan;
-    });
-    
-    console.log(`Filtered ${generatedPlans.length - filteredPlans.length} plans that already have action plans assigned`);
-    return filteredPlans;
-  };
+
 
   // AI Action Plans Functions
   const handleGenerateAIActionPlans = async () => {
@@ -1854,28 +1814,14 @@ function ActionPlansPage() {
 
       // Process AI response and generate summarized expectations
       const aiSummary = response.data.summary || '';
-      console.log('AI Response Data:', response.data);
-      console.log('AI Summary Text:', aiSummary);
       
       const generatedPlans = await processAIResponse(aiSummary);
-      console.log('Generated Plans:', generatedPlans);
       
-      // Filter out plans that already have action plans assigned
-      const filteredPlans = checkExistingActionPlans(generatedPlans);
-      console.log('Filtered Plans:', filteredPlans);
-      setAiGeneratedPlans(filteredPlans);
+      // Use all generated plans directly (no filtering)
+      setAiGeneratedPlans(generatedPlans);
 
-      const skippedCount = generatedPlans.length - filteredPlans.length;
-      
-      if (filteredPlans.length === 0 && generatedPlans.length > 0) {
-        // All expectations are already assigned
-        setAiEmptyReason("all_assigned");
-        toast({ 
-          title: "All Expectations Already Assigned", 
-          description: `All ${generatedPlans.length} expectations from this analysis already have action plans assigned to team members. No new summaries to display.`, 
-          variant: "default" 
-        });
-      } else if (filteredPlans.length === 0 && generatedPlans.length === 0) {
+      // Since we're not filtering anymore, all plans are new
+      if (generatedPlans.length === 0) {
         // No expectations found at all
         setAiEmptyReason("no_expectations");
         toast({ 
@@ -1884,11 +1830,11 @@ function ActionPlansPage() {
           variant: "default" 
         });
       } else {
-        // Normal case with some new expectations
+        // All generated plans are new
         setAiEmptyReason(null);
         toast({ 
           title: "Success", 
-          description: `Generated ${filteredPlans.length} new summarized expectations${skippedCount > 0 ? ` (${skippedCount} skipped - already assigned)` : ''}`, 
+          description: `Generated ${generatedPlans.length} new summarized expectations`, 
           variant: "success" 
         });
       }
@@ -1911,7 +1857,6 @@ function ActionPlansPage() {
 
     // Check if AI response is already structured (from new backend)
     if (Array.isArray(aiSummary)) {
-      console.log('Structured AI Response:', aiSummary);
       return aiSummary.map((item, index) => ({
         id: `exp_${index}`,
         summary: item.summary || '',
@@ -1940,8 +1885,6 @@ function ActionPlansPage() {
     if (!aiSummary) return [];
     
     try {
-      console.log('Raw AI Response (fallback parsing):', aiSummary);
-      
       // Split by lines and filter out empty lines
       const lines = aiSummary.split('\n').filter(line => line.trim());
       const expectations = [];
@@ -1965,7 +1908,6 @@ function ActionPlansPage() {
         }
       });
       
-      console.log('Parsed Expectations (fallback):', expectations);
       return expectations;
     } catch (error) {
       console.error('Error parsing summarized expectations:', error);
@@ -1993,12 +1935,7 @@ function ActionPlansPage() {
 
 
 
-
-
-
-
   const handleAssignFromAI = async (aiPlan) => {
-    console.log('handleAssignFromAI called with:', aiPlan);
     try {
       // Build instructions with recommended actions only
       let instructions = '';
@@ -2015,7 +1952,7 @@ function ActionPlansPage() {
       
       // Pre-fill the create form with AI-generated content for assignment
       setCreateForm({
-        expectations: '', // Remove expectations since they're shown in instructions
+        expectations: instructions, // Prefill expectations with the same data as instructions
         instructions: instructions,
         assignedTo: [], // Initialize as empty array for multiple user selection
         targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
@@ -2033,7 +1970,6 @@ function ActionPlansPage() {
       setUsersLoading(true);
       try {
         const res = await axios.get(`${Server}/users/by-department/${getCurrentDepartment()?._id}`, { withCredentials: true });
-        console.log("USERS OF THIS DEPARTMENT ::", res.data);
         setDepartmentUsers(res.data || []);
       } catch (error) {
         console.error("Error fetching users for AI modal:", error);
@@ -2064,7 +2000,6 @@ function ActionPlansPage() {
 
 
   const handleEditAI = async (aiPlan, index) => {
-    console.log('handleEditAI called with:', aiPlan, 'index:', index);
     try {
       // Open edit modal with current plan data
       setAiPlanEditModalOpen(true);
@@ -3091,7 +3026,7 @@ function ActionPlansPage() {
               setCreateModalOpen(open);
               if (!open) {
                 // Reset form when modal is closed
-                setCreateForm({ instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
                 setSelectedCategoryForForm("");
               }
             }}>
@@ -3137,6 +3072,20 @@ function ActionPlansPage() {
                     )}
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
+                    <Textarea
+                      value={createForm.expectations}
+                      onChange={e => handleCreateFormChange('expectations', e.target.value)}
+                      placeholder="What is expected to be achieved or delivered"
+                      className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
+                      rows={4}
+                      required
+                    />
+                    <div className="text-xs text-slate-400 mt-1">
+                      Define the specific outcomes, goals, or deliverables expected from this action plan
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
                     <Textarea
                       value={createForm.instructions}
@@ -3146,6 +3095,9 @@ function ActionPlansPage() {
                       rows={5}
                       required
                     />
+                    <div className="text-xs text-slate-400 mt-1">
+                      Provide step-by-step guidance, resources, or additional context for completing the action plan
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Assign To (Multiple Users)</label>
@@ -3475,10 +3427,20 @@ function ActionPlansPage() {
                   <DialogFooter className="border-t border-white/10 pt-6">
                     <Button 
                       type="submit"
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white shadow-lg"
+                      disabled={isSubmitting}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span className="mr-2">💾</span>
-                      Save Changes
+                      {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Saving...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>💾</span>
+                          <span>Save Changes</span>
+                        </div>
+                      )}
                     </Button>
                     <DialogClose asChild>
                       <Button type="button" variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
@@ -4098,8 +4060,19 @@ function ActionPlansPage() {
                       </div>
                       
                       <DialogFooter className="mt-8 pt-6 border-t border-white/10">
-                        <Button type="submit" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white px-6">
-                          Save Changes
+                        <Button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              <span>Saving...</span>
+                        </div>
+                          ) : (
+                            <span>Save Changes</span>
+                          )}
                         </Button>
                         <DialogClose asChild>
                           <Button type="button" variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
@@ -4117,7 +4090,7 @@ function ActionPlansPage() {
                 if (!open) {
                   setAiCreateModalOpen(false);
                   // Clear form data when modal is closed
-                  setCreateForm({ instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                  setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
                   setSelectedCategoryForForm('');
                 }
               }}>
@@ -4140,6 +4113,19 @@ function ActionPlansPage() {
                         </div>
                       </div>
                       <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
+                        <Textarea
+                          value={createForm.expectations}
+                          onChange={(e) => setCreateForm({...createForm, expectations: e.target.value})}
+                          placeholder="What is expected to be achieved or delivered"
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
+                          rows={4}
+                        />
+                        <div className="text-xs text-slate-400 mt-1">
+                          Define the specific outcomes, goals, or deliverables expected from this action plan
+                        </div>
+                      </div>
+                      <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
                         <Textarea
                           value={createForm.instructions}
@@ -4148,6 +4134,9 @@ function ActionPlansPage() {
                           className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[140px]"
                           rows={6}
                         />
+                        <div className="text-xs text-slate-400 mt-1">
+                          Provide step-by-step guidance, resources, or additional context for completing the action plan
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Assigned To</label>
@@ -4236,8 +4225,19 @@ function ActionPlansPage() {
                       </div>
                       
                       <DialogFooter>
-                        <Button type="submit" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white">
-                        Create Action Plan
+                        <Button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Creating...
+                            </div>
+                          ) : (
+                            "Create Action Plan"
+                          )}
                         </Button>
                         <DialogClose asChild>
                           <Button type="button" variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
@@ -4258,4 +4258,11 @@ function ActionPlansPage() {
   }
 }
 
-export default ActionPlansPage;
+// Wrap the component with error boundary
+const ActionPlansPageWithErrorBoundary = () => (
+  <PageErrorBoundary pageName="Action Plans">
+    <ActionPlansPage />
+  </PageErrorBoundary>
+);
+
+export default ActionPlansPageWithErrorBoundary;
