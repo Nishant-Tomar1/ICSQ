@@ -131,7 +131,11 @@ CATEGORY-SPECIFIC EXPECTATIONS DATA:
 ${Object.entries(categoryExpectations).map(([catKey, catExpectations]) => {
   const catRatings = categoryRatings[catKey] || [];
   const avgCatRating = catRatings.length > 0 ? (catRatings.reduce((a, b) => a + b, 0) / catRatings.length).toFixed(1) : 'N/A';
-  return `\n=== ${catKey.toUpperCase()} ===\nAverage Rating: ${avgCatRating}/5 (based on ${catRatings.length} responses)\nSurvey Responses:\n${catExpectations.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}`;
+  // Limit to max 8 responses per category and truncate long responses to reduce token usage
+  const limitedResponses = catExpectations.slice(0, 8).map(exp => 
+    exp.length > 150 ? exp.substring(0, 150) + '...' : exp
+  );
+  return `\n=== ${catKey.toUpperCase()} ===\nAvg Rating: ${avgCatRating}/5 (${catRatings.length} total)\nResponses:\n${limitedResponses.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}`;
 }).join('\n\n')}
 
 OVERALL AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
@@ -143,6 +147,13 @@ PRIORITY FOCUS: ${priority || 'all'}
 
 CRITICAL REQUIREMENT: You MUST generate exactly 1 response for each of the ${eligibleCategories.length} eligible categories listed above. Do not skip any category.
 
+CRITICAL INSTRUCTIONS FOR SOURCE_RESPONSES:
+- SOURCE_RESPONSES must contain ONLY the actual survey quotes listed above under each category
+- NEVER use generic text like "Need to improve in this area" 
+- COPY the exact survey responses verbatim from the category-specific data provided
+- Use JSON array format: ["quote1", "quote2", "quote3"]
+- If a category has no survey data, use an empty array: []
+
 INSTRUCTIONS:
 - Analyze the survey responses and identify the most important expectations for each category
 - ${priority === 'high' ? 'Focus on URGENT issues that need immediate attention (low ratings, critical problems)' : 
@@ -152,7 +163,6 @@ INSTRUCTIONS:
 - For each of the ${eligibleCategories.length} eligible categories, generate exactly 1 expectation
 - Assign each expectation to its corresponding category from the eligible categories list
 - Determine priority level (High/Medium/Low) based on rating analysis
-- CRITICAL: In SOURCE_RESPONSES, include ALL survey responses listed under each category above - copy every single response verbatim from the category-specific data provided
 - Generate 3-5 specific, actionable recommendations in RECOMMENDED_ACTIONS for each category
 - If a category has no specific survey data, create a general expectation based on the category's purpose
 
@@ -162,7 +172,7 @@ SUMMARY: [Clear, actionable expectation for Category 1]
 CATEGORY: [Category 1 Name] (ID: [Category 1 ID])
 PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data - e.g., "Based on 15 responses with avg rating 2.8/5"]
-SOURCE_RESPONSES: [Complete list of all survey responses from this category - include every single response that contributed to this action plan]
+SOURCE_RESPONSES: ["exact survey quote 1", "exact survey quote 2", "exact survey quote 3"]
 RECOMMENDED_ACTIONS: ["Specific action 1", "Specific action 2", "Specific action 3", "Specific action 4"]
 
 ---
@@ -171,7 +181,7 @@ SUMMARY: [Clear, actionable expectation for Category 2]
 CATEGORY: [Category 2 Name] (ID: [Category 2 ID])
 PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data]
-SOURCE_RESPONSES: [Complete list of all survey responses from this category - include every single response that contributed to this action plan]
+SOURCE_RESPONSES: ["exact survey quote 1", "exact survey quote 2", "exact survey quote 3"]
 RECOMMENDED_ACTIONS: ["Specific action 1", "Specific action 2", "Specific action 3", "Specific action 4"]
 
 ---
@@ -183,34 +193,54 @@ IMPORTANT: You must return exactly ${eligibleCategories.length} expectations, on
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     
-    const response = await axios.post(geminiUrl, {
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.4,
-        topK: 1,
-        topP: 1,
-        maxOutputTokens: 1200
-      }
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': geminiApiKey
-      }
-    });
+    let response;
+    let summary;
+    let maxRetries = 2;
+    let currentRetry = 0;
     
-    let summary = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Try with different token limits if first attempt fails
+    const tokenLimits = [2500, 3500, 4000];
     
-    // If no summary generated, return original expectations
+    while (currentRetry < maxRetries && !summary) {
+      try {
+        response = await axios.post(geminiUrl, {
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            topK: 1,
+            topP: 1,
+            maxOutputTokens: tokenLimits[currentRetry] || 2500
+          }
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': geminiApiKey
+          }
+        });
+        
+        summary = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (summary) break;
+        
+      } catch (error) {
+        console.error(`AI attempt ${currentRetry + 1} failed:`, error.message);
+      }
+      
+      currentRetry++;
+    }
+    
+    // If no summary generated after retries, return original expectations
     if (!summary) {
+      console.warn('AI failed to generate summary after retries. Using fallback.');
       return res.json({ summary: expectations.join("\n") });
     }
     
     // Parse the structured AI response
-    const parsedResponse = parseStructuredAIResponse(summary, eligibleCategories);
+    const parsedResponse = parseStructuredAIResponse(summary, eligibleCategories, categoryExpectations);
     
     return res.json({ 
       summary: parsedResponse,
@@ -417,7 +447,7 @@ Focus on actionable insights and specific recommendations.`;
 }
 
 // Helper function to parse structured AI response
-function parseStructuredAIResponse(aiResponse, eligibleCategories) {
+function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpectations = {}) {
   try {
     const lines = aiResponse.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const expectations = [];
@@ -501,21 +531,33 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
     const actualCount = expectations.length;
     
     if (actualCount < expectedCount) {
-      console.warn(`AI generated only ${actualCount} responses, expected ${expectedCount}. Adding fallback responses for missing categories.`);
+      // Only log once per minute to reduce log spam
+      const now = Date.now();
+      const lastLogTime = global.lastAIWarningTime || 0;
+      if (now - lastLogTime > 60000) { // 60 seconds
+        console.warn(`AI incomplete response: ${actualCount}/${expectedCount} categories. Adding fallback for missing categories.`);
+        global.lastAIWarningTime = now;
+      }
       
       // Find categories that don't have responses
       const categoriesWithResponses = new Set(expectations.map(exp => exp.categoryId));
       const missingCategories = eligibleCategories.filter(cat => !categoriesWithResponses.has(cat._id.toString()));
       
-      // Add fallback responses for missing categories
+      // Add fallback responses for missing categories using actual survey data
       missingCategories.forEach(cat => {
+        // Try to find survey responses for this category
+        const categoryResponses = categoryExpectations[cat.name.toLowerCase()] || 
+                                 categoryExpectations[cat.name] || [];
+        
         expectations.push({
           summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
           category: cat.name,
           categoryId: cat._id,
           priority: 'Medium',
-          originalData: 'Generated fallback expectation for category with no specific survey data',
-          sourceResponses: [`Need to improve in this area of ${cat.name.toLowerCase()}`, `This is an area that requires focused attention for improvement`],
+          originalData: categoryResponses.length > 0 ? 
+            `Based on ${categoryResponses.length} survey responses` : 
+            'Generated fallback expectation for category with no specific survey data',
+          sourceResponses: categoryResponses.length > 0 ? categoryResponses : [],
           recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
         });
       });
@@ -536,13 +578,19 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
     while (uniqueExpectations.length < expectedCount) {
       const missingCat = eligibleCategories.find(cat => !seenCategories.has(cat._id.toString()));
       if (missingCat) {
+        // Try to find survey responses for this category
+        const categoryResponses = categoryExpectations[missingCat.name.toLowerCase()] || 
+                                 categoryExpectations[missingCat.name] || [];
+        
         uniqueExpectations.push({
           summary: `Focus on improving ${missingCat.name.toLowerCase()} processes and outcomes`,
           category: missingCat.name,
           categoryId: missingCat._id,
           priority: 'Medium',
-          originalData: 'Generated fallback expectation to ensure category coverage',
-          sourceResponses: [`Need to improve in this area of ${missingCat.name.toLowerCase()}`, `This is an area that requires focused attention for improvement`],
+          originalData: categoryResponses.length > 0 ? 
+            `Based on ${categoryResponses.length} survey responses` : 
+            'Generated fallback expectation to ensure category coverage',
+          sourceResponses: categoryResponses.length > 0 ? categoryResponses : [],
           recommendedActions: [`Conduct regular team meetings to address ${missingCat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
         });
         seenCategories.add(missingCat._id.toString());
@@ -554,15 +602,22 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories) {
     return uniqueExpectations;
   } catch (error) {
     console.error("Error parsing AI response:", error);
-    // Fallback: return one expectation per category
-    return eligibleCategories.map(cat => ({
-      summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
-      category: cat.name,
-      categoryId: cat._id,
-      priority: 'Medium',
-      originalData: 'Based on survey responses (fallback parsing)',
-      sourceResponses: [`Need to improve in this area of ${cat.name.toLowerCase()}`, `This is an area that requires focused attention for improvement`],
-      recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
-    }));
+    // Fallback: return one expectation per category using actual survey data
+    return eligibleCategories.map(cat => {
+      const categoryResponses = categoryExpectations[cat.name.toLowerCase()] || 
+                               categoryExpectations[cat.name] || [];
+      
+      return {
+        summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
+        category: cat.name,
+        categoryId: cat._id,
+        priority: 'Medium',
+        originalData: categoryResponses.length > 0 ? 
+          `Based on ${categoryResponses.length} survey responses (fallback parsing)` : 
+          'Based on survey responses (fallback parsing)',
+        sourceResponses: categoryResponses.length > 0 ? categoryResponses : [],
+        recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
+      };
+    });
   }
 }

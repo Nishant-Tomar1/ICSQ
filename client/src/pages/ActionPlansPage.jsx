@@ -3710,6 +3710,23 @@ function ActionPlansPage() {
                         <p className="text-slate-400 text-xs mt-1">
                           Expected format: One expectation per line (e.g., "Improve communication", "Reduce response time", etc.)
                         </p>
+                        
+                        {/* AI Accuracy Disclaimer */}
+                        <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5">
+                              <div className="w-5 h-5 rounded-full bg-amber-400/20 flex items-center justify-center">
+                                <span className="text-amber-400 text-xs">⚠️</span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-amber-400 font-medium text-sm mb-1">AI Analysis Disclaimer</h4>
+                              <p className="text-slate-300 text-xs leading-relaxed">
+                                While we strive for accuracies around +90%, please note that automated sentiment analysis may not fully capture nuances in language, tone, or context. The results should be used as a guide rather than an absolute metric, and we recommend reviewing individual responses for a more comprehensive analysis.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
               </div>
 
                                      {/* AI Analysis Controls */}
@@ -4102,7 +4119,8 @@ function ActionPlansPage() {
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleCreateActionPlan} className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      {/* Row 1: Category (full width) */}
                       <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Category</label>
                         <div className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-md text-slate-200">
@@ -4112,19 +4130,8 @@ function ActionPlansPage() {
                           </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
-                        <Textarea
-                          value={createForm.expectations}
-                          onChange={(e) => setCreateForm({...createForm, expectations: e.target.value})}
-                          placeholder="What is expected to be achieved or delivered"
-                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
-                          rows={4}
-                        />
-                        <div className="text-xs text-slate-400 mt-1">
-                          Define the specific outcomes, goals, or deliverables expected from this action plan
-                        </div>
-                      </div>
+                      
+                      {/* Row 2: Instructions (full width) */}
                       <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
                         <Textarea
@@ -4138,91 +4145,112 @@ function ActionPlansPage() {
                           Provide step-by-step guidance, resources, or additional context for completing the action plan
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Assigned To</label>
-                        <div className="space-y-3">
-                          {/* Multiple User Selection */}
-                          <div className="flex items-center gap-3">
-                            <Select
-                              value=""
-                              onValueChange={(val) => {
-                                if (val && !createForm.assignedTo.includes(val)) {
+                      
+                      {/* Row 3: Assigned To and Target Date (side by side) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Assigned To</label>
+                          <div className="space-y-3">
+                            {/* Multiple User Selection */}
+                            <div className="flex items-center gap-3">
+                              <Select
+                                value=""
+                                onValueChange={(val) => {
+                                  if (val && !createForm.assignedTo.includes(val)) {
+                                    setCreateForm({
+                                      ...createForm,
+                                      assignedTo: [...createForm.assignedTo, val]
+                                    });
+                                  }
+                                }}
+                                options={departmentUsers
+                                  .filter(user => !createForm.assignedTo.includes(user._id))
+                                  .map((user) => ({ value: user._id, label: user.name }))
+                                }
+                                className="flex-1 bg-white/5 border-white/20 text-white"
+                                placeholder="Select users to assign"
+                                isLoading={usersLoading}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                  // Select all users
+                                  const allUserIds = departmentUsers.map(user => user._id);
                                   setCreateForm({
                                     ...createForm,
-                                    assignedTo: [...createForm.assignedTo, val]
+                                    assignedTo: allUserIds
                                   });
-                                }
-                              }}
-                              options={departmentUsers
-                                .filter(user => !createForm.assignedTo.includes(user._id))
-                                .map((user) => ({ value: user._id, label: user.name }))
-                              }
-                              className="flex-1 bg-white/5 border-white/20 text-white"
-                              placeholder="Select users to assign"
-                              isLoading={usersLoading}
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                // Select all users
-                                const allUserIds = departmentUsers.map(user => user._id);
-                                setCreateForm({
-                                  ...createForm,
-                                  assignedTo: allUserIds
+                                }}
+                                className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10 whitespace-nowrap"
+                              >
+                                Select All
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                  // Clear all users
+                                  setCreateForm({
+                                    ...createForm,
+                                    assignedTo: []
+                                  });
+                                }}
+                                className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/20 whitespace-nowrap"
+                                disabled={createForm.assignedTo.length === 0}
+                              >
+                                Clear All
+                                </Button>
+                              </div>
+                            
+                            {/* Selected Users Display */}
+                            {createForm.assignedTo.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-xs text-slate-400">Selected Users:</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {createForm.assignedTo.map((userId) => {
+                                    const user = departmentUsers.find(u => u._id === userId);
+                                    return (
+                                      <div
+                                        key={userId}
+                                        className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-lg text-blue-300 text-sm"
+                                      >
+                                        <span>{user?.name || userId}</span>
+                                        <button
+                              type="button"
+                              onClick={() => {
+                                            setCreateForm({
+                                              ...createForm,
+                                              assignedTo: createForm.assignedTo.filter(id => id !== userId)
                                 });
                               }}
-                              className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10 whitespace-nowrap"
+                                          className="text-blue-400 hover:text-blue-300 text-xs"
                             >
-                              Select All
-                              </Button>
-                            </div>
-                          
-                          {/* Selected Users Display */}
-                          {createForm.assignedTo.length > 0 && (
-                            <div className="space-y-2">
-                              <span className="text-xs text-slate-400">Selected Users:</span>
-                              <div className="flex flex-wrap gap-2">
-                                {createForm.assignedTo.map((userId) => {
-                                  const user = departmentUsers.find(u => u._id === userId);
-                                  return (
-                                    <div
-                                      key={userId}
-                                      className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-lg text-blue-300 text-sm"
-                                    >
-                                      <span>{user?.name || userId}</span>
-                                      <button
-                            type="button"
-                            onClick={() => {
-                                          setCreateForm({
-                                            ...createForm,
-                                            assignedTo: createForm.assignedTo.filter(id => id !== userId)
-                              });
-                            }}
-                                        className="text-blue-400 hover:text-blue-300 text-xs"
-                          >
-                                        ✕
-                                      </button>
+                                          ✕
+                                        </button>
+                          </div>
+                                    );
+                                  })}
                         </div>
-                                  );
-                                })}
-                      </div>
-                            </div>
-                          )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Target Date</label>
+                          <Input
+                            type="date"
+                            value={createForm.targetDate}
+                            onChange={(e) => setCreateForm({...createForm, targetDate: e.target.value})}
+                            className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                            required
+                          />
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Target Date</label>
-                        <Input
-                          type="date"
-                          value={createForm.targetDate}
-                          onChange={(e) => setCreateForm({...createForm, targetDate: e.target.value})}
-                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
-                          required
-                        />
-                      </div>
-                      </div>
+                    </div>
                       
                       <DialogFooter>
                         <Button 

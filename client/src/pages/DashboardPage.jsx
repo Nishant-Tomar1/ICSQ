@@ -5,6 +5,7 @@ import { useToast } from "../contexts/ToastContext"
 import DashboardHeader from "../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
+import VideoModal from "../components/VideoModal"
 import { capitalizeFirstLetter,
   getDepartmentIcon,
   getTagandEmoji, 
@@ -23,6 +24,7 @@ function DashboardPage() {
   const [departmetnScoresToParticaular, setDepartmentScoresToParticular] = useState([])
   const [expData, setExpData] = useState([]);
   const [hasSurveys, setHasSurveys] = useState(false)
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
   const { currentUser, isAdmin, isHod, getCurrentDepartment } = useAuth()
@@ -125,6 +127,19 @@ function DashboardPage() {
               <p className="text-gray-100">
                 {hasSurveys ? "Here's an overview of your ICSQ performance" : "Your ICSQ performance overview will appear here once surveys are completed"}
               </p>
+              
+              {/* Video Button */}
+              <div className="mt-4">
+                <Button
+                  onClick={() => setIsVideoModalOpen(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white rounded-lg transition-all duration-200 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  Watch ICSQ Video
+                </Button>
+              </div>
             </div>
 
             <div className="mb-8">
@@ -162,7 +177,7 @@ function DashboardPage() {
                     <CardTitle className="text-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          {capitalizeFirstLetter(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName)} ICSQ <br />
+                          {(modalDept?.name ? modalDept?.name : modalDept?.fromDepartmentName)?.toUpperCase()} ICSQ <br />
                           <span className="text-teal-400 text-xl">{(modalDept?.score ? modalDept?.score : modalDept?.averageScore)?.toFixed(2) || 0} %</span>
                         </div>
                         <div className="text-[goldenrod]">
@@ -182,7 +197,7 @@ function DashboardPage() {
                 <Card className="flex-1 bg-[#29252c]/70 max-h-[180px]">
                       <CardHeader>
                           <CardTitle className="text-[goldenrod] text-xl -mb-2">
-                            {getCurrentDepartment()?.name ? `${capitalizeFirstLetter(getCurrentDepartment()?.name)} Department's average ICSQ` : "Department's average ICSQ"}
+                            {getCurrentDepartment()?.name ? `${getCurrentDepartment()?.name?.toUpperCase()} Department's average ICSQ` : "Department's average ICSQ"}
                           </CardTitle>
                         </CardHeader>
                     <CardContent>
@@ -196,7 +211,7 @@ function DashboardPage() {
                             >
                               <div>
                                 <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
-                                   <span> {getDepartmentIcon(currentUserDept?.name || "")}{capitalizeFirstLetter(currentUserDept?.name || "")} </span>
+                                   <span> {getDepartmentIcon(currentUserDept?.name || "")}{currentUserDept?.name?.toUpperCase() || ""} </span>
                                   <span className="text-gray-200">{currentUserDept?.score?.toFixed(2)} %</span>
                                 </div>
                                 <div
@@ -243,7 +258,7 @@ function DashboardPage() {
                               <div className="text-start text-gray-100 font-medium mb-2 flex justify-between">
                                 <span> 
                                   {getDepartmentIcon(dept.fromDepartmentName)} 
-                                  {capitalizeFirstLetter(dept.fromDepartmentName)} 
+                                  {dept.fromDepartmentName?.toUpperCase()} 
                                 </span>
                                 <span className="text-gray-200">{dept?.averageScore.toFixed(2)} %</span>
                               </div>
@@ -276,6 +291,15 @@ function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        videoSrc="/videos/icsq-introduction.mp4" // You'll need to add your video file here
+        videoPoster="/images/icsq-video-poster.jpg" // Optional poster image
+        videoTitle="ICSQ Introduction Video"
+      />
     </div>
   );
 }
