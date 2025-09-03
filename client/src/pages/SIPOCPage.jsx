@@ -18,7 +18,8 @@ function SIPOCPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingEntry, setEditingEntry] = useState(null)
   const [sipocEntries, setSipocEntries] = useState([])
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false)
   const [imageModal, setImageModal] = useState({ open: false, src: "" })
   const [sortedEntries, setSortedEntries] = useState({
     surveyed: [],
@@ -237,16 +238,16 @@ function SIPOCPage() {
           <h3 className={`text-lg font-semibold ${colorClass}`}>{title}</h3>
         </div> */}
         <div className="w-full overflow-x-auto">
-                            <Table className="min-w-[900px] w-full bg-black/80">
+          <Table className="min-w-[900px] w-full bg-[#232026]/80">
             <TableHeader>
-              <TableRow className="bg-[#29252c]/50 border-b-2 border-gray-300/70 overflow-auto">
-                <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Supplier</TableHead>
-                <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Input</TableHead>
-                <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[220px]">Process</TableHead>
-                <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Output</TableHead>
-                <TableHead className="text-gray-200 font-bold text-base py-5 px-2 tracking-wide min-w-[160px]">Customer</TableHead>
+              <TableRow className="bg-[#93725E] text-[#FFF8E7] shadow-sm">
+                <TableHead className="font-semibold text-base py-5 px-2 tracking-wide min-w-[160px]">Supplier</TableHead>
+                <TableHead className="font-semibold text-base py-5 px-2 tracking-wide min-w-[160px]">Input</TableHead>
+                <TableHead className="font-semibold text-base py-5 px-2 tracking-wide min-w-[220px]">Process</TableHead>
+                <TableHead className="font-semibold text-base py-5 px-2 tracking-wide min-w-[160px]">Output</TableHead>
+                <TableHead className="font-semibold text-base py-5 px-2 tracking-wide min-w-[160px]">Customer</TableHead>
                 {(["admin", "hod"].includes(currentUser?.role)) && (
-                  <TableHead className="w-[140px] text-gray-200 font-bold text-center py-5 px-2 min-w-[120px]">Actions</TableHead>
+                  <TableHead className="w-[140px] font-semibold text-center py-5 px-2 min-w-[120px]">Actions</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -254,11 +255,11 @@ function SIPOCPage() {
               {entries.map((entry, index) => (
                 <TableRow
                   key={index}
-                  className={`border-b-2 border-gray-200/70 transition-all duration-200 group
-                    ${index % 2 === 0 ? 'bg-[#83725E]/15' : 'bg-white/15'}
+                  className={`border-b border-muted-foreground/20 transition-all duration-200 group
+                    ${index % 2 === 0 ? 'bg-[#232026]/60 hover:bg-[#232026]/80' : 'bg-[#232026]/40 hover:bg-[#232026]/60'}
                   `}
                 >
-                  <TableCell className="text-gray-200 align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
+                  <TableCell className="text-[#FFF8E7] align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.supplier.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
@@ -269,7 +270,7 @@ function SIPOCPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-200 align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
+                  <TableCell className="text-[#FFF8E7] align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.input.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
@@ -280,7 +281,7 @@ function SIPOCPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-200 align-top p-2 sm:p-4 max-w-[300px] transition-all duration-200">
+                  <TableCell className="text-[#FFF8E7] align-top p-2 sm:p-4 max-w-[300px] transition-all duration-200">
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.process?.input.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
@@ -302,7 +303,7 @@ function SIPOCPage() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-200 align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
+                  <TableCell className="text-[#FFF8E7] align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.output.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
@@ -313,7 +314,7 @@ function SIPOCPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-200 align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
+                  <TableCell className="text-[#FFF8E7] align-top p-2 sm:p-4 max-w-[200px] transition-all duration-200">
                     <div className="space-y-1.5 break-words">
                       {entry?.entries?.customer.split('\n').map((line, i) => (
                         <div key={i} className="leading-relaxed whitespace-pre-wrap text-[14px] group-hover:font-medium transition-all">
@@ -371,13 +372,13 @@ function SIPOCPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#29252c]">
       <DashboardHeader user={currentUser} />
 
-      <main className="container mx-auto py-6 px-4">
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+      <main className="container mx-auto py-6 mx:2 px-2">
+        <Card className="mb-6 bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 shadow-xl w-full">
+          <CardHeader className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
+            <CardTitle className="flex items-center justify-between text-[#FFF8E7]">
               <span>SIPOC Management - {capitalizeFirstLetter(getCurrentDepartment()?.name)}</span>
               {(["admin", "hod"].includes(currentUser?.role)) && (
                 <Button onClick={() => { setModalOpen(true) }} disabled={isLoading}>
@@ -388,7 +389,7 @@ function SIPOCPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-300 mb-4">
+            <p className="text-sm text-[#FFF8E7] mb-4">
               SIPOC (Supplier, Input, Process, Output, Customer) is a tool that summarizes the inputs and outputs of one
               or more processes in table form. It is used to define a business process before work begins.
             </p>
@@ -415,34 +416,24 @@ function SIPOCPage() {
             )}
 
             {Object.values(sortedEntries).every(arr => arr.length === 0) && (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-[#FFF8E7]">
                 No SIPOC entries found. Click the "Add Entry" button to create one.
               </div>
             )}
 
             
 
-            {imageModal.open && (
-              <div className="fixed inset-0 bg-black/10 backdrop-blur-lg bg-opacity-50 flex items-center justify-center z-50">
-                <div className=" rounded-lg p-4 max-w-3xl w-full bg-black/30">
-                  <h3 className="text-lg font-semibold mb-4">Process Image</h3>
-                  <img src={imageModal.src} alt="Process" className="w-full max-h-[60vh] object-contain" />
-                  <div className="mt-4 text-right">
-                    <button onClick={() => setImageModal({ open: false, src: "" })} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Close</button>
-                  </div>
-                </div>
-              </div>
-            )}
+           
           </CardContent>
         </Card>
         {/* Add/Edit Entry Modal */}
         {modalOpen && (
-              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg bg-opacity-40 flex justify-center items-center z-50 px-3 animate-fadeIn max-w-screen h-screen">
-                <div className="rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto relative bg-gradient-to-b from-[#1c1c1e] to-[#2a2a2d] text-white transform transition-all duration-300 ease-out animate-slideUp z-[1000]">
+              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg flex justify-center items-center z-50 px-3">
+                <div className="rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto relative bg-[#29252c]/95 backdrop-blur-sm border border-gray-700 text-white transform transition-all duration-300 ease-out z-[1000]">
                   {/* Header */}
-                  <div className="sticky top-0 bg-gradient-to-b from-[#1c1c1e] to-[#1c1c1e]/95 px-4 py-3 border-b border-gray-700/50 backdrop-blur-sm">
+                  <div className="sticky top-0 bg-[#29252c]/95 px-4 py-3 border-b border-gray-700/50 backdrop-blur-sm">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold bg-gradient-to-r from-amber-200 to-amber-600 bg-clip-text text-transparent">
+                      <h2 className="text-xl font-semibold text-[#FFF8E7]">
                         {isEditing ? "Edit SIPOC Entry" : "Add New SIPOC Entry"}
                       </h2>
                       <button
@@ -469,7 +460,7 @@ function SIPOCPage() {
                       </button>
                     </div>
                     {isEditing && (
-                      <p className="mt-1.5 text-xs text-gray-400">
+                      <p className="mt-1.5 text-xs text-[#FFF8E7]/70">
                         Editing entry created on {new Date(editingEntry.createdAt).toLocaleDateString()}
                       </p>
                     )}
@@ -482,15 +473,15 @@ function SIPOCPage() {
                       <div className="space-y-4">
                         {/* Supplier */}
                         <div className="form-group">
-                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-[#FFF8E7]">
                             Supplier
                           </label>
                           <textarea
                             placeholder="Enter suppliers (one per line)..."
                             value={newEntry.supplier}
                             onChange={(e) => handleInputChange("supplier", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
-                              focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
+                            className="w-full bg-white/5 border border-white/20 p-2 rounded-md text-sm text-white placeholder-gray-400
+                              focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 focus:outline-none
                               transition-all duration-200"
                             rows={3}
                           />
@@ -498,15 +489,15 @@ function SIPOCPage() {
 
                         {/* Input */}
                         <div className="form-group">
-                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-[#FFF8E7]">
                             Input
                           </label>
                           <textarea
                             placeholder="Enter inputs (one per line)..."
                             value={newEntry.input}
                             onChange={(e) => handleInputChange("input", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
-                              focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
+                            className="w-full bg-white/5 border border-white/20 p-2 rounded-md text-sm text-white placeholder-gray-400
+                              focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 focus:outline-none
                               transition-all duration-200"
                             rows={3}
                           />
@@ -514,15 +505,15 @@ function SIPOCPage() {
 
                         {/* Process */}
                         <div className="form-group">
-                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-[#FFF8E7]">
                             Process
                           </label>
                           <textarea
                             placeholder="Enter process steps (one per line)..."
                             value={newEntry.process.input}
                             onChange={(e) => handleInputChange("process.input", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
-                              focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
+                            className="w-full bg-white/5 border border-white/20 p-2 rounded-md text-sm text-white placeholder-gray-400
+                              focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 focus:outline-none
                               transition-all duration-200"
                             rows={3}
                           />
@@ -533,15 +524,15 @@ function SIPOCPage() {
                       <div className="space-y-4">
                         {/* Output */}
                         <div className="form-group">
-                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-[#FFF8E7]">
                             Output
                           </label>
                           <textarea
                             placeholder="Enter outputs (one per line)..."
                             value={newEntry.output}
                             onChange={(e) => handleInputChange("output", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
-                              focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
+                            className="w-full bg-white/5 border border-white/20 p-2 rounded-md text-sm text-white placeholder-gray-400
+                              focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 focus:outline-none
                               transition-all duration-200"
                             rows={3}
                           />
@@ -549,15 +540,15 @@ function SIPOCPage() {
 
                         {/* Customer */}
                         <div className="form-group">
-                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-[#FFF8E7]">
                             Customer
                           </label>
                           <textarea
                             placeholder="Enter customers (one per line)..."
                             value={newEntry.customer}
                             onChange={(e) => handleInputChange("customer", e.target.value)}
-                            className="w-full bg-[#2a2a2d]/50 border border-gray-600/50 p-2 rounded-md text-sm text-white placeholder-gray-500
-                              focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 focus:outline-none
+                            className="w-full bg-white/5 border border-white/20 p-2 rounded-md text-sm text-white placeholder-gray-400
+                              focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 focus:outline-none
                               transition-all duration-200"
                             rows={3}
                           />
@@ -565,18 +556,18 @@ function SIPOCPage() {
 
                         {/* Process Diagram */}
                         <div className="form-group">
-                          <label className="block text-xs font-medium mb-1.5 text-amber-300">
+                          <label className="block text-xs font-medium mb-1.5 text-[#FFF8E7]">
                             Process Diagram
                           </label>
                           <div className="space-y-2">
                             {isEditing && editingEntry?.entries?.process?.file && (
-                              <div className="p-2 bg-[#2a2a2d]/30 rounded-md border border-gray-600/30">
+                              <div className="p-2 bg-white/5 rounded-md border border-white/20">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-400">Current Image:</span>
+                                  <span className="text-xs text-[#FFF8E7]/70">Current Image:</span>
                                   <button
                                     type="button"
                                     onClick={() => setImageModal({ open: true, src: editingEntry.entries.process.file })}
-                                    className="text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                                    className="text-blue-400 hover:text-blue-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -592,16 +583,16 @@ function SIPOCPage() {
                                 id="processPicture"
                                 type="file"
                                 accept="image/*"
-                                className="block w-full text-sm text-gray-400
+                                className="block w-full text-sm text-[#FFF8E7]
                                   file:mr-4 file:py-2 file:px-4
                                   file:rounded-full file:border-0
                                   file:text-sm file:font-medium
-                                  file:bg-amber-500/10 file:text-amber-400
-                                  hover:file:bg-amber-500/20
+                                  file:bg-blue-500/10 file:text-blue-400
+                                  hover:file:bg-blue-500/20
                                   cursor-pointer
                                   transition-all duration-200"
                               />
-                              <p className="mt-1 text-xs text-gray-500">
+                              <p className="mt-1 text-xs text-[#FFF8E7]/70">
                                 {isEditing ? "Upload a new image to replace the current one" : "Upload an image for the process diagram"}
                               </p>
                             </div>
@@ -629,18 +620,18 @@ function SIPOCPage() {
                             customer: "",
                           });
                         }}
-                        className="px-6 py-2.5 rounded-lg border border-gray-600/50 text-gray-300 hover:text-white
-                          hover:bg-gray-700/50 transition-all duration-200 flex items-center gap-2"
+                        className="px-6 py-2.5 rounded-lg border border-white/20 text-[#FFF8E7] hover:text-white
+                          hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isAdding}
-                        className={`px-4 py-1 text-sm rounded-lg bg-gradient-to-r from-amber-500 to-amber-600
-                          text-white font-medium shadow-lg shadow-amber-500/20
-                          hover:shadow-amber-500/30 hover:from-amber-600 hover:to-amber-700
-                          focus:ring-2 focus:ring-amber-500/50 focus:outline-none
+                        className={`px-4 py-1 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-blue-600
+                          text-white font-medium shadow-lg shadow-blue-500/20
+                          hover:shadow-blue-500/30 hover:from-blue-600 hover:to-blue-700
+                          focus:ring-2 focus:ring-blue-500/50 focus:outline-none
                           transition-all duration-200 flex items-center gap-2
                           ${isAdding ? 'opacity-70 cursor-not-allowed' : ''}`}
                       >
@@ -658,6 +649,36 @@ function SIPOCPage() {
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+         {imageModal.open && (
+              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg flex items-center justify-center z-50 p-4 min-h-screen">
+                <div className="rounded-lg p-6 max-w-4xl w-full max-h-[80vh] bg-[#29252c]/95 backdrop-blur-sm border border-gray-700 shadow-2xl my-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-[#FFF8E7]">Process Image</h3>
+                    <button 
+                      onClick={() => setImageModal({ open: false, src: "" })} 
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-center min-h-[400px] w-full relative">
+                    {!imageLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#83725E] border-t-transparent"></div>
+                      </div>
+                    )}
+                    <img 
+                      src={imageModal.src}
+                      alt="Process"
+                      className={`max-w-full max-h-[70vh] object-contain rounded-lg mx-auto transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                  </div>
                 </div>
               </div>
             )}

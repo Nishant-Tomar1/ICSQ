@@ -119,8 +119,14 @@ function AllExpectationsTable({ data, onAssign, ratingFilter, currentDepartment 
                 user: user.name,
                 expectation: exp.text,
                 rating: exp.rating || 0,
-                userId: user._id || user.id,
+                userId: user.userId || user._id || user.id,
                 category: category.category,
+                users: [{
+                  userId: user.userId || user._id || user.id,
+                  surveyId: user.surveyId || null,
+                  originalExpectation: exp.text,
+                  category: category.category
+                }],
               });
             }
           });
@@ -241,7 +247,13 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
             user: user.name,
             expectation: exp.text,
             rating: exp.rating || 0,
-            userId: user._id,
+            userId: user.userId || user._id,
+            users: [{
+              userId: user.userId || user._id,
+              surveyId: user.surveyId || null,
+              originalExpectation: exp.text,
+              category: categoryName
+            }],
           });
         }
       });
@@ -364,8 +376,14 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
                   user: user.name,
               expectation: exp.text,
               rating: exp.rating || 0,
-                  userId: user._id || user.id,
+                  userId: user.userId || user._id || user.id,
                   category: category.category,
+                  users: [{
+                    userId: user.userId || user._id || user.id,
+                    surveyId: user.surveyId || null,
+                    originalExpectation: exp.text,
+                    category: category.category
+                  }],
                 });
               }
             });
@@ -527,9 +545,10 @@ function ActionPlansPage() {
   const [createForm, setCreateForm] = useState({
     expectations: "",
     instructions: "",
-    assignedTo: "",
+    assignedTo: [],
     targetDate: "",
     status: "pending",
+    originalSurveyRespondents: [],
   });
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ _id: '', expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
@@ -552,7 +571,8 @@ function ActionPlansPage() {
     assignedTo: '',
     targetDate: '',
     categoryId: '',
-    status: 'pending'
+    status: 'pending',
+    originalSurveyRespondents: []
   });
   // Add these hooks at the top level
   const [actionModalOpen, setActionModalOpen] = useState(false);
@@ -733,7 +753,6 @@ function ActionPlansPage() {
       // HOD also fetches expectation data for their current department
       if (currentUser.role === "hod") {
         const expresponse = await axios.get(`${Server}/analytics/expectation-data/${getCurrentDepartment()?._id}`, { withCredentials: true });
-        
         setExpectationData(expresponse.data);
       }
     } catch (error) {
@@ -899,7 +918,7 @@ function ActionPlansPage() {
       toast({ title: "Error", description: "Please select or enter a category.", variant: "destructive" });
       return;
     }
-    if (!createForm.assignedTo.length) {
+    if (!Array.isArray(createForm.assignedTo) || !createForm.assignedTo.length) {
       toast({ title: "Error", description: "Please select a user to assign.", variant: "destructive" });
       return;
     }
@@ -915,27 +934,47 @@ function ActionPlansPage() {
       // Handle multiple user assignment
       const assignedUsers = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [createForm.assignedTo];
       
-      // Create action plans for each assigned user
-      for (const userId of assignedUsers) {
-      await axios.post(
-        `${Server}/action-plans`,
-        {
-          departmentId: getCurrentDepartment()?._id,
-          categoryId: existingCategory?._id || selectedCategoryForForm,
-          expectations: createForm.expectations,
-          instructions: createForm.instructions,
-          assignedTo: userId,
-          targetDate: createForm.targetDate,
-          status: createForm.status,
-        },
-        { withCredentials: true }
-      );
+      console.log("Assigning to",assignedUsers.length || 0, "users");
+      
+      // Create action plans - use batch endpoint for multiple users, single endpoint for one user
+      if (assignedUsers.length > 1) {
+        // Use batch endpoint for multiple users
+        await axios.post(
+          `${Server}/action-plans/batch`,
+          {
+            departmentId: getCurrentDepartment()?._id,
+            categoryId: existingCategory?._id || selectedCategoryForForm,
+            expectations: createForm.expectations,
+            instructions: createForm.instructions,
+            assignedToUsers: assignedUsers, // Send array of user IDs
+            targetDate: createForm.targetDate,
+            status: createForm.status,
+            originalSurveyRespondents: createForm.originalSurveyRespondents || [],
+          },
+          { withCredentials: true }
+        );
+      } else {
+        // Use single endpoint for one user
+        await axios.post(
+          `${Server}/action-plans`,
+          {
+            departmentId: getCurrentDepartment()?._id,
+            categoryId: existingCategory?._id || selectedCategoryForForm,
+            expectations: createForm.expectations,
+            instructions: createForm.instructions,
+            assignedTo: assignedUsers[0], // Send single user ID
+            targetDate: createForm.targetDate,
+            status: createForm.status,
+            originalSurveyRespondents: createForm.originalSurveyRespondents || [],
+          },
+          { withCredentials: true }
+        );
       }
       
       // Close both modals if they're open
       setCreateModalOpen(false);
       setAiCreateModalOpen(false);
-      setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+      setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending', originalSurveyRespondents: [] });
       setSelectedCategoryForForm("");
       fetchData();
       
@@ -982,11 +1021,12 @@ function ActionPlansPage() {
           assignedTo: assignAllSummaryForm.assignedTo,
           targetDate: assignAllSummaryForm.targetDate,
           status: assignAllSummaryForm.status,
+          originalSurveyRespondents: assignAllSummaryForm.originalSurveyRespondents || [],
         },
         { withCredentials: true }
       );
       setAssignAllSummaryModal(false);
-      setAssignAllSummaryForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', status: 'pending' });
+      setAssignAllSummaryForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', status: 'pending', originalSurveyRespondents: [] });
       setAssignAllSummaryData([]);
       fetchData();
       toast({ title: "Success", description: "Action plan created!" });
@@ -1404,7 +1444,12 @@ function ActionPlansPage() {
 
   // --- Role-based rendering ---
   if (isLoading) {
-    return <div className="flex justify-center items-center h-96">Loading...</div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-96 gap-4">
+        <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
+        <p className="text-white font-medium animate-pulse">Loading action plans...</p>
+      </div>
+    );
   }
 
       // --- User and Admin View ---
@@ -1431,7 +1476,7 @@ function ActionPlansPage() {
     return (
       <div className="bg-[#29252c]">
         <DashboardHeader title="My Action Plans" />
-        <Card className="m-4 bg-gradient-to-br from-[#29252c]/90 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+        <Card className="m-4 mb-0 pb-4 min-h-screen bg-gradient-to-br from-[#29252c]/90 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
           <CardHeader className="border-b border-gray-700/50 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
@@ -1452,7 +1497,17 @@ function ActionPlansPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          
+          {filteredPlans.length === 0 && (
+                      <div className="flex flex-col items-center gap-4 mt-10">
+                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center">
+                              <span className="text-3xl">📋</span>
+                            </div>
+                            <div className="text-slate-200 text-xl font-medium">No action plans assigned to you</div>
+                            <div className="text-slate-500 text-sm">Check back later or contact your supervisor</div>
+                          </div>
+                    )}
+          { filteredPlans.length > 0 && <CardContent className="p-0">
             <div className="relative">
               {/* Left scroll indicator */}
               <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div>
@@ -1462,7 +1517,7 @@ function ActionPlansPage() {
               </div>
               
               <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                <Table className="min-w-[1200px] border-separate border-spacing-0">
+               <Table className="min-w-[1200px] border-separate border-spacing-0 border-gray-600 border-2">
                   <TableHeader className="bg-gradient-to-r from-gray-800 to-gray-900 sticky top-0 z-5">
                     <TableRow>
                       <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
@@ -1580,9 +1635,9 @@ function ActionPlansPage() {
                                 onClick={() => openActionModal(plan)}
                                 className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-2"
                               >
-                                {plan.actions ? "Edit" : "Add"}
+                                {plan.actions ? "Edit Action" : "Add Action"}
                               </Button>
-                              <Button 
+                              {/* <Button 
                                 size="sm" 
                                 variant="destructive" 
                                 onClick={() => handleDeleteActionPlan(plan)}
@@ -1591,30 +1646,18 @@ function ActionPlansPage() {
                                 title="Delete Action Plan"
                               >
                                 Delete
-                              </Button>
+                              </Button> */}
                             </div>
                           </TableCell>
                   </TableRow>
                 ))}
-                    {filteredPlans.length === 0 && (
-                      <TableRow className="bg-gray-800/20">
-                        <TableCell colSpan={8} className="text-center py-12">
-                          <div className="flex flex-col items-center gap-4">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center">
-                              <span className="text-3xl">📋</span>
-                            </div>
-                            <div className="text-slate-300 text-lg font-medium">No action plans assigned to you</div>
-                            <div className="text-slate-400 text-sm">Check back later or contact your supervisor</div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
+                   
                     
                   </TableBody>
                 </Table>
               </div>
             </div>
-          </CardContent>
+          </CardContent>}
         </Card>
         {/* Modal for adding/updating actions */}
         <Dialog open={actionModalOpen} onOpenChange={setActionModalOpen}>
@@ -2068,7 +2111,7 @@ function ActionPlansPage() {
         
         {/* Onboarding Guide */}
         {showOnboarding && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-auto">
             <div className="bg-gray-300 rounded-lg max-w-2xl w-full p-6">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Action Plans!</h2>
@@ -2524,7 +2567,7 @@ function ActionPlansPage() {
         )}
 
         {/* Main Content Area */}
-        {activeTab !== "overview" && activeTab !== "ai-action-plans" && <div className="px-6 py-6">
+        {activeTab !== "overview" && activeTab !== "ai-action-plans" && <div className="px-6 py-6 overflow-auto">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Left Sidebar */}
@@ -2835,8 +2878,9 @@ function ActionPlansPage() {
                               setCreateForm(f => ({
                                 ...f,
                                 department: expObj.department || "",
-                                instructions: expObj.expectation,
+                                expectations: expObj.expectation,
                                 assignedTo: expObj.userId || '',
+                                originalSurveyRespondents: expObj.users || [],
                               }));
                             }}
                           />
@@ -2921,9 +2965,10 @@ function ActionPlansPage() {
                             setSelectedCategoryForForm(expObj.category || selectedCategory);
                         setCreateForm(f => ({
                           ...f,
-                              department: expObj.department || "",
-                          instructions: expObj.expectation,
+                          department: expObj.department || "",
+                          expectations: expObj.expectation,
                           assignedTo: expObj.userId || '',
+                          originalSurveyRespondents: expObj.users || [],
                         }));
                       }}
                     />
@@ -3011,8 +3056,9 @@ function ActionPlansPage() {
                           setCreateForm(f => ({
                             ...f,
                             department: expObj.department || "",
-                            instructions: expObj.expectation,
+                            expectations: expObj.expectation,
                             assignedTo: expObj.userId || '',
+                            originalSurveyRespondents: expObj.users || [],
                           }));
                         }}
                       />
@@ -3026,7 +3072,7 @@ function ActionPlansPage() {
               setCreateModalOpen(open);
               if (!open) {
                 // Reset form when modal is closed
-                setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending', originalSurveyRespondents: [] });
                 setSelectedCategoryForForm("");
               }
             }}>
@@ -3101,57 +3147,98 @@ function ActionPlansPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Assign To (Multiple Users)</label>
-                    <div className="bg-white/5 border border-white/20 rounded-lg p-3 max-h-48 overflow-y-auto">
-                      {usersLoading ? (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                          <span className="ml-2 text-slate-300">Loading users...</span>
+                    <div className="space-y-3">
+                      {/* Multiple User Selection */}
+                      <div className="flex items-center gap-3">
+                        <Select
+                          value=""
+                          onValueChange={(val) => {
+                            const currentAssignedTo = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [];
+                            if (val && !currentAssignedTo.includes(val)) {
+                              setCreateForm({
+                                ...createForm,
+                                assignedTo: [...currentAssignedTo, val]
+                              });
+                            }
+                          }}
+                          options={departmentUsers
+                            .filter(user => {
+                              const currentAssignedTo = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [];
+                              return !currentAssignedTo.includes(user._id);
+                            })
+                            .map((user) => ({ value: user._id, label: user.name }))
+                          }
+                          className="flex-1 bg-white/5 border-white/20 text-white"
+                          placeholder="Select users to assign"
+                          isLoading={usersLoading}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                            // Select all users
+                            const allUserIds = departmentUsers.map(user => user._id);
+                            setCreateForm({
+                              ...createForm,
+                              assignedTo: allUserIds
+                            });
+                          }}
+                          className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10 whitespace-nowrap"
+                        >
+                          Select All
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                            // Clear all users
+                            setCreateForm({
+                              ...createForm,
+                              assignedTo: []
+                            });
+                          }}
+                          className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/20 whitespace-nowrap"
+                          disabled={!Array.isArray(createForm.assignedTo) || createForm.assignedTo.length === 0}
+                        >
+                          Clear All
+                          </Button>
                         </div>
-                      ) : departmentUsers && departmentUsers.length > 0 ? (
-                        <div className="space-y-2 max-h-20 overflow-auto">
-                          {departmentUsers.map((user) => (
-                            <label key={user._id} className="flex items-center space-x-3 cursor-pointer hover:bg-white/5 rounded p-2 transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={Array.isArray(createForm.assignedTo) ? createForm.assignedTo.includes(user._id) : createForm.assignedTo === user._id}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    // Add user to selection
-                                    const currentUsers = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : (createForm.assignedTo ? [createForm.assignedTo] : []);
-                                    if (!currentUsers.includes(user._id)) {
-                                      handleCreateFormChange("assignedTo", [...currentUsers, user._id]);
-                                    }
-                                  } else {
-                                    // Remove user from selection
-                                    const currentUsers = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : (createForm.assignedTo ? [createForm.assignedTo] : []);
-                                    const updatedUsers = currentUsers.filter(id => id !== user._id);
-                                    handleCreateFormChange("assignedTo", updatedUsers.length > 0 ? updatedUsers : "");
-                                  }
-                                }}
-                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                              />
-                              <span className="text-slate-200 font-medium">{user.name}</span>
-                              <span className="text-xs text-slate-400">({user.email || 'No email'})</span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-slate-400">
-                          No users available to assign in this department.
+                      
+                      {/* Selected Users Display */}
+                      {Array.isArray(createForm.assignedTo) && createForm.assignedTo.length > 0 && (
+                        <div className="space-y-2">
+                          <span className="text-xs text-slate-400">Selected Users:</span>
+                          <div className="flex flex-wrap gap-2">
+                            {createForm.assignedTo.map((userId) => {
+                              const user = departmentUsers.find(u => u._id === userId);
+                              return (
+                                <div
+                                  key={userId}
+                                  className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-lg text-blue-300 text-sm"
+                                >
+                                  <span>{user?.name || userId}</span>
+                                  <button
+                        type="button"
+                        onClick={() => {
+                                      const currentAssignedTo = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [];
+                                      setCreateForm({
+                                        ...createForm,
+                                        assignedTo: currentAssignedTo.filter(id => id !== userId)
+                          });
+                        }}
+                                      className="text-blue-400 hover:text-blue-300 text-xs"
+                    >
+                                    ✕
+                                  </button>
+                </div>
+                              );
+                            })}
+                      </div>
                         </div>
                       )}
                     </div>
-                    {!usersLoading && departmentUsers && departmentUsers.length > 0 && (
-                      <div className="mt-2 text-xs text-slate-400">
-                        {Array.isArray(createForm.assignedTo) && createForm.assignedTo.length > 0 ? (
-                          <span className="text-blue-300">
-                            Selected: {createForm.assignedTo.length} user{createForm.assignedTo.length !== 1 ? 's' : ''}
-                          </span>
-                        ) : (
-                          <span>Select one or more users to assign the action plan</span>
-                        )}
-                      </div>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Target Date</label>
@@ -4107,7 +4194,7 @@ function ActionPlansPage() {
                 if (!open) {
                   setAiCreateModalOpen(false);
                   // Clear form data when modal is closed
-                  setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+                  setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending', originalSurveyRespondents: [] });
                   setSelectedCategoryForForm('');
                 }
               }}>
@@ -4156,15 +4243,19 @@ function ActionPlansPage() {
                               <Select
                                 value=""
                                 onValueChange={(val) => {
-                                  if (val && !createForm.assignedTo.includes(val)) {
+                                  const currentAssignedTo = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [];
+                                  if (val && !currentAssignedTo.includes(val)) {
                                     setCreateForm({
                                       ...createForm,
-                                      assignedTo: [...createForm.assignedTo, val]
+                                      assignedTo: [...currentAssignedTo, val]
                                     });
                                   }
                                 }}
                                 options={departmentUsers
-                                  .filter(user => !createForm.assignedTo.includes(user._id))
+                                  .filter(user => {
+                                    const currentAssignedTo = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [];
+                                    return !currentAssignedTo.includes(user._id);
+                                  })
                                   .map((user) => ({ value: user._id, label: user.name }))
                                 }
                                 className="flex-1 bg-white/5 border-white/20 text-white"
@@ -4199,14 +4290,14 @@ function ActionPlansPage() {
                                   });
                                 }}
                                 className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/20 whitespace-nowrap"
-                                disabled={createForm.assignedTo.length === 0}
+                                disabled={!Array.isArray(createForm.assignedTo) || createForm.assignedTo.length === 0}
                               >
                                 Clear All
                                 </Button>
                               </div>
                             
                             {/* Selected Users Display */}
-                            {createForm.assignedTo.length > 0 && (
+                            {Array.isArray(createForm.assignedTo) && createForm.assignedTo.length > 0 && (
                               <div className="space-y-2">
                                 <span className="text-xs text-slate-400">Selected Users:</span>
                                 <div className="flex flex-wrap gap-2">
@@ -4221,9 +4312,10 @@ function ActionPlansPage() {
                                         <button
                               type="button"
                               onClick={() => {
+                                            const currentAssignedTo = Array.isArray(createForm.assignedTo) ? createForm.assignedTo : [];
                                             setCreateForm({
                                               ...createForm,
-                                              assignedTo: createForm.assignedTo.filter(id => id !== userId)
+                                              assignedTo: currentAssignedTo.filter(id => id !== userId)
                                 });
                               }}
                                           className="text-blue-400 hover:text-blue-300 text-xs"

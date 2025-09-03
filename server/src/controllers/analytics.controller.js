@@ -347,6 +347,7 @@ export async function getExpectationData(req, res) {
       },
       users: {
         $push: {
+          userId: "$_id.userId",
           name: "$user.name",
           expectations: "$expectations",
           expectationCount: "$expectationCount"

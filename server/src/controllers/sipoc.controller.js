@@ -65,33 +65,7 @@ export async function createSIPOC(req, res) {
   try {
     let { departmentId, entries } = req.body
 
-    // Parse the entries if they're provided as a string
-    if (typeof entries === 'string') {
-      try {
-        entries = JSON.parse(entries)
-      } catch (parseError) {
-        return res.status(400).json({ 
-          message: "Invalid entries format. Must be valid JSON." 
-        })
-      }
-    }
-
-    // Validate entries structure
-    if (!entries || typeof entries !== 'object') {
-      return res.status(400).json({ 
-        message: "Entries must be a valid object" 
-      })
-    }
-
-    // Validate required sections exist
-    const requiredSections = ['suppliers', 'inputs', 'process', 'outputs', 'customers']
-    for (const section of requiredSections) {
-      if (!entries[section]) {
-        return res.status(400).json({ 
-          message: `Missing required section: ${section}` 
-        })
-      }
-    }
+    console.log('Received SIPOC data:', { departmentId, entries });
 
     if (!departmentId || !entries) {
       return res.status(400).json({ message: "DepartmentId and entries are required" })
@@ -108,6 +82,8 @@ export async function createSIPOC(req, res) {
     if (processLocalPath){
       processFile = await uploadOnCloudinary(processLocalPath);
     }
+    entries = JSON.parse(entries);
+    console.log('Parsed entries:', entries);
     
     entries = {
       ...entries, 
@@ -117,6 +93,8 @@ export async function createSIPOC(req, res) {
         input: entries?.process?.input || ""
       }
     };
+    
+    console.log('Final entries to save:', entries);
     
     const sipoc = await SIPOC.create({ department : new mongoose.Types.ObjectId(departmentId), entries })
 

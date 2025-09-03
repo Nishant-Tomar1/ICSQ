@@ -5,6 +5,7 @@ import {
   getActionPlansForHOD,
   getActionPlansForUser,
   createActionPlan,
+  createMultipleActionPlans,
   updateActionPlan,
   updateActionPlanStatus,
   deleteActionPlan,
@@ -24,6 +25,8 @@ router.get("/user", getActionPlansForUser)
 
 // Create a new action plan (HOD or admin)
 router.post("/", requireHOD, createActionPlan)
+// Create multiple action plans for batch assignment (HOD or admin)
+router.post("/batch", requireHOD, createMultipleActionPlans)
 // Update an action plan (HOD or admin)
 router.put("/:id", updateActionPlan)
 // User updates status of their assigned action plan

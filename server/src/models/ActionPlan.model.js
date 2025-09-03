@@ -41,6 +41,25 @@ const ActionPlanSchema = new Schema(
       enum: ["pending", "in-progress", "completed"],
       default: "pending",
     },
+    originalSurveyRespondents: [{
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      surveyId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Survey'
+      },
+      originalExpectation: {
+        type: String,
+        required: true
+      },
+      category: {
+        type: String,
+        required: true
+      }
+    }],
   },
   {
     timestamps: true,
