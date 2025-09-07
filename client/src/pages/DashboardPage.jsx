@@ -6,6 +6,7 @@ import DashboardHeader from "../components/DashboardHeader"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import VideoModal from "../components/VideoModal"
+import SurveyRespondentActionPlans from "../components/SurveyRespondentActionPlans"
 import { capitalizeFirstLetter,
   getDepartmentIcon,
   getTagandEmoji, 
@@ -274,6 +275,11 @@ function DashboardPage() {
                 </Card>
             </div>
           </div>)}
+
+          {/* Action Plans from Survey Responses */}
+          <div className="mt-8">
+            <SurveyRespondentActionPlans />
+          </div>
 
           <div className="flex justify-center gap-5 text-sm mt-10">
             <Button

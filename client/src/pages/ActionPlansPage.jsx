@@ -515,6 +515,7 @@ function ActionPlansPage() {
   const [isLoadingExpectationData, setIsLoadingExpectationData] = useState(false);
   const [departmentSearch, setDepartmentSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1610,7 +1611,7 @@ function ActionPlansPage() {
                               <Select
                                 value={plan.status}
                                 onValueChange={async (value) => {
-                                  setIsSubmitting(true);
+                                  setUpdatingStatusId(plan._id);
                                   try {
                                     await axios.patch(`${Server}/action-plans/${plan._id}/status`, { status: value }, { withCredentials: true });
                                     fetchData();
@@ -1618,12 +1619,12 @@ function ActionPlansPage() {
                                   } catch (e) {
                                     toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
                                   } finally {
-                                    setIsSubmitting(false);
+                                    setUpdatingStatusId(null);
                                   }
                                 }}
                                 options={statusOptions.filter(opt => opt.value !== "all")}
-                                className="h-9 text-xs bg-gray-700/50 border-gray-600"
-                                disabled={isSubmitting}
+                                className="h-9 text-xs bg-gray-800/40 border-gray-700/30 text-white hover:bg-blue-600/20"
+                                disabled={updatingStatusId === plan._id}
                               />
                             </div>
                           </TableCell>
@@ -1706,6 +1707,19 @@ function ActionPlansPage() {
                 </DialogFooter>
               </form>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Status Update Dialog */}
+        <Dialog open={updatingStatusId !== null} onOpenChange={() => {}}>
+          <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-center text-white font-semibold">Updating Status</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+              <p className="text-slate-300 text-center text-sm">Please wait while we update the action plan status...</p>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -2500,7 +2514,7 @@ function ActionPlansPage() {
                                     <Select
                                       value={plan.status}
                                       onValueChange={async (value) => {
-                                        setIsSubmitting(true);
+                                        setUpdatingStatusId(plan._id);
                                         try {
                                           await axios.put(
                                             `${Server}/action-plans/${plan._id}`,
@@ -2512,12 +2526,12 @@ function ActionPlansPage() {
                                         } catch (e) {
                                           toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
                                         } finally {
-                                          setIsSubmitting(false);
+                                          setUpdatingStatusId(null);
                                         }
                                       }}
                                       options={statusOptions.filter(opt => opt.value !== "all")}
-                                      className="h-9 text-xs bg-gray-700/50 border-gray-600"
-                                      disabled={isSubmitting}
+                                      className="h-9 text-xs bg-slate-700/80 border-slate-600 text-white hover:bg-slate-600/80"
+                                      disabled={updatingStatusId === plan._id}
                                     />
                                   </div>
                                 </td>
@@ -3704,7 +3718,7 @@ function ActionPlansPage() {
                       <Select
                         value={selectedPlanForExpandedView.status}
                         onValueChange={async (value) => {
-                          setIsSubmitting(true);
+                          setUpdatingStatusId(selectedPlanForExpandedView._id);
                           try {
                             await axios.put(
                               `${Server}/action-plans/${selectedPlanForExpandedView._id}`,
@@ -3717,12 +3731,12 @@ function ActionPlansPage() {
                           } catch (e) {
                             toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
                           } finally {
-                            setIsSubmitting(false);
+                            setUpdatingStatusId(null);
                           }
                         }}
                         options={statusOptions.filter(opt => opt.value !== "all")}
-                        className="max-w-36 bg-gray-700 border-gray-600 text-white"
-                        disabled={isSubmitting}
+                        className="max-w-36 bg-slate-700/80 border-slate-600 text-white hover:bg-slate-600/80"
+                        disabled={updatingStatusId === selectedPlanForExpandedView._id}
                       />
                     </div>
                   </div>
@@ -4372,6 +4386,18 @@ function ActionPlansPage() {
           </div>
         )}
 
+        {/* Status Update Dialog */}
+        <Dialog open={updatingStatusId !== null} onOpenChange={() => {}}>
+          <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-center text-white font-semibold">Updating Status</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+              <p className="text-slate-300 text-center text-sm">Please wait while we update the action plan status...</p>
+            </div>
+          </DialogContent>
+        </Dialog>
         
       </div>
     );

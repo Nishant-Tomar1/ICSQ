@@ -4,6 +4,7 @@ import {
   getActionPlansForAdmin,
   getActionPlansForHOD,
   getActionPlansForUser,
+  getActionPlansForSurveyRespondent,
   createActionPlan,
   createMultipleActionPlans,
   updateActionPlan,
@@ -22,6 +23,8 @@ router.get("/admin", requireAdmin, getActionPlansForAdmin)
 router.get("/hod", requireHOD, getActionPlansForHOD)
 // User: get all action plans assigned to them
 router.get("/user", getActionPlansForUser)
+// User: get action plans where they are original survey respondents
+router.get("/survey-respondent", getActionPlansForSurveyRespondent)
 
 // Create a new action plan (HOD or admin)
 router.post("/", requireHOD, createActionPlan)

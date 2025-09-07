@@ -147,7 +147,7 @@ function DashboardHeader() {
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium">{currentUser?.name || "User"}</div>
-                  <div title={(currentUser?.role === 'hod') && "Your original department"} className="text-xs text-gray-300">
+                  <div title={currentUser?.role === 'hod' ? "Your original department" : undefined} className="text-xs text-gray-300">
                     {(currentUser.role.toUpperCase()) || ""}
                     {currentUser.role !== "admin" ? " - " + (capitalizeFirstLetter(currentUser?.department?.name) || "Department") : ""}
                   </div>

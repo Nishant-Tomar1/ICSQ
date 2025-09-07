@@ -229,6 +229,12 @@ export const sendActionPlanCreatedNotification = async (respondentUser, actionPl
             <div class="highlight">
               <p><strong>✅ What this means:</strong> The department has acknowledged your feedback and is taking concrete steps to address your expectation. You'll be notified when the status changes.</p>
             </div>
+
+             <p style="text-align: center;">
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard" class="button">
+                View
+              </a>
+            </p>
             
             <p>Thank you for your valuable feedback. We appreciate your input in helping us improve our services.</p>
           </div>
@@ -260,7 +266,7 @@ ${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}
 
 What this means: The department has acknowledged your feedback and is taking concrete steps to address your expectation. You'll be notified when the status changes.
 
-View your action plans at: ${process.env.CLIENT_URL || 'http://localhost:3000'}/action-plans
+View your action plans at: ${process.env.CLIENT_URL || 'http://localhost:5173'}/action-plans
 
 Thank you for your valuable feedback. We appreciate your input in helping us improve our services.
 

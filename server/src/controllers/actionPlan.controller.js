@@ -71,6 +71,37 @@ export async function getActionPlansForUser(req, res) {
   }
 }
 
+// Get action plans where the current user is an original survey respondent
+export async function getActionPlansForSurveyRespondent(req, res) {
+  try {
+    const userId = req.user._id
+    const plans = await ActionPlan.find({ 
+      'originalSurveyRespondents.userId': userId 
+    })
+      .populate('department')
+      .populate('category')
+      .populate('assignedBy', 'name email role currentDepartment')
+      .populate('assignedTo', 'name email role currentDepartment')
+      .sort({ createdAt: -1 })
+    
+    const formattedPlans = plans.map(plan => {
+      const respondentData = plan.originalSurveyRespondents.find(
+        respondent => String(respondent.userId) === String(userId)
+      )
+      
+      return {
+        ...plan.toObject(),
+        respondentData: respondentData, 
+      }
+    })
+    
+    return res.json(formattedPlans)
+  } catch (error) {
+    console.error("Error fetching action plans for survey respondent:", error)
+    return res.status(500).json({ message: "Failed to fetch action plans" })
+  }
+}
+
 // Create a new action plan (HOD or admin)
 export async function createActionPlan(req, res) {
   try {
