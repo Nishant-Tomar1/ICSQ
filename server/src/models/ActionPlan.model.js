@@ -2,22 +2,23 @@ import {Schema, model} from 'mongoose'
 
 const ActionPlanSchema = new Schema(
   {
-    department: {
+    departments: [{
       type: Schema.Types.ObjectId,
       ref : 'Department',
       required: true,
-    },
-    category: {
+    }],
+    categories: [{
       type: Schema.Types.ObjectId,
       ref : 'Category',
       required: true,
-    },
+    }],
     expectations: {
       type: String,
       required: true,
     },
-    actions: {
+    actionplan: {
       type: String,
+      required: true,
     },
     instructions: {
       type: String,
@@ -27,16 +28,28 @@ const ActionPlanSchema = new Schema(
       ref : 'User',
       required: true,
     },
-    assignedTo: {
+    assignedTo: [{
       type: Schema.Types.ObjectId,
       ref : 'User',
       required: true,
-    },
+    }],
     targetDate: {
       type: Date,
       required: true,
     },
     status: {
+      type: Map,
+      of: {
+        type: String,
+        enum: ["pending", "in-progress", "completed"],
+        default: "pending",
+      }
+    },
+    actions_taken: {
+      type: Map,
+      of: String
+    },
+    finalStatus: {
       type: String,
       enum: ["pending", "in-progress", "completed"],
       default: "pending",
@@ -60,6 +73,19 @@ const ActionPlanSchema = new Schema(
         required: true
       }
     }],
+    individualActionPlans: {
+      type: Map,
+      of: {
+        userName: {
+          type: String,
+          required: true
+        },
+        actionPlan: {
+          type: String,
+          required: true
+        }
+      }
+    },
   },
   {
     timestamps: true,

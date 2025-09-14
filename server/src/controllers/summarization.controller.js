@@ -49,6 +49,76 @@ export async function summarizeExpectationsRuleBased(req, res) {
   }
 }
 
+// Validate and filter AI response to only include plans with valid user data
+async function validateAndFilterAIResponse(parsedResponse) {
+  if (!Array.isArray(parsedResponse)) {
+    console.warn('Invalid parsed response format:', typeof parsedResponse);
+    return [];
+  }
+  
+  const { User } = await import('../models/User.model.js');
+  const validPlans = [];
+  
+  for (const plan of parsedResponse) {
+    console.log(`Validating plan: ${plan.category} with ${plan.originalSurveyRespondents?.length || 0} respondents`);
+    
+    // Check if plan has originalSurveyRespondents
+    if (!plan.originalSurveyRespondents || !Array.isArray(plan.originalSurveyRespondents) || plan.originalSurveyRespondents.length === 0) {
+      console.log(`Skipping plan ${plan.category}: No originalSurveyRespondents`);
+      continue;
+    }
+    
+    // Validate each respondent
+    const validRespondents = [];
+    for (const respondent of plan.originalSurveyRespondents) {
+      // Check if respondent has required fields
+      if (!respondent.userId || !respondent.surveyId || !respondent.originalExpectation) {
+        console.log(`Skipping invalid respondent:`, respondent);
+        continue;
+      }
+      
+      // Check if userId is not "undefined" or empty
+      if (respondent.userId === 'undefined' || respondent.userId === 'null' || respondent.userId.trim() === '') {
+        console.log(`Skipping respondent with invalid userId:`, respondent);
+        continue;
+      }
+      
+      // Validate that user exists in database
+      try {
+        const user = await User.findById(respondent.userId).select('_id name email');
+        if (!user) {
+          console.log(`Skipping respondent with non-existent userId: ${respondent.userId}`);
+          continue;
+        }
+        
+        // Add validated respondent
+        validRespondents.push({
+          ...respondent,
+          userExists: true,
+          userName: user.name,
+          userEmail: user.email
+        });
+        
+      } catch (error) {
+        console.error(`Error validating user ${respondent.userId}:`, error.message);
+        continue;
+      }
+    }
+    
+    // Only include plans that have at least one valid respondent
+    if (validRespondents.length > 0) {
+      plan.originalSurveyRespondents = validRespondents;
+      validPlans.push(plan);
+      console.log(`✅ Plan ${plan.category} validated with ${validRespondents.length} valid respondents`);
+    } else {
+      console.log(`❌ Plan ${plan.category} skipped: No valid respondents`);
+    }
+  }
+  
+  console.log(`Validation complete: ${validPlans.length}/${parsedResponse.length} plans passed validation`);
+  return validPlans;
+}
+
 // AI-based: Use Gemini API to generate smart action plans and insights
 export async function summarizeExpectationsAI(req, res) {
   try {
@@ -59,6 +129,19 @@ export async function summarizeExpectationsAI(req, res) {
     
     // Fetch all surveys for the department
     const surveys = await Survey.find({ toDepartment: departmentId }).lean();
+    console.log(`Found ${surveys.length} surveys for department ${departmentId}`);
+    
+    if (surveys.length > 0) {
+      console.log('Sample survey from query:', {
+        _id: surveys[0]._id,
+        userId: surveys[0].userId,
+        fromDepartment: surveys[0].fromDepartment,
+        toDepartment: surveys[0].toDepartment,
+        responsesKeys: Object.keys(surveys[0].responses || {}),
+        sampleResponse: surveys[0].responses ? Object.entries(surveys[0].responses)[0] : null
+      });
+    }
+    
     let expectations = [];
     let ratings = [];
     
@@ -98,17 +181,37 @@ export async function summarizeExpectationsAI(req, res) {
       ]
     }).lean();
     
-    // Create category-specific expectations for better analysis
+    // Create category-specific expectations for better analysis with user/survey data
     const categoryExpectations = {};
     const categoryRatings = {};
+    const categoryUserData = {}; // Store user and survey data for each expectation
     
-    // Group expectations by category
+    // Group expectations by category with user/survey tracking
     if (category) {
       // Single category mode
       categoryExpectations[category] = expectations;
       categoryRatings[category] = ratings;
+      categoryUserData[category] = [];
+      
+    // Collect user/survey data for this category
+    console.log(`Collecting user data for category: ${category}`);
+    for (const survey of surveys) {
+      const resp = survey.responses?.[category];
+      console.log(`Survey ${survey._id}: userId=${survey.userId}, hasResponse=${!!resp}, hasExpectations=${!!(resp?.expectations)}, expectationsType=${typeof resp?.expectations}`);
+      
+      if (resp && resp.expectations && typeof resp.expectations === 'string' && survey.userId) {
+        const userData = {
+          userId: String(survey.userId),
+          surveyId: String(survey._id),
+          originalExpectation: resp.expectations.trim(),
+          category: category
+        };
+        categoryUserData[category].push(userData);
+        console.log(`Added user data:`, userData);
+      }
+    }
     } else {
-      // Multi-category mode - group by category
+      // Multi-category mode - group by category with user/survey tracking
       for (const survey of surveys) {
         for (const catKey in survey.responses) {
           const resp = survey.responses[catKey];
@@ -116,9 +219,24 @@ export async function summarizeExpectationsAI(req, res) {
             if (!categoryExpectations[catKey]) {
               categoryExpectations[catKey] = [];
               categoryRatings[catKey] = [];
+              categoryUserData[catKey] = [];
             }
             categoryExpectations[catKey].push(resp.expectations.trim());
             if (resp.rating) categoryRatings[catKey].push(resp.rating);
+            
+            // Store user/survey data (only if userId exists)
+            if (survey.userId) {
+              const userData = {
+                userId: String(survey.userId),
+                surveyId: String(survey._id),
+                originalExpectation: resp.expectations.trim(),
+                category: catKey
+              };
+              categoryUserData[catKey].push(userData);
+              console.log(`Multi-category: Added user data for ${catKey}:`, userData);
+            } else {
+              console.log(`Multi-category: Skipping survey ${survey._id} for category ${catKey} - no userId`);
+            }
           }
         }
       }
@@ -135,7 +253,16 @@ ${Object.entries(categoryExpectations).map(([catKey, catExpectations]) => {
   const limitedResponses = catExpectations.slice(0, 8).map(exp => 
     exp.length > 150 ? exp.substring(0, 150) + '...' : exp
   );
-  return `\n=== ${catKey.toUpperCase()} ===\nAvg Rating: ${avgCatRating}/5 (${catRatings.length} total)\nResponses:\n${limitedResponses.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}`;
+  
+  // Include user/survey mapping data for this category
+  const userData = categoryUserData[catKey] || [];
+  const userMappingText = userData.length > 0 ? 
+    `\nUser/Survey Mapping:\n${userData.map((user, idx) => 
+      `${idx + 1}. User: ${user.userId}, Survey: ${user.surveyId}, Expectation: "${user.originalExpectation.substring(0, 100)}${user.originalExpectation.length > 100 ? '...' : ''}"`
+    ).join('\n')}` : 
+    '\nNo user/survey data available';
+  
+  return `\n=== ${catKey.toUpperCase()} ===\nAvg Rating: ${avgCatRating}/5 (${catRatings.length} total)\nResponses:\n${limitedResponses.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}${userMappingText}`;
 }).join('\n\n')}
 
 OVERALL AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
@@ -153,6 +280,16 @@ CRITICAL INSTRUCTIONS FOR SOURCE_RESPONSES:
 - COPY the exact survey responses verbatim from the category-specific data provided
 - Use JSON array format: ["quote1", "quote2", "quote3"]
 - If a category has no survey data, use an empty array: []
+
+CRITICAL INSTRUCTIONS FOR ORIGINAL_SURVEY_RESPONDENTS:
+- ORIGINAL_SURVEY_RESPONDENTS must contain the EXACT user and survey data for each expectation
+- Each entry must have: userId (string), surveyId (string), originalExpectation (exact quote), category (category name)
+- Use the "User/Survey Mapping" data provided above under each category to get the exact userId and surveyId
+- Match each expectation response with its corresponding user data from the mapping
+- Use JSON array format: [{"userId": "exact_user_id_from_mapping", "surveyId": "exact_survey_id_from_mapping", "originalExpectation": "exact quote from responses", "category": "category_name"}]
+- If a category has no survey data, use an empty array: []
+- This data is CRITICAL for email notifications - users must be notified about action plans created from their expectations
+- EXAMPLE: If you see "User: 507f1f77bcf86cd799439012, Survey: 507f1f77bcf86cd799439013, Expectation: 'Need better communication'" in the mapping, use {"userId": "507f1f77bcf86cd799439012", "surveyId": "507f1f77bcf86cd799439013", "originalExpectation": "Need better communication", "category": "communication"}
 
 INSTRUCTIONS:
 - Analyze the survey responses and identify the most important expectations for each category
@@ -174,6 +311,7 @@ PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data - e.g., "Based on 15 responses with avg rating 2.8/5"]
 SOURCE_RESPONSES: ["exact survey quote 1", "exact survey quote 2", "exact survey quote 3"]
 RECOMMENDED_ACTIONS: ["Specific action 1", "Specific action 2", "Specific action 3", "Specific action 4"]
+ORIGINAL_SURVEY_RESPONDENTS: [{"userId": "user_id_1", "surveyId": "survey_id_1", "originalExpectation": "exact quote 1", "category": "category_name"}, {"userId": "user_id_2", "surveyId": "survey_id_2", "originalExpectation": "exact quote 2", "category": "category_name"}]
 
 ---
 
@@ -183,6 +321,7 @@ PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data]
 SOURCE_RESPONSES: ["exact survey quote 1", "exact survey quote 2", "exact survey quote 3"]
 RECOMMENDED_ACTIONS: ["Specific action 1", "Specific action 2", "Specific action 3", "Specific action 4"]
+ORIGINAL_SURVEY_RESPONDENTS: [{"userId": "user_id_3", "surveyId": "survey_id_3", "originalExpectation": "exact quote 3", "category": "category_name_2"}]
 
 ---
 
@@ -239,11 +378,35 @@ IMPORTANT: You must return exactly ${eligibleCategories.length} expectations, on
       return res.json({ summary: expectations.join("\n") });
     }
     
-    // Parse the structured AI response
-    const parsedResponse = parseStructuredAIResponse(summary, eligibleCategories, categoryExpectations);
+    // Debug: Log survey data and categoryUserData
+    console.log(`Found ${surveys.length} surveys for summarization`);
+    if (surveys.length > 0) {
+      console.log('Sample survey structure:', {
+        id: surveys[0]._id,
+        userId: surveys[0].userId,
+        fromDepartment: surveys[0].fromDepartment,
+        toDepartment: surveys[0].toDepartment,
+        responsesKeys: Object.keys(surveys[0].responses || {}),
+        sampleResponse: surveys[0].responses ? Object.entries(surveys[0].responses)[0] : null
+      });
+    }
+    
+    // console.log('categoryUserData before parsing:', Object.keys(categoryUserData));
+    Object.entries(categoryUserData).forEach(([category, data]) => {
+      // console.log(`Category ${category}: ${data.length} respondents`);
+      if (data.length > 0) {
+        console.log(`Sample data for ${category}:`, data[0]);
+      }
+    });
+    
+    // Parse the structured AI response with user/survey data
+    const parsedResponse = parseStructuredAIResponse(summary, eligibleCategories, categoryExpectations, categoryUserData);
+    
+    // Validate and filter response to only include plans with valid user data
+    const validatedResponse = await validateAndFilterAIResponse(parsedResponse);
     
     return res.json({ 
-      summary: parsedResponse,
+      summary: validatedResponse,
       eligibleCategories: eligibleCategories.map(cat => ({ id: cat._id, name: cat.name }))
     });
   } catch (error) {
@@ -447,8 +610,11 @@ Focus on actionable insights and specific recommendations.`;
 }
 
 // Helper function to parse structured AI response
-function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpectations = {}) {
+function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpectations = {}, categoryUserData = {}) {
   try {
+    // console.log('Parsing AI response with categoryUserData:', Object.keys(categoryUserData));
+    // console.log('Sample categoryUserData:', Object.entries(categoryUserData).slice(0, 2));
+    
     const lines = aiResponse.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const expectations = [];
     let currentExpectation = {};
@@ -467,7 +633,8 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
           priority: '',
           originalData: '',
           sourceResponses: [],
-          recommendedActions: []
+          recommendedActions: [],
+          originalSurveyRespondents: []
         };
       } else if (line.startsWith('CATEGORY:')) {
         const categoryText = line.replace('CATEGORY:', '').trim();
@@ -482,6 +649,20 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
           const foundCategory = eligibleCategories.find(cat => cat.name === categoryText);
           if (foundCategory) {
             currentExpectation.categoryId = foundCategory._id;
+          }
+        }
+        
+        // Add originalSurveyRespondents data for this category (fallback if AI didn't provide it)
+        if (!currentExpectation.originalSurveyRespondents || currentExpectation.originalSurveyRespondents.length === 0) {
+          const categoryKey = currentExpectation.category.toLowerCase();
+          if (categoryUserData[categoryKey]) {
+            currentExpectation.originalSurveyRespondents = categoryUserData[categoryKey];
+            console.log(`Using fallback originalSurveyRespondents for category ${categoryKey}:`, categoryUserData[categoryKey].length, 'respondents');
+          } else if (categoryUserData[currentExpectation.category]) {
+            currentExpectation.originalSurveyRespondents = categoryUserData[currentExpectation.category];
+            console.log(`Using fallback originalSurveyRespondents for category ${currentExpectation.category}:`, categoryUserData[currentExpectation.category].length, 'respondents');
+          } else {
+            console.warn(`No originalSurveyRespondents data found for category: ${currentExpectation.category}`);
           }
         }
       } else if (line.startsWith('PRIORITY:')) {
@@ -511,6 +692,25 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
         } catch (e) {
           // Fallback: if not valid JSON, treat as single action
           currentExpectation.recommendedActions = [actionsText];
+        }
+      } else if (line.startsWith('ORIGINAL_SURVEY_RESPONDENTS:')) {
+        const respondentsText = line.replace('ORIGINAL_SURVEY_RESPONDENTS:', '').trim();
+        // Parse the array format [{"userId": "...", "surveyId": "...", "originalExpectation": "...", "category": "..."}]
+        try {
+          const parsed = JSON.parse(respondentsText);
+          if (Array.isArray(parsed)) {
+            currentExpectation.originalSurveyRespondents = parsed;
+          }
+        } catch (e) {
+          // Fallback: if not valid JSON, try to use the categoryUserData
+          console.warn('Failed to parse ORIGINAL_SURVEY_RESPONDENTS from AI response:', e.message);
+          // Use the existing categoryUserData as fallback
+          const categoryKey = currentExpectation.category.toLowerCase();
+          if (categoryUserData[categoryKey]) {
+            currentExpectation.originalSurveyRespondents = categoryUserData[categoryKey];
+          } else if (categoryUserData[currentExpectation.category]) {
+            currentExpectation.originalSurveyRespondents = categoryUserData[currentExpectation.category];
+          }
         }
       } else if (line === '---') {
         // Separator - save current expectation
@@ -549,6 +749,9 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
         const categoryResponses = categoryExpectations[cat.name.toLowerCase()] || 
                                  categoryExpectations[cat.name] || [];
         
+        const fallbackRespondents = categoryUserData[cat.name.toLowerCase()] || categoryUserData[cat.name] || [];
+        console.log(`Creating fallback expectation for category ${cat.name} with ${fallbackRespondents.length} originalSurveyRespondents`);
+        
         expectations.push({
           summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
           category: cat.name,
@@ -558,7 +761,8 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
             `Based on ${categoryResponses.length} survey responses` : 
             'Generated fallback expectation for category with no specific survey data',
           sourceResponses: categoryResponses.length > 0 ? categoryResponses : [],
-          recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
+          recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`],
+          originalSurveyRespondents: fallbackRespondents
         });
       });
     }
@@ -582,6 +786,9 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
         const categoryResponses = categoryExpectations[missingCat.name.toLowerCase()] || 
                                  categoryExpectations[missingCat.name] || [];
         
+        const finalFallbackRespondents = categoryUserData[missingCat.name.toLowerCase()] || categoryUserData[missingCat.name] || [];
+        console.log(`Creating final fallback expectation for category ${missingCat.name} with ${finalFallbackRespondents.length} originalSurveyRespondents`);
+        
         uniqueExpectations.push({
           summary: `Focus on improving ${missingCat.name.toLowerCase()} processes and outcomes`,
           category: missingCat.name,
@@ -591,7 +798,8 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
             `Based on ${categoryResponses.length} survey responses` : 
             'Generated fallback expectation to ensure category coverage',
           sourceResponses: categoryResponses.length > 0 ? categoryResponses : [],
-          recommendedActions: [`Conduct regular team meetings to address ${missingCat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
+          recommendedActions: [`Conduct regular team meetings to address ${missingCat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`],
+          originalSurveyRespondents: finalFallbackRespondents
         });
         seenCategories.add(missingCat._id.toString());
       } else {
@@ -603,9 +811,14 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
   } catch (error) {
     console.error("Error parsing AI response:", error);
     // Fallback: return one expectation per category using actual survey data
+    console.log('Using final fallback parsing - creating expectations for all categories');
+    
     return eligibleCategories.map(cat => {
       const categoryResponses = categoryExpectations[cat.name.toLowerCase()] || 
                                categoryExpectations[cat.name] || [];
+      const finalFallbackRespondents = categoryUserData[cat.name.toLowerCase()] || categoryUserData[cat.name] || [];
+      
+      console.log(`Final fallback for category ${cat.name}: ${finalFallbackRespondents.length} originalSurveyRespondents`);
       
       return {
         summary: `General improvement needed in ${cat.name.toLowerCase()} area`,
@@ -616,7 +829,8 @@ function parseStructuredAIResponse(aiResponse, eligibleCategories, categoryExpec
           `Based on ${categoryResponses.length} survey responses (fallback parsing)` : 
           'Based on survey responses (fallback parsing)',
         sourceResponses: categoryResponses.length > 0 ? categoryResponses : [],
-        recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`]
+        recommendedActions: [`Conduct regular team meetings to address ${cat.name.toLowerCase()} concerns`, `Implement feedback mechanisms for continuous improvement`, `Provide training and development opportunities`, `Create clear communication channels`],
+        originalSurveyRespondents: finalFallbackRespondents
       };
     });
   }

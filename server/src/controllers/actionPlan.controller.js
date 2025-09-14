@@ -3,7 +3,7 @@ import {ActionPlan} from "../models/ActionPlan.model.js"
 import {User} from "../models/User.model.js"
 import {Department} from "../models/Department.model.js"
 import {Category} from "../models/Category.model.js"
-import {sendActionPlanAssignmentEmail, sendActionPlanCreatedNotification, sendActionPlanStatusUpdateNotification} from "../utils/emailService.js"
+import {sendActionPlanAssignmentEmail, sendActionPlanCreatedNotification, sendFinalStatusChangeNotification, sendActionPlanCreationConfirmationEmail} from "../utils/emailService.js"
 
 // Helper function to send emails in background without blocking the response
 const sendEmailInBackground = async (emailFunction, ...args) => {
@@ -20,18 +20,57 @@ const sendEmailInBackground = async (emailFunction, ...args) => {
 // Get all action plans (admin only, with filters)
 export async function getActionPlansForAdmin(req, res) {
   try {
-    const { departmentId, status, categoryId, assignedTo } = req.query
+    const { departmentId, status, categoryId, assignedTo, finalStatus } = req.query
     const filters = {}
-    if (departmentId) filters.department = new mongoose.Types.ObjectId(departmentId)
-    if (status) filters.status = status
-    if (categoryId) filters.category = new mongoose.Types.ObjectId(categoryId)
-    if (assignedTo) filters.assignedTo = new mongoose.Types.ObjectId(assignedTo)
+    
+    // Handle department filter - check if action plan contains the department
+    if (departmentId) {
+      filters.departments = new mongoose.Types.ObjectId(departmentId)
+    }
+    
+    // Handle category filter - check if action plan contains the category
+    if (categoryId) {
+      filters.categories = new mongoose.Types.ObjectId(categoryId)
+    }
+    
+    // Handle final status filter
+    if (finalStatus) {
+      filters.finalStatus = finalStatus
+    }
+    
+    // Handle assigned user filter - check if user is in assignedTo array
+    if (assignedTo) {
+      filters.assignedTo = new mongoose.Types.ObjectId(assignedTo)
+    }
+    
+    // Handle individual user status filter
+    if (status && assignedTo) {
+      // This is complex with the new schema - would need to check the status map
+      // For now, we'll handle this in a different way if needed
+    }
+    
     const plans = await ActionPlan.find(filters)
-      .populate('department')
-      .populate('category')
+      .populate('departments')
+      .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
-    return res.json(plans)
+    
+    // Convert Map to Object for JSON serialization
+    const serializedPlans = plans.map(plan => {
+      const planObj = plan.toObject()
+      if (planObj.individualActionPlans) {
+        planObj.individualActionPlans = Object.fromEntries(planObj.individualActionPlans)
+      }
+      if (planObj.status) {
+        planObj.status = Object.fromEntries(planObj.status)
+      }
+      if (planObj.actions_taken) {
+        planObj.actions_taken = Object.fromEntries(planObj.actions_taken)
+      }
+      return planObj
+    })
+    
+    return res.json(serializedPlans)
   } catch (error) {
     console.error("Error fetching action plans (admin):", error)
     return res.status(500).json({ message: "Failed to fetch action plans" })
@@ -43,12 +82,34 @@ export async function getActionPlansForHOD(req, res) {
   try {
     const departmentId = req.user.currentDepartment
     if (!departmentId) return res.status(400).json({ message: "No current department found for HOD" })
-    const plans = await ActionPlan.find({ department: departmentId })
-      .populate('department')
-      .populate('category')
+    
+    // Find action plans that include the HOD's department
+    const plans = await ActionPlan.find()
+      .populate('departments')
+      .populate('categories') 
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
-    return res.json(plans)
+      .then(plans => plans.filter(plan => 
+        plan.departments.length > 0 && 
+        plan.departments[0]._id.toString() === departmentId.toString()
+      ))
+    
+    // Convert Map to Object for JSON serialization
+    const serializedPlans = plans.map(plan => {
+      const planObj = plan.toObject()
+      if (planObj.individualActionPlans) {
+        planObj.individualActionPlans = Object.fromEntries(planObj.individualActionPlans)
+      }
+      if (planObj.status) {
+        planObj.status = Object.fromEntries(planObj.status)
+      }
+      if (planObj.actions_taken) {
+        planObj.actions_taken = Object.fromEntries(planObj.actions_taken)
+      }
+      return planObj
+    })
+    
+    return res.json(serializedPlans)
   } catch (error) {
     console.error("Error fetching action plans (HOD):", error)
     return res.status(500).json({ message: "Failed to fetch action plans" })
@@ -60,11 +121,37 @@ export async function getActionPlansForUser(req, res) {
   try {
     const userId = req.user._id
     const plans = await ActionPlan.find({ assignedTo: userId })
-      .populate('department')
-      .populate('category')
+      .populate('departments')
+      .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
-    return res.json(plans)
+    
+    // Convert Map to Object for JSON serialization
+    const serializedPlans = plans.map(plan => {
+      const planObj = plan.toObject()
+      if (planObj.individualActionPlans) {
+        planObj.individualActionPlans = Object.fromEntries(planObj.individualActionPlans)
+      }
+      if (planObj.status) {
+        planObj.status = Object.fromEntries(planObj.status)
+      }
+      if (planObj.actions_taken) {
+        planObj.actions_taken = Object.fromEntries(planObj.actions_taken)
+      }
+      return planObj
+    })
+    
+    serializedPlans.forEach((plan, index) => {
+      console.log(`Plan ${index + 1}:`, {
+        id: plan._id,
+        status: plan.status,
+        actions_taken: plan.actions_taken,
+        assignedTo: plan.assignedTo,
+        individualActionPlans: plan.individualActionPlans
+      });
+    });
+    
+    return res.json(serializedPlans)
   } catch (error) {
     console.error("Error fetching action plans (user):", error)
     return res.status(500).json({ message: "Failed to fetch action plans" })
@@ -78,19 +165,31 @@ export async function getActionPlansForSurveyRespondent(req, res) {
     const plans = await ActionPlan.find({ 
       'originalSurveyRespondents.userId': userId 
     })
-      .populate('department')
-      .populate('category')
+      .populate('departments')
+      .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
       .sort({ createdAt: -1 })
     
     const formattedPlans = plans.map(plan => {
+      const planObj = plan.toObject()
       const respondentData = plan.originalSurveyRespondents.find(
         respondent => String(respondent.userId) === String(userId)
       )
       
+      // Convert Map to Object for JSON serialization
+      if (planObj.individualActionPlans) {
+        planObj.individualActionPlans = Object.fromEntries(planObj.individualActionPlans)
+      }
+      if (planObj.status) {
+        planObj.status = Object.fromEntries(planObj.status)
+      }
+      if (planObj.actions_taken) {
+        planObj.actions_taken = Object.fromEntries(planObj.actions_taken)
+      }
+      
       return {
-        ...plan.toObject(),
+        ...planObj,
         respondentData: respondentData, 
       }
     })
@@ -102,55 +201,165 @@ export async function getActionPlansForSurveyRespondent(req, res) {
   }
 }
 
-// Create a new action plan (HOD or admin)
+// Create a new action plan (HOD or admin) - now supports multiple users and individual action plans
 export async function createActionPlan(req, res) {
   try {
-    const { departmentId, categoryId, expectations, actions, instructions, assignedTo, targetDate, status, originalSurveyRespondents } = req.body
-    if (!departmentId || !categoryId || !expectations || !assignedTo || !targetDate) {
+    const { 
+      departmentIds, 
+      categoryIds, 
+      expectations, 
+      actionplan, 
+      instructions, 
+      assignedToUsers, 
+      targetDate, 
+      originalSurveyRespondents,
+      individualActionPlans
+    } = req.body
+    
+    // Validate required fields
+    if (!departmentIds || !categoryIds || !expectations || !actionplan || !assignedToUsers || !targetDate) {
       return res.status(400).json({ message: "Missing required fields" })
     }
     
+    // Ensure arrays
+    const departments = Array.isArray(departmentIds) ? departmentIds : [departmentIds]
+    const categories = Array.isArray(categoryIds) ? categoryIds : [categoryIds]
+    const assignedTo = Array.isArray(assignedToUsers) ? assignedToUsers : [assignedToUsers]
+    
+    if (assignedTo.length === 0) {
+      return res.status(400).json({ message: "At least one user must be assigned" })
+    }
+    
+    // Initialize status and actions_taken maps
+    const statusMap = new Map()
+    const actionsTakenMap = new Map()
+    
+    // Set default status for all assigned users
+    assignedTo.forEach(userId => {
+      statusMap.set(userId.toString(), "pending")
+      actionsTakenMap.set(userId.toString(), "")
+    })
+    
+    // Process individual action plans if provided - store both userName and actionPlan
+    const individualPlansMap = new Map()
+    if (individualActionPlans && typeof individualActionPlans === 'object') {
+      for (const [userId, actionPlan] of Object.entries(individualActionPlans)) {
+        if (userId && actionPlan) {
+          // Find the user to get their name
+          const user = await User.findById(userId).select('name')
+          const userName = user ? user.name : 'Unknown User'
+          individualPlansMap.set(userId, {
+            userName: userName,
+            actionPlan: actionPlan
+          })
+        }
+      }
+    }
+
     const plan = new ActionPlan({
-      department: new mongoose.Types.ObjectId(departmentId),
-      category: new mongoose.Types.ObjectId(categoryId),
+      departments: departments.map(id => new mongoose.Types.ObjectId(id)),
+      categories: categories.map(id => new mongoose.Types.ObjectId(id)),
       expectations,
-      actions,
+      actionplan,
       instructions,
       assignedBy: req.user._id,
-      assignedTo: new mongoose.Types.ObjectId(assignedTo),
+      assignedTo: assignedTo.map(id => new mongoose.Types.ObjectId(id)),
       targetDate: new Date(targetDate),
-      status: status || "pending",
-      originalSurveyRespondents: originalSurveyRespondents || []
+      status: statusMap,
+      actions_taken: actionsTakenMap,
+      finalStatus: "pending",
+      originalSurveyRespondents: originalSurveyRespondents || [],
+      individualActionPlans: individualPlansMap
     })
     
     await plan.save()
     
-    // Send email notification to assigned user in background
-    const assignedUser = await User.findById(assignedTo).select('name email')
-    if (assignedUser) {
-      const assignedByUser = await User.findById(req.user._id).select('name email')
-      sendEmailInBackground(sendActionPlanAssignmentEmail, assignedUser, plan, assignedByUser)
-    }
+    // Send email notifications to all assigned users in background
+    const assignedByUser = await User.findById(req.user._id).select('name email')
+    
+    sendEmailInBackground(async () => {
+      try {
+        for (const userId of assignedTo) {
+          try {
+            const assignedUser = await User.findById(userId).select('name email')
+            if (assignedUser && assignedByUser) {
+              await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+              console.log(`Action plan assignment email sent to: ${assignedUser.email}`)
+            }
+          } catch (emailError) {
+            console.error(`Error sending email to user ${userId}:`, emailError)
+          }
+        }
+      } catch (error) {
+        console.error("Error sending assignment emails:", error)
+      }
+    })
+    
+    // Send confirmation email to HOD who created the action plan
+    sendEmailInBackground(async () => {
+      try {
+        // Get assigned users details
+        const assignedUsers = await User.find({ _id: { $in: assignedTo } }).select('name email')
+        
+        // Get department and category names
+        const departmentNames = []
+        const categoryNames = []
+        
+        for (const deptId of departments) {
+          const dept = await Department.findById(deptId).select('name')
+          if (dept) departmentNames.push(dept.name)
+        }
+        
+        for (const catId of categories) {
+          const cat = await Category.findById(catId).select('name')
+          if (cat) categoryNames.push(cat.name)
+        }
+        
+        if (assignedByUser) {
+          await sendActionPlanCreationConfirmationEmail(
+            assignedByUser, 
+            plan, 
+            assignedUsers, 
+            departmentNames, 
+            categoryNames
+          )
+          console.log(`Action plan creation confirmation email sent to HOD: ${assignedByUser.email}`)
+        }
+      } catch (error) {
+        console.error("Error sending HOD confirmation email:", error)
+      }
+    })
     
     // Send notifications to original survey respondents in background
     if (originalSurveyRespondents && originalSurveyRespondents.length > 0) {
       sendEmailInBackground(async () => {
         try {
-          const department = await Department.findById(departmentId).select('name')
-          const category = await Category.findById(categoryId).select('name')
+          // Get department and category names for notifications
+          const departmentNames = []
+          const categoryNames = []
           
-          if (department && category) {
+          for (const deptId of departments) {
+            const dept = await Department.findById(deptId).select('name')
+            if (dept) departmentNames.push(dept.name)
+          }
+          
+          for (const catId of categories) {
+            const cat = await Category.findById(catId).select('name')
+            if (cat) categoryNames.push(cat.name)
+          }
+          
+          if (departmentNames.length > 0 && categoryNames.length > 0) {
             for (const respondentData of originalSurveyRespondents) {
               try {
                 const respondentUser = await User.findById(respondentData.userId).select('name email')
                 if (respondentUser) {
-                  const res = await sendActionPlanCreatedNotification(
+                  await sendActionPlanCreatedNotification(
                     respondentUser, 
                     plan, 
-                    department.name, 
-                    category.name
+                    departmentNames.join(", "), 
+                    categoryNames.join(", ")
                   )
-                  if (res?.success) console.log(`Notification sent to survey respondent: ${respondentUser.email}`)
+                  console.log(`Notification sent to survey respondent: ${respondentUser.email}`)
                 }
               } catch (notificationError) {
                 console.error(`Error sending notification to ${respondentData.userId}:`, notificationError)
@@ -170,91 +379,23 @@ export async function createActionPlan(req, res) {
   }
 }
 
-// Create multiple action plans for batch assignment
-export async function createMultipleActionPlans(req, res) {
-  try {
-    const { departmentId, categoryId, expectations, actions, instructions, assignedToUsers, targetDate, status, originalSurveyRespondents } = req.body
-    
-    // Validate required fields
-    if (!departmentId || !categoryId || !expectations || !assignedToUsers || !Array.isArray(assignedToUsers) || assignedToUsers.length === 0 || !targetDate) {
-      return res.status(400).json({ message: "Missing required fields or invalid assignedToUsers array" })
-    }
-    
-    const createdPlans = []
-    const assignedByUser = await User.findById(req.user._id).select('name email')
-    
-    // Create action plans for each assigned user
-    for (const assignedTo of assignedToUsers) {
-      const plan = new ActionPlan({
-        department: new mongoose.Types.ObjectId(departmentId),
-        category: new mongoose.Types.ObjectId(categoryId),
-        expectations,
-        actions,
-        instructions,
-        assignedBy: req.user._id,
-        assignedTo: new mongoose.Types.ObjectId(assignedTo),
-        targetDate: new Date(targetDate),
-        status: status || "pending",
-        originalSurveyRespondents: originalSurveyRespondents || []
-      })
-      
-      await plan.save()
-      createdPlans.push(plan)
-      
-      // Send email notification to assigned user in background
-      const assignedUser = await User.findById(assignedTo).select('name email')
-      if (assignedUser && assignedByUser) {
-        sendEmailInBackground(sendActionPlanAssignmentEmail, assignedUser, plan, assignedByUser)
-      }
-    }
-    
-    // Send notifications to original survey respondents in background (only once for the batch)
-    if (originalSurveyRespondents && originalSurveyRespondents.length > 0) {
-      sendEmailInBackground(async () => {
-        try {
-          const department = await Department.findById(departmentId).select('name')
-          const category = await Category.findById(categoryId).select('name')
-          
-          if (department && category) {
-            for (const respondentData of originalSurveyRespondents) {
-              try {
-                const respondentUser = await User.findById(respondentData.userId).select('name email')
-                if (respondentUser) {
-                  // Use the first plan as reference for the notification
-                  const res = await sendActionPlanCreatedNotification(
-                    respondentUser, 
-                    createdPlans[0], 
-                    department.name, 
-                    category.name
-                  )
-                  if (res?.success) console.log(`Notification sent to survey respondent: ${respondentUser.email}`)
-                }
-              } catch (notificationError) {
-                console.error(`Error sending notification to ${respondentData.userId}:`, notificationError)
-              }
-            }
-          }
-        } catch (notificationError) {
-          console.error("Error sending notifications to survey respondents:", notificationError)
-        }
-      })
-    }
-    
-    return res.status(201).json({ 
-      message: `Successfully created ${createdPlans.length} action plans`,
-      plans: createdPlans,
-      count: createdPlans.length
-    })
-  } catch (error) {
-    console.error("Error creating multiple action plans:", error)
-    return res.status(500).json({ message: "Failed to create action plans" })
-  }
-}
 
 // Update an action plan (admin, HOD or assigned user)
 export async function updateActionPlan(req, res) {
   try {
-    const { department, category, expectations, actions, instructions, assignedTo, targetDate, status } = req.body
+    const { 
+      departments, 
+      categories, 
+      expectations, 
+      actionplan, 
+      instructions, 
+      assignedToUsers, 
+      targetDate, 
+      status, 
+      actions_taken, 
+      finalStatus 
+    } = req.body
+    
     const plan = await ActionPlan.findById(req.params.id)
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
@@ -263,77 +404,161 @@ export async function updateActionPlan(req, res) {
     // Store the original values to check for changes
     const originalAssignedTo = plan.assignedTo;
     const originalStatus = plan.status;
+    const originalFinalStatus = plan.finalStatus;
     
     // Authorization: allow HODs, admins, or assigned user (with restrictions)
     const isAdmin = req.user.role === 'admin';
     const isHOD = req.user.role === 'hod';
-    const isAssignedUser = String(plan.assignedTo) === String(req.user._id);
+    const isAssignedUser = plan.assignedTo.some(userId => String(userId) === String(req.user._id));
+    
     if (!isAdmin && !isHOD && !isAssignedUser) {
       return res.status(403).json({ message: "Not authorized to update this action plan" })
     }
     
-    // Only allow assigned user to update 'actions' and 'status'
+    // Check if target date has passed (only HOD can update after target date)
+    const now = new Date();
+    const isAfterTargetDate = now > plan.targetDate;
+    
+    // Only allow assigned user to update their own 'actions_taken' and 'status'
     if (isAssignedUser && !isAdmin && !isHOD) {
-      if (actions !== undefined) plan.actions = actions;
-      if (status !== undefined) plan.status = status;
-      // Block all other fields
+      if (isAfterTargetDate) {
+        return res.status(403).json({ message: "Target date has passed. Only HOD can update this action plan now." })
+      }
+      
+      if (actions_taken !== undefined) {
+        plan.actions_taken.set(req.user._id.toString(), actions_taken);
+      }
+      if (status !== undefined) {
+        plan.status.set(req.user._id.toString(), status);
+      }
+      // Block all other fields for assigned users
     } else {
-      if (department) plan.department = department
-      if (category) plan.category = category
+      // HOD and Admin can update all fields
+      if (departments) plan.departments = departments.map(id => new mongoose.Types.ObjectId(id))
+      if (categories) plan.categories = categories.map(id => new mongoose.Types.ObjectId(id))
       if (expectations) plan.expectations = expectations
-      if (actions !== undefined) plan.actions = actions
+      if (actionplan !== undefined) plan.actionplan = actionplan
       if (instructions) plan.instructions = instructions
-      if (assignedTo) plan.assignedTo = assignedTo
       if (targetDate) plan.targetDate = new Date(targetDate)
-      if (status !== undefined) plan.status = status
+      if (finalStatus !== undefined) plan.finalStatus = finalStatus
+      
+      // Update status and actions_taken for specific users if provided
+      if (status && typeof status === 'object') {
+        Object.keys(status).forEach(userId => {
+          plan.status.set(userId, status[userId])
+        })
+      }
+      
+      if (actions_taken && typeof actions_taken === 'object') {
+        Object.keys(actions_taken).forEach(userId => {
+          plan.actions_taken.set(userId, actions_taken[userId])
+        })
+      }
+      
+      // Handle assignment changes
+      if (assignedToUsers) {
+        const newAssignedTo = Array.isArray(assignedToUsers) ? assignedToUsers : [assignedToUsers]
+        
+        // Find newly assigned users
+        const originalAssignedIds = plan.assignedTo.map(id => id.toString())
+        const newAssignedIds = newAssignedTo.map(id => id.toString())
+        const newlyAssigned = newAssignedIds.filter(id => !originalAssignedIds.includes(id))
+        
+        // Update assigned users
+        plan.assignedTo = newAssignedTo.map(id => new mongoose.Types.ObjectId(id))
+        
+        // Initialize status and actions_taken for newly assigned users
+        newlyAssigned.forEach(userId => {
+          plan.status.set(userId, "pending")
+          plan.actions_taken.set(userId, "")
+        })
+        
+        // Send email notifications to newly assigned users
+        if (newlyAssigned.length > 0) {
+          const assignedByUser = await User.findById(req.user._id).select('name email')
+          sendEmailInBackground(async () => {
+            try {
+              for (const userId of newlyAssigned) {
+                try {
+                  const assignedUser = await User.findById(userId).select('name email')
+                  if (assignedUser && assignedByUser) {
+                    await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+                    console.log(`Action plan assignment email sent to new user: ${assignedUser.email}`)
+                  }
+                } catch (emailError) {
+                  console.error(`Error sending email to newly assigned user ${userId}:`, emailError)
+                }
+              }
+            } catch (error) {
+              console.error("Error sending assignment emails to new users:", error)
+            }
+          })
+        }
+      }
     }
     
     await plan.save()
     
-    // Send email notification if assignment changed and it's a new assignment (in background)
-    if (assignedTo && String(originalAssignedTo) !== String(assignedTo)) {
-      const assignedUser = await User.findById(assignedTo).select('name email')
-      if (assignedUser) {
-        const assignedByUser = await User.findById(req.user._id).select('name email')
-        sendEmailInBackground(sendActionPlanAssignmentEmail, assignedUser, plan, assignedByUser)
-      }
+    // Convert Map to Object for JSON serialization
+    const planObj = plan.toObject()
+    if (planObj.individualActionPlans) {
+      planObj.individualActionPlans = Object.fromEntries(planObj.individualActionPlans)
+    }
+    if (planObj.status) {
+      planObj.status = Object.fromEntries(planObj.status)
+    }
+    if (planObj.actions_taken) {
+      planObj.actions_taken = Object.fromEntries(planObj.actions_taken)
     }
     
-    // Send status update notifications to original survey respondents (in background)
-    if (status && status !== originalStatus && plan.originalSurveyRespondents.length > 0) {
+    // Regular status updates by assigned users don't trigger notifications
+    // Only finalStatus changes by HOD trigger notifications (handled below)
+    
+    // Send final status change notifications to original survey respondents (in background)
+    if (finalStatus !== undefined && finalStatus !== originalFinalStatus && plan.originalSurveyRespondents.length > 0) {
       sendEmailInBackground(async () => {
         try {
-          const department = await Department.findById(plan.department).select('name')
-          const category = await Category.findById(plan.category).select('name')
+          // Get department and category names for notifications
+          const departmentNames = []
+          const categoryNames = []
           
-          if (department && category) {
+          for (const deptId of plan.departments) {
+            const dept = await Department.findById(deptId).select('name')
+            if (dept) departmentNames.push(dept.name)
+          }
+          
+          for (const catId of plan.categories) {
+            const cat = await Category.findById(catId).select('name')
+            if (cat) categoryNames.push(cat.name)
+          }
+          
+          if (departmentNames.length > 0 && categoryNames.length > 0) {
             for (const respondentData of plan.originalSurveyRespondents) {
               try {
                 const respondentUser = await User.findById(respondentData.userId).select('name email')
                 if (respondentUser) {
-                  await sendActionPlanStatusUpdateNotification(
+                  await sendFinalStatusChangeNotification(
                     respondentUser,
                     plan,
-                    department.name,
-                    category.name,
-                    originalStatus,
-                    status
+                    departmentNames.join(", "),
+                    categoryNames.join(", "),
+                    originalFinalStatus,
+                    finalStatus
                   )
-                  console.log(`Status update notification sent to survey respondent: ${respondentUser.email}`)
+                  console.log(`Final status change notification sent to survey respondent: ${respondentUser.email}`)
                 }
               } catch (notificationError) {
-                console.error(`Error sending status update notification to ${respondentData.userId}:`, notificationError)
-                // Continue with other notifications even if one fails
+                console.error(`Error sending final status change notification to ${respondentData.userId}:`, notificationError)
               }
             }
           }
         } catch (notificationError) {
-          console.error("Error sending status update notifications to survey respondents:", notificationError)
+          console.error("Error sending final status change notifications to survey respondents:", notificationError)
         }
       })
     }
     
-    return res.json(plan)
+    return res.json(planObj)
   } catch (error) {
     console.error(`Error updating action plan ${req.params.id}:`, error)
     console.error('User:', req.user)
@@ -342,57 +567,73 @@ export async function updateActionPlan(req, res) {
   }
 }
 
-// User updates status of their assigned action plan
+// User updates status and actions_taken of their assigned action plan
 export async function updateActionPlanStatus(req, res) {
   try {
-    const { status } = req.body
+    const { status, actions_taken } = req.body
     const plan = await ActionPlan.findById(req.params.id)
     if (!plan) {
       return res.status(404).json({ message: "Action plan not found" })
     }
-    if (String(plan.assignedTo) !== String(req.user._id)) {
+    
+    // Check if user is assigned to this action plan
+    const isAssignedUser = plan.assignedTo.some(userId => String(userId) === String(req.user._id))
+    if (!isAssignedUser) {
       return res.status(403).json({ message: "Not authorized to update this action plan" })
     }
     
-    // Store the original status to check for changes
-    const originalStatus = plan.status;
-    plan.status = status
-    await plan.save()
+    // Check if target date has passed - only HOD can update after target date
+    const now = new Date();
+    const isAfterTargetDate = now > plan.targetDate;
+    const isHOD = req.user.role === 'hod' || req.user.role === 'admin';
     
-    // Send status update notifications to original survey respondents
-    if (status !== originalStatus && plan.originalSurveyRespondents.length > 0) {
-      try {
-        const department = await Department.findById(plan.department).select('name')
-        const category = await Category.findById(plan.category).select('name')
-        
-        if (department && category) {
-          for (const respondentData of plan.originalSurveyRespondents) {
-            try {
-              const respondentUser = await User.findById(respondentData.userId).select('name email')
-              if (respondentUser) {
-                const res = await sendActionPlanStatusUpdateNotification(
-                  respondentUser,
-                  plan,
-                  department.name,
-                  category.name,
-                  originalStatus,
-                  status
-                )
-                if (res?.success) console.log(`Status update notification sent to survey respondent: ${respondentUser.email}`)
-              }
-            } catch (notificationError) {
-              console.error(`Error sending status update notification to ${respondentData.userId}:`, notificationError)
-              // Continue with other notifications even if one fails
-            }
-          }
-        }
-      } catch (notificationError) {
-        console.error("Error sending status update notifications to survey respondents:", notificationError)
-        // Don't fail the request if notifications fail
-      }
+    if (isAfterTargetDate && !isHOD) {
+      return res.status(403).json({ 
+        message: "Target date has passed. Only HOD can update this action plan now.",
+        targetDate: plan.targetDate,
+        currentDate: now
+      })
     }
     
-    return res.json(plan)
+    // Use userId from request body if provided, otherwise use the authenticated user's ID
+    const userId = req.body.userId ? req.body.userId.toString() : req.user._id.toString();
+    
+    console.log('Status update - User ID:', userId);
+    console.log('Status update - Request body:', req.body);
+    console.log('Status update - Current plan status map:', plan.status);
+    console.log('Status update - Current plan actions_taken map:', plan.actions_taken);
+    
+    // Store the original status to check for changes
+    const originalStatus = plan.status.get(userId) || "pending";
+    
+    // Update user's status and actions_taken
+    if (status !== undefined) {
+      plan.status.set(userId, status)
+      console.log('Updated status for user', userId, 'to', status);
+    }
+    if (actions_taken !== undefined) {
+      plan.actions_taken.set(userId, actions_taken)
+      console.log('Updated actions_taken for user', userId, 'to', actions_taken);
+    }
+    
+    await plan.save()
+    
+    // Convert Map to Object for JSON serialization
+    const planObj = plan.toObject()
+    if (planObj.individualActionPlans) {
+      planObj.individualActionPlans = Object.fromEntries(planObj.individualActionPlans)
+    }
+    if (planObj.status) {
+      planObj.status = Object.fromEntries(planObj.status)
+    }
+    if (planObj.actions_taken) {
+      planObj.actions_taken = Object.fromEntries(planObj.actions_taken)
+    }
+    
+    // Regular status updates by assigned users don't trigger notifications
+    // Only finalStatus changes by HOD trigger notifications to survey respondents
+    
+    return res.json(planObj)
   } catch (error) {
     console.error(`Error updating action plan status ${req.params.id}:`, error)
     console.error('User:', req.user)
@@ -417,25 +658,107 @@ export async function deleteActionPlan(req, res) {
       return res.status(403).json({ message: "Access denied (Only Admins and HODs are permitted)" })
     }
     
-    // If user is HOD (not admin), check if the action plan belongs to their current department
+    // If user is HOD (not admin), check if the action plan includes their current department
     if (isHOD && !isAdmin) {
       const hodCurrentDepartment = req.user.currentDepartment;
       if (!hodCurrentDepartment) {
         return res.status(400).json({ message: "No current department found for HOD" })
       }
       
-      if (String(plan.department) !== String(hodCurrentDepartment)) {
-        return res.status(403).json({ message: "Access denied (HOD can only delete action plans from their current department)" })
+      // Check if the HOD's department is in the action plan's departments array
+      const includesHodDepartment = plan.departments.some(deptId => 
+        String(deptId) === String(hodCurrentDepartment)
+      );
+      
+      if (!includesHodDepartment) {
+        return res.status(403).json({ message: "Access denied (HOD can only delete action plans that include their current department)" })
       }
     }
 
-    await plan.deleteOne()
-    return res.json({ message: "Action plan deleted successfully" })
+    // Import the ArchivedActionPlan model
+    const { default: ArchivedActionPlan } = await import('../models/ArchivedActionPlan.model.js');
+    
+    // Create archive record
+    const archivedPlan = new ArchivedActionPlan({
+      // Copy all original fields
+      departments: plan.departments,
+      categories: plan.categories,
+      assignedBy: plan.assignedBy,
+      assignedTo: plan.assignedTo,
+      expectations: plan.expectations,
+      actionplan: plan.actionplan,
+      instructions: plan.instructions,
+      actions_taken: plan.actions_taken,
+      status: plan.status,
+      finalStatus: plan.finalStatus,
+      targetDate: plan.targetDate,
+      originalSurveyRespondents: plan.originalSurveyRespondents,
+      
+      // Archive-specific fields
+      originalId: plan._id,
+      archivedBy: req.user._id,
+      archiveReason: req.body.archiveReason || "Action plan deleted",
+      originalCreatedAt: plan.createdAt,
+      originalUpdatedAt: plan.updatedAt
+    });
+
+    // Save the archived plan
+    await archivedPlan.save();
+    
+    // Remove from original collection
+    await plan.deleteOne();
+    
+    console.log(`Action plan ${req.params.id} archived successfully by user ${req.user._id}`);
+    
+    return res.json({ 
+      message: "Action plan archived successfully",
+      archivedPlanId: archivedPlan._id,
+      originalId: plan._id
+    })
   } catch (error) {
     console.error(`Error deleting action plan ${req.params.id}:`, error)
     return res.status(500).json({ message: "Failed to delete action plan" })
   }
 }
+
+// Get individual action plans for a specific user
+export async function getIndividualActionPlansForUser(req, res) {
+  try {
+    const userId = req.user._id
+    console.log('Fetching individual action plans for user:', userId);
+    
+    const plans = await ActionPlan.find({ 
+      [`individualActionPlans.${userId}`]: { $exists: true }
+    })
+      .populate('departments')
+      .populate('categories')
+      .populate('assignedBy', 'name email role currentDepartment')
+      .populate('assignedTo', 'name email role currentDepartment')
+    
+    // Filter to only include individual plans for this user
+    const userIndividualPlans = []
+    plans.forEach(plan => {
+      const userIndividualPlan = plan.individualActionPlans.get(userId.toString())
+      if (userIndividualPlan) {
+        userIndividualPlans.push({
+          ...plan.toObject(),
+          individualActionPlan: {
+            userId: userId,
+            userName: userIndividualPlan.userName,
+            actionPlan: userIndividualPlan.actionPlan
+          }
+        })
+      }
+    })
+    
+    console.log('Found', userIndividualPlans.length, 'individual action plans for user');
+    return res.json(userIndividualPlans)
+  } catch (error) {
+    console.error("Error fetching individual action plans (user):", error)
+    return res.status(500).json({ message: "Failed to fetch individual action plans" })
+  }
+}
+
 
 // Test email configuration (admin only)
 export async function testEmailConfig(req, res) {

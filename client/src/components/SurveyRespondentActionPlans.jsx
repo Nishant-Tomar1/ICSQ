@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card"
-import  Badge  from "./ui/Badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/Table"
+import Badge from "./ui/Badge"
 import { capitalizeFirstLetter, Server } from "../Constants"
 import axios from "axios"
 import { useToast } from "../contexts/ToastContext"
@@ -16,10 +17,19 @@ function SurveyRespondentActionPlans() {
 
   const fetchActionPlans = async () => {
     try {
-      const response = await axios.get(`${Server}/action-plans/survey-respondent`, {
-        withCredentials: true
-      })
-      setActionPlans(response.data)
+      // Fetch both regular action plans and individual action plans
+      const [regularResponse, individualResponse] = await Promise.all([
+        axios.get(`${Server}/action-plans/survey-respondent`, {
+          withCredentials: true
+        }),
+        axios.get(`${Server}/action-plans/individual`, {
+          withCredentials: true
+        })
+      ])
+      
+      // Combine both types of action plans
+      const allPlans = [...regularResponse.data, ...individualResponse.data]
+      setActionPlans(allPlans)
     } catch (error) {
       console.error("Error fetching action plans:", error)
       toast({
@@ -102,7 +112,7 @@ function SurveyRespondentActionPlans() {
             </div>
             <p className="text-gray-300 text-lg mb-2">No Action Plans Yet</p>
             <p className="text-gray-400">
-              Action plans based on your survey responses will appear here once they are created by department heads.
+              Action plans assigned to you will appear here once they are created by department heads.
             </p>
           </div>
         </CardContent>
@@ -117,81 +127,118 @@ function SurveyRespondentActionPlans() {
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Action Plans from Your Survey Responses
+          Your Action Plans
         </CardTitle>
         <p className="text-gray-400 text-sm">
-          These action plans were created based on expectations you provided in surveys
+          Action plans assigned to you, including common plans and individual plans
         </p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4 max-h-[600px] overflow-auto">
-          {actionPlans.map((plan) => (
-            <div
-              key={plan._id}
-              className="bg-white/5 rounded-lg p-4 border border-white/10 hover:border-teal-400/30 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold mb-1">
-                    {capitalizeFirstLetter(plan.department?.name)} - {plan.category?.name}
-                  </h3>
-                  <p className="text-gray-300 text-sm mb-2">
-                    Your original expectation: <span className="text-teal-300 italic">"{plan.respondentData?.originalExpectation}"</span>
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge className={`${getStatusColor(plan.status)} text-white`}>
-                    {getStatusText(plan.status)}
-                  </Badge>
-                  {isOverdue(plan.targetDate, plan.status) && (
-                    <Badge className="bg-red-500 text-white text-xs">
-                      Overdue
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-400 mb-1">Action Plan:</p>
-                  <p className="text-gray-200">{plan.expectations}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 mb-1">Assigned To:</p>
-                  <p className="text-gray-200">{plan.assignedTo?.name}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 mb-1">Target Date:</p>
-                  <p className={`${isOverdue(plan.targetDate, plan.status) ? 'text-red-400' : 'text-gray-200'}`}>
-                    {formatDate(plan.targetDate)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 mb-1">Created By:</p>
-                  <p className="text-gray-200">{plan.assignedBy?.name}</p>
-                </div>
-              </div>
-
-              {plan.actions && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-gray-400 mb-1">Actions Taken:</p>
-                  <p className="text-gray-200">{plan.actions}</p>
-                </div>
-              )}
-
-              {plan.instructions && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-gray-400 mb-1">Instructions:</p>
-                  <p className="text-gray-200">{plan.instructions}</p>
-                </div>
-              )}
-
-              <div className="mt-3 pt-3 border-t border-white/10 text-xs text-gray-400">
-                Created: {formatDate(plan.createdAt)} • Last Updated: {formatDate(plan.updatedAt)}
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="border-gray-700/30">
+                <TableHead className="text-gray-300 font-semibold">Service Provider Department</TableHead>
+                {/* <TableHead className="text-gray-300 font-semibold">Categories</TableHead> */}
+                <TableHead className="text-gray-300 font-semibold">Your Expectation</TableHead>
+                <TableHead className="text-gray-300 font-semibold">Action Plan</TableHead>
+                {/* <TableHead className="text-gray-300 font-semibold">Assigned To</TableHead> */}
+                {/* <TableHead className="text-gray-300 font-semibold">Target Date</TableHead> */}
+                <TableHead className="text-gray-300 font-semibold">Status</TableHead>
+                {/* <TableHead className="text-gray-300 font-semibold">Created By</TableHead> */}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {actionPlans.map((plan) => (
+                <TableRow key={plan._id} className="border-gray-700/30 hover:bg-white/5">
+                  <TableCell className="text-white">
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(plan.departments) ? 
+                        <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-1 rounded">
+                          {capitalizeFirstLetter(plan.departments[0]?.name || plan.departments[0])}
+                        </span>
+                        :
+                        <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-1 rounded">
+                          {capitalizeFirstLetter(plan.department?.name)}
+                        </span>
+                      }
+                    </div>
+                  </TableCell>
+                  {/* <TableCell className="text-white">
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(plan.categories) ? 
+                        plan.categories.map((cat, idx) => (
+                          <span key={idx} className="text-xs bg-green-600/20 text-green-300 px-2 py-1 rounded">
+                            {capitalizeFirstLetter(cat?.name || cat)}
+                          </span>
+                        )) :
+                        <span className="text-xs bg-green-600/20 text-green-300 px-2 py-1 rounded">
+                          {capitalizeFirstLetter(plan.category?.name)}
+                        </span>
+                      }
+                    </div>
+                  </TableCell>  */}
+                  <TableCell className="text-white">
+                    <div className="max-w-xs">
+                      <p className="text-sm text-teal-300 italic truncate" title={plan.respondentData?.originalExpectation}>
+                        {plan.respondentData?.originalExpectation}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-white">
+                    <div className="max-w-xs">
+                      <p className="text-sm truncate" title={plan.individualActionPlan?.actionPlan || plan.actionplan || plan.expectations}>
+                        {plan.individualActionPlan?.actionPlan || plan.actionplan || plan.expectations}
+                      </p>
+                      {plan.individualActionPlan && (
+                        <div className="text-xs text-blue-300 mt-1">
+                          <span className="bg-blue-500/20 px-2 py-1 rounded">Individual Plan</span>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  {/* <TableCell className="text-white">
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(plan.assignedTo) ? 
+                        plan.assignedTo.map((user, idx) => (
+                          <span key={idx} className="text-xs bg-purple-600/20 text-purple-300 px-2 py-1 rounded">
+                            {user?.name || user}
+                          </span>
+                        )) :
+                        <span className="text-xs bg-purple-600/20 text-purple-300 px-2 py-1 rounded">
+                          {plan.assignedTo?.name}
+                        </span>
+                      }
+                    </div>
+                  </TableCell> */}
+                  {/* <TableCell className="text-white">
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-sm ${isOverdue(plan.targetDate, plan.finalStatus || plan.status) ? 'text-red-400' : 'text-white'}`}>
+                        {formatDate(plan.targetDate)}
+                      </span>
+                      {isOverdue(plan.targetDate, plan.finalStatus || plan.status) && (
+                        <Badge className="bg-red-500 text-white text-xs w-fit">
+                          Overdue
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell> */}
+                  <TableCell className="text-white">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${getStatusColor(plan.individualActionPlan?.status || plan.finalStatus || plan.status)} text-white`}>
+                        {getStatusText(plan.individualActionPlan?.status || plan.finalStatus || plan.status)}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  {/* <TableCell className="text-white">
+                    <span className="text-sm">{plan.assignedBy?.name}</span>
+                  </TableCell> */}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
+    
       </CardContent>
     </Card>
   )

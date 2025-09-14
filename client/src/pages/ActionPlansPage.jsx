@@ -36,6 +36,7 @@ import {
   DialogDescription,
 } from "../components/ui/Dialog";
 import Textarea from "../components/ui/Textarea";
+import { AlertCircle, CheckCircle, ClipboardList, Eye, Timer, Trash2 } from "lucide-react";
 
 // Helper component for showing expectations in a table
 function ExpectationsTable({ data, categoryName }) {
@@ -46,7 +47,7 @@ function ExpectationsTable({ data, categoryName }) {
   if (!categoryData) {
     return (
       <div className="p-4 text-red-500 font-semibold">
-        No expectations in this category yet !
+        No Feedbacks in this category yet !
       </div>
     );
   }
@@ -160,7 +161,7 @@ function AllExpectationsTable({ data, onAssign, ratingFilter, currentDepartment 
         return (
           <div key={group.key} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden"> 
             <div className={`px-4 py-3 bg-gradient-to-r ${group.color} text-white font-semibold sticky top-0 z-10`}>
-              {group.label} ({items.length} expectations)
+              {group.label} ({items.length} ICSQ Feedbacks)
             </div>
             <div className="max-h-96 overflow-y-auto overflow-x-auto">
               <table className="w-full">
@@ -169,7 +170,7 @@ function AllExpectationsTable({ data, onAssign, ratingFilter, currentDepartment 
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Department</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Category</th>
                     {/* <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th> */}
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Expectation</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">ICSQ Feedback</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Rating</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
                   </tr>
@@ -216,7 +217,7 @@ function AllExpectationsTable({ data, onAssign, ratingFilter, currentDepartment 
       })}
       {(!groups.detractor.length && !groups.passive.length && !groups.promoter.length) && (
         <div className="p-6 text-slate-400 text-center bg-white/5 rounded-lg border border-white/10">
-          No expectations found in {currentDepartment?.name || 'your current department'}.
+          No feedbacks found in {currentDepartment?.name || 'your current department'}.
         </div>
       )}
     </div>
@@ -232,7 +233,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
   if (!categoryData) {
     return (
       <div className="p-4 text-red-500 font-semibold">
-        No expectations in this category yet !
+        No feedbacks in this category yet !
       </div>
     );
   }
@@ -279,7 +280,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
         return (
           <div key={group.key} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden"> 
             <div className={`px-4 py-3 bg-gradient-to-r ${group.color} text-white font-semibold sticky top-0 z-10`}>
-              {group.label} ({items.length} expectations)
+              {group.label} ({items.length} ISCQ Feedbacks)
             </div>
             <div className="max-h-96 overflow-y-auto overflow-x-auto">
               <table className="w-full">
@@ -287,7 +288,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Department</th>
                     {/* <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th> */}
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Expectation</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">ICSQ Feedback</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Rating</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
                   </tr>
@@ -331,7 +332,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
       })}
       {(!groups.detractor.length && !groups.passive.length && !groups.promoter.length) && (
         <div className="p-6 text-slate-400 text-center bg-white/5 rounded-lg border border-white/10">
-          No expectations in this category yet !
+          No feedbacks in this category yet !
         </div>
       )}
     </div>
@@ -413,7 +414,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
         return (
           <div key={group.key} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden"> 
             <div className={`px-4 py-3 bg-gradient-to-r ${group.color} text-white font-semibold sticky top-0 z-10`}>
-              {group.label} ({items.length} expectations)
+              {group.label} ({items.length} ICSQ Feedbacks)
             </div>
             <div className="max-h-96 overflow-y-auto overflow-x-auto">
               <table className="w-full">
@@ -421,7 +422,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Category</th>
                     {/* <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">User</th> */}
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Expectation</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">ICSQ Feedback</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Rating</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
                   </tr>
@@ -467,7 +468,7 @@ function HODExpectationsTable({ data, categoryName, onAssign, ratingFilter, curr
       })}
       {(!groups.detractor.length && !groups.passive.length && !groups.promoter.length) && (
         <div className="p-6 text-slate-400 text-center bg-white/5 rounded-lg border border-white/10">
-          No expectations by this department yet !
+          No feedbacks by this department yet !
         </div>
       )}
     </div>
@@ -545,14 +546,19 @@ function ActionPlansPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
     expectations: "",
+    actionplan: "",
     instructions: "",
     assignedTo: [],
     targetDate: "",
-    status: "pending",
     originalSurveyRespondents: [],
+    individualActionPlans: [],
   });
+  
+  // State for multi-department and multi-category selection
+  const [selectedDepartments, setSelectedDepartments] = useState([getCurrentDepartment()?._id].filter(Boolean));
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ _id: '', expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+  const [editForm, setEditForm] = useState({ _id: '', expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
   const [ratingFilter, setRatingFilter] = useState("");
   // --- Fix: Add missing states for all-summary selection and modal ---
   const [selectedAllSummary, setSelectedAllSummary] = useState({});
@@ -568,11 +574,11 @@ function ActionPlansPage() {
   // State for assignAllSummaryModal form
   const [assignAllSummaryForm, setAssignAllSummaryForm] = useState({
     expectations: '',
+    actionplan: '',
     instructions: '',
     assignedTo: '',
     targetDate: '',
     categoryId: '',
-    status: 'pending',
     originalSurveyRespondents: []
   });
   // Add these hooks at the top level
@@ -650,7 +656,7 @@ function ActionPlansPage() {
     setEditForm({
       _id: plan._id,
       expectations: plan.expectations || '',
-      actions: plan.actions || '',
+      actionplan: plan.actionplan || '',
       instructions: plan.instructions || '',
       assignedTo: plan.assignedTo?._id || '',
       targetDate: plan.targetDate ? new Date(plan.targetDate).toISOString().split('T')[0] : '',
@@ -683,8 +689,8 @@ function ActionPlansPage() {
       toast({ title: 'Error', description: 'Expectations are required.', variant: 'destructive' });
       return;
     }
-    if (!editForm.actions.trim()) {
-      toast({ title: 'Error', description: 'Actions are required.', variant: 'destructive' });
+    if (!editForm.actionplan.trim()) {
+      toast({ title: 'Error', description: 'Action plan is required.', variant: 'destructive' });
       return;
     }
     if (!editForm.assignedTo) {
@@ -701,7 +707,7 @@ function ActionPlansPage() {
         `${Server}/action-plans/${editForm._id}`,
         {
           expectations: editForm.expectations,
-          actions: editForm.actions,
+          actionplan: editForm.actionplan,
           instructions: editForm.instructions,
           assignedTo: editForm.assignedTo,
           targetDate: editForm.targetDate,
@@ -710,7 +716,7 @@ function ActionPlansPage() {
         { withCredentials: true }
       );
       setEditModalOpen(false);
-      setEditForm({ _id: '', expectations: '', actions: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+      setEditForm({ _id: '', expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
       fetchData();
       toast({ title: 'Success', description: 'Action plan updated!' });
     } catch (err) {
@@ -882,7 +888,7 @@ function ActionPlansPage() {
 
   // Handle delete action plan
   const handleDeleteActionPlan = async (plan) => {
-    if (window.confirm(`Are you sure you want to delete this action plan?\n\nExpectations: ${plan.expectations}\nAssigned to: ${plan.assignedTo?.name}\n\nThis action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to delete this action plan?\n\nExpectations: ${plan.expectations}\nTHIS ACTION CANNOT BE UNDONE.`)) {
       setIsSubmitting(true);
       try {
         await axios.delete(`${Server}/action-plans/${plan._id}`, { withCredentials: true });
@@ -911,8 +917,8 @@ function ActionPlansPage() {
       toast({ title: "Error", description: "Expectations are required.", variant: "destructive" });
       return;
     }
-    if (!createForm.instructions.trim()) {
-      toast({ title: "Error", description: "Instructions are required.", variant: "destructive" });
+    if (!createForm.actionplan.trim()) {
+      toast({ title: "Error", description: "Action plan is required.", variant: "destructive" });
       return;
     }
     if (!selectedCategoryForForm.trim()) {
@@ -937,46 +943,39 @@ function ActionPlansPage() {
       
       console.log("Assigning to",assignedUsers.length || 0, "users");
       
-      // Create action plans - use batch endpoint for multiple users, single endpoint for one user
-      if (assignedUsers.length > 1) {
-        // Use batch endpoint for multiple users
+      // Prepare department and category IDs
+      const departmentIds = selectedDepartments.length > 0 ? selectedDepartments : [getCurrentDepartment()?._id];
+      const categoryIds = selectedCategories.length > 0 ? selectedCategories : [existingCategory?._id || selectedCategoryForForm];
+      
+      // Use the unified endpoint for all cases (single or multiple users)
         await axios.post(
-          `${Server}/action-plans/batch`,
+        `${Server}/action-plans`,
           {
-            departmentId: getCurrentDepartment()?._id,
-            categoryId: existingCategory?._id || selectedCategoryForForm,
+          departmentIds: departmentIds,
+          categoryIds: categoryIds,
             expectations: createForm.expectations,
+          actionplan: createForm.actionplan,
             instructions: createForm.instructions,
             assignedToUsers: assignedUsers, // Send array of user IDs
             targetDate: createForm.targetDate,
-            status: createForm.status,
             originalSurveyRespondents: createForm.originalSurveyRespondents || [],
+            individualActionPlans: createForm.individualActionPlans?.reduce((acc, plan) => {
+              if (plan.userId && plan.actionPlan) {
+                acc[plan.userId] = plan.actionPlan;
+              }
+              return acc;
+            }, {}) || {},
           },
           { withCredentials: true }
         );
-      } else {
-        // Use single endpoint for one user
-        await axios.post(
-          `${Server}/action-plans`,
-          {
-            departmentId: getCurrentDepartment()?._id,
-            categoryId: existingCategory?._id || selectedCategoryForForm,
-            expectations: createForm.expectations,
-            instructions: createForm.instructions,
-            assignedTo: assignedUsers[0], // Send single user ID
-            targetDate: createForm.targetDate,
-            status: createForm.status,
-            originalSurveyRespondents: createForm.originalSurveyRespondents || [],
-          },
-          { withCredentials: true }
-        );
-      }
       
       // Close both modals if they're open
       setCreateModalOpen(false);
       setAiCreateModalOpen(false);
-      setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending', originalSurveyRespondents: [] });
+      setCreateForm({ expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', originalSurveyRespondents: [], individualActionPlans: [] });
       setSelectedCategoryForForm("");
+      setSelectedDepartments([getCurrentDepartment()?._id].filter(Boolean));
+      setSelectedCategories([]);
       fetchData();
       
       const userCount = assignedUsers.length;
@@ -1014,20 +1013,19 @@ function ActionPlansPage() {
       await axios.post(
         `${Server}/action-plans`,
         {
-          departmentId: getCurrentDepartment()?._id,
-          categoryId: assignAllSummaryForm.categoryId,
+          departmentIds: [getCurrentDepartment()?._id],
+          categoryIds: [assignAllSummaryForm.categoryId],
           expectations: assignAllSummaryForm.expectations,
-          actions: assignAllSummaryForm.actions || '',
+          actionplan: assignAllSummaryForm.actionplan || '',
           instructions: assignAllSummaryForm.instructions,
-          assignedTo: assignAllSummaryForm.assignedTo,
+          assignedToUsers: [assignAllSummaryForm.assignedTo],
           targetDate: assignAllSummaryForm.targetDate,
-          status: assignAllSummaryForm.status,
           originalSurveyRespondents: assignAllSummaryForm.originalSurveyRespondents || [],
         },
         { withCredentials: true }
       );
       setAssignAllSummaryModal(false);
-      setAssignAllSummaryForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', status: 'pending', originalSurveyRespondents: [] });
+      setAssignAllSummaryForm({ expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', originalSurveyRespondents: [] });
       setAssignAllSummaryData([]);
       fetchData();
       toast({ title: "Success", description: "Action plan created!" });
@@ -1166,9 +1164,9 @@ function ActionPlansPage() {
     setCreateForm(f => ({
       ...f,
       expectations: expectationsText,
-      actions: '',
+      actionplan: '',
       instructions: '',
-      assignedTo: '',
+      assignedTo: [],
     }));
   };
 
@@ -1457,14 +1455,19 @@ function ActionPlansPage() {
     if (currentUser.role === "user" || currentUser.role === "admin") {
     const openActionModal = (plan) => {
       setActionModalPlan(plan);
-      setActionInput(plan.actions || "");
+      // Get the current user's actions_taken from the Map or object
+      const userActionsTaken = plan.actions_taken?.get?.(currentUser._id) || plan.actions_taken?.[currentUser._id] || "";
+      setActionInput(userActionsTaken);
       setActionModalOpen(true);
     };
     const handleActionSave = async (e) => {
       e.preventDefault();
       setIsSubmitting(true);
       try {
-        await axios.put(`${Server}/action-plans/${actionModalPlan._id}`, { actions: actionInput }, { withCredentials: true });
+        await axios.patch(`${Server}/action-plans/${actionModalPlan._id}/status`, { 
+          actions_taken: actionInput,
+          userId: currentUser._id 
+        }, { withCredentials: true });
         setActionModalOpen(false);
         fetchData();
         toast({ title: 'Success', description: 'Actions updated!' });
@@ -1485,7 +1488,7 @@ function ActionPlansPage() {
                 Action Plans Assigned to Me
               </CardTitle>
               <div className="text-sm text-slate-300 bg-orange-500/20 px-3 py-1 rounded-full border border-orange-400/30">
-                {filteredPlans.length} Plans
+                {filteredPlans.length} Plan(s)
               </div>
             </div>
             <div className="flex items-center gap-2 mt-3 text-sm text-blue-300">
@@ -1511,34 +1514,40 @@ function ActionPlansPage() {
           { filteredPlans.length > 0 && <CardContent className="p-0">
             <div className="relative">
               {/* Left scroll indicator */}
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div>
+              {/* <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div> */}
               {/* Right scroll indicator */}
               <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-900/80 to-transparent z-10 pointer-events-none flex items-center justify-center">
-                <div className="text-blue-400 text-xs animate-bounce">→</div>
+                {/* <div className="text-blue-400 text-xs animate-bounce">→</div> */}
               </div>
               
               <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-               <Table className="min-w-[1200px] border-separate border-spacing-0 border-gray-600 border-2">
+               <Table className="min-w-[1400px] border-separate border-spacing-0 border-gray-600 border-2">
                   <TableHeader className="bg-gradient-to-r from-gray-800 to-gray-900 sticky top-0 z-5">
                     <TableRow>
                       <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
-                        Department
+                        Departments
                       </TableHead>
                       <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
-                        Category
+                        Categories
                       </TableHead>
                       <TableHead className="w-[280px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
                         Expectations
                       </TableHead>
                       <TableHead className="w-[220px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Action Plan
+                      </TableHead>
+                      <TableHead className="w-[200px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                        Plans Specific to you
+                      </TableHead>
+                      <TableHead className="w-[200px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
                         Instructions
                       </TableHead>
                       <TableHead className="w-[140px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
                         Target Date
                       </TableHead>
-                      <TableHead className="w-[120px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
+                      {/* <TableHead className="w-[120px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
                         Status
-                      </TableHead>
+                      </TableHead> */}
                       <TableHead className="w-[160px] font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700 px-4 py-4 text-center">
                         Update Status
                       </TableHead>
@@ -1560,19 +1569,43 @@ function ActionPlansPage() {
                       >
                           <TableCell 
                             className="px-4 py-4 border-r border-gray-700/30 text-center" 
-                            title={plan.department?.name ? capitalizeFirstLetter(plan.department.name) : ''}
+                            title={Array.isArray(plan.departments) ? plan.departments.map(d => d?.name || d).join(', ') : plan.department?.name}
                           >
-                            <span className="text-white font-medium text-sm">
-                              {capitalizeFirstLetter(plan.department?.name)}
+                            <div className="flex flex-col gap-1">
+                              {Array.isArray(plan.departments) ? 
+                                plan.departments.slice(0, 2).map((dept, idx) => (
+                                  <span key={idx} className="text-white font-medium text-xs bg-blue-600/20 px-2 py-1 rounded">
+                                    {capitalizeFirstLetter(dept?.name || dept)}
                             </span>
+                                )) :
+                                <span className="text-white font-medium text-sm">{capitalizeFirstLetter(plan.department?.name)}</span>
+                              }
+                              {Array.isArray(plan.departments) && plan.departments.length > 2 && (
+                                <span className="text-slate-400 text-xs">
+                                  +{plan.departments.length - 2} more
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell 
                             className="px-4 py-4 border-r border-gray-700/30 text-center" 
-                            title={plan.category?.name ? capitalizeFirstLetter(plan.category.name) : ''}
+                            title={Array.isArray(plan.categories) ? plan.categories.map(c => c?.name || c).join(', ') : plan.category?.name}
                           >
-                            <span className="text-white font-medium text-sm">
-                              {capitalizeFirstLetter(plan.category?.name)}
+                            <div className="flex flex-col gap-1">
+                              {Array.isArray(plan.categories) ? 
+                                plan.categories.slice(0, 2).map((cat, idx) => (
+                                  <span key={idx} className="text-white font-medium text-xs bg-green-600/20 px-2 py-1 rounded">
+                                    {capitalizeFirstLetter(cat?.name || cat)}
                             </span>
+                                )) :
+                                <span className="text-white font-medium text-sm">{capitalizeFirstLetter(plan.category?.name)}</span>
+                              }
+                              {Array.isArray(plan.categories) && plan.categories.length > 2 && (
+                                <span className="text-slate-400 text-xs">
+                                  +{plan.categories.length - 2} more
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell 
                             className="px-4 py-4 border-r border-gray-700/30" 
@@ -1584,10 +1617,48 @@ function ActionPlansPage() {
                           </TableCell>
                           <TableCell 
                             className="px-4 py-4 border-r border-gray-700/30" 
-                            title={plan.instructions}
+                            title={plan.actionplan}
                           >
                             <div className="text-slate-300 text-sm leading-relaxed max-w-[200px] overflow-hidden">
-                              <span className="line-clamp-2">{plan.instructions}</span>
+                              <span className="line-clamp-2">{plan.actionplan || "No action plan yet"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30" 
+                            title={(() => {
+                              const userIndividualPlan = plan.individualActionPlans?.[currentUser._id];
+                              return userIndividualPlan ? 
+                                `${userIndividualPlan.userName}: ${userIndividualPlan.actionPlan}` : 
+                                "-";
+                            })()}
+                          >
+                            <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
+                              {(() => {
+                                const userIndividualPlan = plan.individualActionPlans?.[currentUser._id];
+                                
+                                if (userIndividualPlan) {
+                                  return (
+                                    <div className="bg-blue-500/20 px-2 py-1 rounded text-xs">
+                                      <div className="font-medium text-blue-300">
+                                        {userIndividualPlan.userName}
+                                      </div>
+                                      <div className="text-slate-300 line-clamp-1">
+                                        {userIndividualPlan.actionPlan}
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  return <span className="text-slate-500">No Plans</span>;
+                                }
+                              })()}
+                            </div>
+                          </TableCell>
+                          <TableCell 
+                            className="px-4 py-4 border-r border-gray-700/30" 
+                            title={plan.instructions}
+                          >
+                            <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
+                              <span className="line-clamp-2">{plan.instructions || "No instructions"}</span>
                             </div>
                           </TableCell>
                           <TableCell 
@@ -1598,37 +1669,40 @@ function ActionPlansPage() {
                               {new Date(plan.targetDate).toLocaleDateString('en-GB')}
                             </span>
                           </TableCell>
-                          <TableCell 
+                          {/* <TableCell 
                             className="px-4 py-4 border-r border-gray-700/30 text-center"
-                            title={plan.status}
+                            title={plan.status?.get?.(currentUser._id) || plan.status?.[currentUser._id] || "pending"}
                           >
                             <div className="flex justify-center">
-                              {getStatusBadge(plan.status)}
+                              {getStatusBadge(plan.status?.get?.(currentUser._id) || plan.status?.[currentUser._id] || "pending")}
                             </div>
-                          </TableCell>
-                          <TableCell className="px-4 py-4 border-r border-gray-700/30">
+                          </TableCell> */}
+                          <TableCell className="px-4 py-4 border-r border-gray-700/30 ">
                             <div className="flex justify-center">
                               <Select
-                                value={plan.status}
+                                value={plan.status?.get?.(currentUser._id) || plan.status?.[currentUser._id] || "pending"}
                                 onValueChange={async (value) => {
                                   setUpdatingStatusId(plan._id);
                                   try {
-                                    await axios.patch(`${Server}/action-plans/${plan._id}/status`, { status: value }, { withCredentials: true });
+                                    await axios.patch(`${Server}/action-plans/${plan._id}/status`, { 
+                                      status: value,
+                                      userId: currentUser._id 
+                                    }, { withCredentials: true });
                                     fetchData();
-                                    toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                                    toast({ title: "Success", description: "Your status updated successfully", variant: "success" });
                                   } catch (e) {
-                                    toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                                    toast({ title: "Error", description: "Failed to update your status", variant: "destructive" });
                                   } finally {
                                     setUpdatingStatusId(null);
                                   }
                                 }}
                                 options={statusOptions.filter(opt => opt.value !== "all")}
-                                className="h-9 text-xs bg-gray-800/40 border-gray-700/30 text-white hover:bg-blue-600/20"
+                                className="h-9 text-xs bg-gray-800/40 border-gray-700/30 text-white hover:bg-blue-600/20 min-w-[120px]"
                                 disabled={updatingStatusId === plan._id}
                               />
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-4">
+                          <TableCell className="px-4 py-4 ">
                             <div className="flex gap-2 justify-center">
                               <Button 
                                 size="sm" 
@@ -1636,7 +1710,7 @@ function ActionPlansPage() {
                                 onClick={() => openActionModal(plan)}
                                 className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-2"
                               >
-                                {plan.actions ? "Edit Action" : "Add Action"}
+                                {(plan.actions_taken?.get?.(currentUser._id) || plan.actions_taken?.[currentUser._id]) ? "Edit Actions" : "Add Actions"}
                               </Button>
                               {/* <Button 
                                 size="sm" 
@@ -1662,51 +1736,127 @@ function ActionPlansPage() {
         </Card>
         {/* Modal for adding/updating actions */}
         <Dialog open={actionModalOpen} onOpenChange={setActionModalOpen}>
-          <DialogContent className="bg-[#232026]/90 max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-center">{actionModalPlan?.actions ? "Edit Actions Taken" : "Add Actions Taken"}</DialogTitle>
+          <DialogContent className="bg-[#29252c]/95 backdrop-blur-sm border border-gray-700 shadow-2xl max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader className="border-b border-gray-700 flex-shrink-0">
+              <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
+                {(actionModalPlan?.actions_taken?.get?.(currentUser._id) || actionModalPlan?.actions_taken?.[currentUser._id]) ? "Edit Actions Taken" : "Add Actions Taken"}
+              </DialogTitle>
             </DialogHeader>
             {actionModalPlan && (
-              <form onSubmit={handleActionSave} className="space-y-4">
-                <div>
-                  <div className="text-xs text-gray-400 mb-1">Department</div>
-                  <div className="font-semibold text-[#FFF8E7]">{capitalizeFirstLetter(actionModalPlan.department?.name)}</div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <form onSubmit={handleActionSave} className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Departments</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(actionModalPlan.departments) ? 
+                          actionModalPlan.departments.map((dept, idx) => (
+                            <span key={idx} className="text-white font-medium text-sm bg-blue-600/20 px-2 py-1 rounded">
+                              {capitalizeFirstLetter(dept?.name || dept)}
+                            </span>
+                          )) :
+                          <span className="text-white font-medium">{capitalizeFirstLetter(actionModalPlan.department?.name)}</span>
+                        }
                 </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-1">Category</div>
-                  <div className="font-semibold text-[#FFF8E7]">{capitalizeFirstLetter(actionModalPlan.category?.name)}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-1">Expectations</div>
-                  <div className="text-[#FFF8E7] max-h-24 overflow-y-auto">{actionModalPlan.expectations}</div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Categories</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(actionModalPlan.categories) ? 
+                          actionModalPlan.categories.map((cat, idx) => (
+                            <span key={idx} className="text-white font-medium text-sm bg-green-600/20 px-2 py-1 rounded">
+                              {capitalizeFirstLetter(cat?.name || cat)}
+                            </span>
+                          )) :
+                          <span className="text-white font-medium">{capitalizeFirstLetter(actionModalPlan.category?.name)}</span>
+                        }
                 </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-1">Instructions</div>
-                  <div className="text-[#FFF8E7] max-h-24 overflow-y-auto">{actionModalPlan.instructions}</div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Actions Taken</label>
-                  <Input
-                    as="textarea"
-                    rows={3}
+                  </div>
+
+                  {/* Expectations */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Expectations</h3>
+                    <p className="text-white whitespace-pre-wrap">{actionModalPlan.expectations}</p>
+                  </div>
+
+                  {/* Action Plan */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Action Plan</h3>
+                    <p className="text-white whitespace-pre-wrap">{actionModalPlan.actionplan}</p>
+                  </div>
+
+                  {/* Individual Action Plans */}
+                  {(() => {
+                    const userIndividualPlan = actionModalPlan.individualActionPlans?.[currentUser._id];
+                    
+                    return userIndividualPlan && (
+                      <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                        <h3 className="text-sm font-semibold text-gray-400 mb-4">Your Individual Action Plan</h3>
+                        <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-400/30">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-blue-300 font-medium text-sm">👤 {userIndividualPlan.userName}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <span className="text-xs text-gray-400">Action Plan:</span>
+                              <p className="text-white text-sm mt-1 whitespace-pre-wrap">{userIndividualPlan.actionPlan}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Instructions */}
+                  {actionModalPlan.instructions && (
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Instructions</h3>
+                      <p className="text-white whitespace-pre-wrap">{actionModalPlan.instructions}</p>
+                    </div>
+                  )}
+
+                  {/* Actions Taken Input */}
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-3">Your Actions Taken</h3>
+                    <Textarea
+                      rows={4}
                     value={actionInput}
                     onChange={e => setActionInput(e.target.value)}
-                    placeholder="Describe what actions you have taken..."
+                      placeholder="Describe what actions you have taken to address this expectation..."
+                      className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-amber-500"
                     required
                   />
                 </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Saving..." : "Save Actions"}
-                  </Button>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline">
+                </form>
+              </div>
+            )}
+            
+            <DialogFooter className="border-t border-gray-700 pt-6">
+              <div className="flex gap-3 w-full justify-end">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setActionModalOpen(false)}
+                  className="bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600/50"
+                >
                       Cancel
                     </Button>
-                  </DialogClose>
+                <Button 
+                  type="submit" 
+                  onClick={handleActionSave}
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium"
+                >
+                  {isSubmitting ? "Saving..." : "Save Actions"}
+                </Button>
+              </div>
                 </DialogFooter>
-              </form>
-            )}
           </DialogContent>
         </Dialog>
 
@@ -1872,6 +2022,7 @@ function ActionPlansPage() {
       // Process AI response and generate summarized expectations
       const aiSummary = response.data.summary || '';
       
+      
       const generatedPlans = await processAIResponse(aiSummary);
       
       // Use all generated plans directly (no filtering)
@@ -1882,8 +2033,8 @@ function ActionPlansPage() {
         // No expectations found at all
         setAiEmptyReason("no_expectations");
         toast({ 
-          title: "No Expectations Found", 
-          description: "No expectations were found in the survey data for the selected priority focus.", 
+          title: "No ICSQ Feedbaxks Found", 
+          description: "No feedbacks were found in the survey data for the selected priority focus.", 
           variant: "default" 
         });
       } else {
@@ -1914,7 +2065,41 @@ function ActionPlansPage() {
 
     // Check if AI response is already structured (from new backend)
     if (Array.isArray(aiSummary)) {
-      return aiSummary.map((item, index) => ({
+      // Filter to only include plans with valid originalSurveyRespondents
+      const validPlans = aiSummary.filter(item => {
+        const respondents = item.originalSurveyRespondents || [];
+        
+        // Must have at least one respondent
+        if (respondents.length === 0) {
+          return false;
+        }
+        
+        // All respondents must have valid userIds
+        const validRespondents = respondents.filter(respondent => {
+          const isValid = respondent.userId && 
+                         respondent.userId !== 'undefined' && 
+                         respondent.userId !== 'null' && 
+                         respondent.userId.trim() !== '' &&
+                         respondent.surveyId &&
+                         respondent.originalExpectation;
+          
+          if (!isValid) {
+            console.log(`Filtering out invalid respondent:`, respondent);
+          }
+          return isValid;
+        });
+        
+        // Plan is valid only if it has at least one valid respondent
+        const isValidPlan = validRespondents.length > 0;
+        
+        if (!isValidPlan) {
+          console.log(`Filtering out plan ${item.category}: No valid respondents`);
+        } else {
+          console.log(`✅ Plan ${item.category} passed validation with ${validRespondents.length} valid respondents`);
+        }
+        
+        return isValidPlan;
+      }).map((item, index) => ({
         id: `exp_${index}`,
         summary: item.summary || '',
         category: item.category || 'General',
@@ -1922,15 +2107,18 @@ function ActionPlansPage() {
         priority: item.priority || 'Medium',
         originalData: item.originalData || 'Based on survey responses',
         recommendedActions: item.recommendedActions || [],
-        sourceResponses: item.sourceResponses || []
+        sourceResponses: item.sourceResponses || [],
+        originalSurveyRespondents: item.originalSurveyRespondents || []
       }));
+      
+      console.log(`Frontend filtering: ${validPlans.length}/${aiSummary.length} plans passed validation`);
+      return validPlans;
     }
 
     // Parse AI summary and extract summarized expectations (fallback for old format)
     const summarizedExpectations = parseSummarizedExpectations(aiSummary);
     
     if (summarizedExpectations.length === 0) {
-      // Fallback to simple format if parsing fails
       return generateFallbackSummaries(aiSummary);
     }
 
@@ -1942,16 +2130,14 @@ function ActionPlansPage() {
     if (!aiSummary) return [];
     
     try {
-      // Split by lines and filter out empty lines
       const lines = aiSummary.split('\n').filter(line => line.trim());
       const expectations = [];
       
       lines.forEach((line, index) => {
         const trimmedLine = line.trim();
-        // Remove common prefixes like "1.", "-", "*", etc.
         const cleanLine = trimmedLine.replace(/^[\d\-*•]+\.?\s*/, '');
         
-        if (cleanLine && cleanLine.length > 5) { // Only meaningful lines
+        if (cleanLine && cleanLine.length > 5) { 
           expectations.push({
             id: `exp_${index}`,
             summary: cleanLine,
@@ -1993,6 +2179,7 @@ function ActionPlansPage() {
 
 
   const handleAssignFromAI = async (aiPlan) => {
+    
     try {
       // Build instructions with recommended actions only
       let instructions = '';
@@ -2007,13 +2194,24 @@ function ActionPlansPage() {
         instructions = aiPlan.summary;
       }
       
+      // Build action plan from recommended actions
+      let actionPlan = '';
+      
+      if (aiPlan.recommendedActions && aiPlan.recommendedActions.length > 0) {
+        actionPlan = aiPlan.recommendedActions.join('\n\n');
+      } else {
+        // Fallback to summary if no recommended actions
+        actionPlan = aiPlan.summary;
+      }
+      
       // Pre-fill the create form with AI-generated content for assignment
       setCreateForm({
-        expectations: instructions, // Prefill expectations with the same data as instructions
-        instructions: instructions,
+        expectations: aiPlan.summary, // Use the AI summary as expectations
+        actionplan: actionPlan, // Use recommended actions as action plan
+        instructions: '', // Keep instructions blank as it's optional
         assignedTo: [], // Initialize as empty array for multiple user selection
         targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        status: 'pending',
+        originalSurveyRespondents: aiPlan.originalSurveyRespondents || []
       });
 
       // Pre-fill category if available from AI
@@ -2022,6 +2220,10 @@ function ActionPlansPage() {
       } else {
         setSelectedCategoryForForm('');
       }
+      
+      // Reset additional selections
+      setSelectedDepartments([getCurrentDepartment()?._id].filter(Boolean));
+      setSelectedCategories([]);
 
       // Fetch users for the current department
       setUsersLoading(true);
@@ -2038,12 +2240,6 @@ function ActionPlansPage() {
       // Open the AI create modal for assignment
       setAiCreateModalOpen(true);
 
-      toast({ 
-        title: "Success", 
-        description: "AI summary loaded for assignment. You can now assign it to a team member.", 
-        variant: "success" 
-      });
-
     } catch (error) {
       console.error('Error assigning from AI summary:', error);
       toast({ 
@@ -2058,6 +2254,9 @@ function ActionPlansPage() {
 
   const handleEditAI = async (aiPlan, index) => {
     try {
+      console.log('Opening edit modal for AI plan:', aiPlan);
+      console.log('Plan index:', index);
+      
       // Open edit modal with current plan data
       setAiPlanEditModalOpen(true);
       setEditingPlanIndex(index);
@@ -2065,6 +2264,8 @@ function ActionPlansPage() {
         ...aiPlan,
         recommendedActions: aiPlan.recommendedActions || []
       });
+
+      console.log('Edit modal state set. aiPlanEditModalOpen:', true, 'editingPlanIndex:', index);
 
       toast({ 
         title: "Edit Mode", 
@@ -2085,11 +2286,13 @@ function ActionPlansPage() {
   // Handle saving edited AI summary
   const handleSaveEditedAI = async (editedPlan) => {
     try {
+      
       const updatedPlans = [...aiGeneratedPlans];
       updatedPlans[editingPlanIndex] = {
         ...updatedPlans[editingPlanIndex],
         summary: editedPlan.summary,
-        priority: editedPlan.priority
+        priority: editedPlan.priority,
+        recommendedActions: editedPlan.recommendedActions || []
       };
       
       setAiGeneratedPlans(updatedPlans);
@@ -2141,13 +2344,13 @@ function ActionPlansPage() {
                 )}
                 {currentStep === 2 && (
                   <div className="p-4 bg-green-50 rounded-lg">
-                    <h3 className="font-semibold text-green-900 mb-2">📊 Step 2: Expectations</h3>
-                    <p className="text-green-800 text-sm">Select a category to view expectations and create action plans based on survey responses.</p>
+                    <h3 className="font-semibold text-green-900 mb-2">📊 Step 2: ICSQ Feedbacks</h3>
+                    <p className="text-green-800 text-sm">Select a category to view ICSQ Feedbacks and create action plans based on survey responses.</p>
                   </div>
                 )}
                 {currentStep === 3 && (
                   <div className="p-4 bg-purple-50 rounded-lg">
-                    <h3 className="font-semibold text-purple-900 mb-2">🤖 Step 3: AI Action Plans</h3>
+                    <h3 className="font-semibold text-purple-900 mb-2">🤖 Step 3: AI Powered Action Plans</h3>
                     <p className="text-purple-800 text-sm">Use AI to automatically analyze survey responses, group similar feedback, and generate actionable plans.</p>
                   </div>
                 )}
@@ -2239,7 +2442,7 @@ function ActionPlansPage() {
         {/* Enhanced Header Section */}
         <div className="px-6 py-8 bg-gradient-to-r from-[#29252c]/80 to-[#29252c]/60 border-b border-gray-700/30">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-2">Action Plans Management</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">ICSQ Action Plans Management</h1>
             <p className="text-slate-300 text-lg">Create, manage, and track action plans for your department</p>
             
             {/* Navigation Tabs */}
@@ -2262,7 +2465,7 @@ function ActionPlansPage() {
                     : "text-white hover:bg-white/20"
                 }`}
               >
-                📊 Expectations
+                📊 ICSQ Feedbacks
               </button>
               <button
                 onClick={() => setActiveTab("ai-action-plans")}
@@ -2272,7 +2475,7 @@ function ActionPlansPage() {
                     : "text-white hover:bg-white/20"
                 }`}
               >
-                🤖 AI Action Plans
+                🤖 AI Powered Action Plans
               </button>
             </div>
           </div>
@@ -2287,7 +2490,7 @@ function ActionPlansPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-2">Welcome back, {currentUser.name}!</h2>
-                    <p className="text-slate-300">Here's an overview of your action plans and quick actions you can take.</p>
+                    <p className="text-slate-300">Here's an overview of your action plan assignments and their current status.</p>
                   </div>
                   <Button
                     variant="outline"
@@ -2319,14 +2522,14 @@ function ActionPlansPage() {
                             <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
                             <h4 className="text-green-300 font-medium">Create New Plans</h4>
                           </div>
-                          <p className="text-slate-300 text-sm">Go to "Expectations" tab to select a category and create action plans based on survey responses.</p>
+                          <p className="text-slate-300 text-sm">Go to "ICSQ Feedbacks" tab to select a category, create an action plan and directly assign it to your team members against the ICSQ survey responses.</p>
                         </div>
                         <div className="p-4 bg-white/5 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
                             <h4 className="text-purple-300 font-medium">Use AI Action Plans</h4>
                           </div>
-                          <p className="text-slate-300 text-sm">Use "AI Action Plans" tab to automatically generate action plans by analyzing survey responses and grouping similar feedback.</p>
+                          <p className="text-slate-300 text-sm">If the ICSQ Survey responses are large in number, use the "AI Powered Action Plans" tab to automatically generate an action plan. It will analyse your department's survey responses by grouping similar feedbacks.</p>
                         </div>
                       </div>
                     </CardContent>
@@ -2338,46 +2541,25 @@ function ActionPlansPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
                   <CardContent className="p-4">
-                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
-                      📋
-                    </div>
-                    <div className="text-2xl font-bold text-white">{actionPlans.length}</div>
+                    <div className="text-4xl font-bold text-white mb-2">{actionPlans.length}</div>
                     <div className="text-sm text-gray-400">Total Plans</div>
                   </CardContent>
                 </Card>
-                {/* <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
-                  <CardContent className="p-4">
-                    <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
-                      ⏳
-                    </div>
-                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => p.status === "pending").length}</div>
-                    <div className="text-sm text-gray-400">Pending</div>
-                  </CardContent>
-                </Card> */}
                 <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
                   <CardContent className="p-4">
-                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
-                      🔄
-                    </div>
-                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => p.status === "in-progress").length}</div>
+                    <div className="text-4xl font-bold text-white mb-2">{actionPlans.filter(p => p.status === "in-progress").length}</div>
                     <div className="text-sm text-gray-400">In Progress</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
                   <CardContent className="p-4">
-                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
-                      ✅
-                    </div>
-                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => p.status === "completed").length}</div>
+                    <div className="text-4xl font-bold text-white mb-2">{actionPlans.filter(p => p.status === "completed").length}</div>
                     <div className="text-sm text-gray-400">Completed</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-[#29252c]/70 backdrop-blur-sm border border-gray-700 text-center hover:shadow-lg transition-all duration-200">
                   <CardContent className="p-4">
-                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-xl">
-                      ⚠️
-                    </div>
-                    <div className="text-2xl font-bold text-white">{actionPlans.filter(p => new Date(p.targetDate) < new Date() && p.status !== "completed").length}</div>
+                    <div className="text-4xl font-bold text-white mb-2">{actionPlans.filter(p => new Date(p.targetDate) < new Date() && p.status !== "completed").length}</div>
                     <div className="text-sm text-gray-400">Overdue</div>
                   </CardContent>
                 </Card>
@@ -2429,42 +2611,37 @@ function ActionPlansPage() {
                       Action Plans Assigned by You ({getCurrentDepartment()?.name || 'Current Department'})
                     </CardTitle>
                     <div className="text-sm text-slate-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-400/30">
-                      {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length} Plans
+                      {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length} Plan(s)
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-3 text-sm text-blue-300">
-                    <span>👆</span>
-                    <span>Scroll horizontally to view all columns</span>
-                    <div className="flex gap-1 ml-2">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-blue-400/60 rounded-full animate-pulse delay-75"></div>
-                      <div className="w-2 h-2 bg-blue-400/40 rounded-full animate-pulse delay-150"></div>
-                    </div>
+                  <div className="flex items-center gap-2 mt-3 text-sm text-orange-300">
+                    <span>If multiple department entries are present, first one is the department which created the Action Plan and others are the departments which are being impacted by this action plan.</span>
+                    
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   {actionPlans.filter(plan => plan.assignedBy?._id === currentUser._id).length > 0 ? (
                     <div className="relative">
                       {/* Left scroll indicator */}
-                      <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div>
+                      {/* <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-900/80 to-transparent z-10 pointer-events-none"></div> */}
                       {/* Right scroll indicator */}
                       <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-900/80 to-transparent z-10 pointer-events-none flex items-center justify-center">
-                        <div className="text-blue-400 text-xs animate-bounce">→</div>
+                        {/* <div className="text-blue-400 text-xs animate-bounce">→</div> */}
                       </div>
                       
                       <div className="overflow-x-auto max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                        <table className="w-full min-w-[1400px] border-separate border-spacing-0">
+                        <table className="w-full min-w-[1600px] border-separate border-spacing-0">
                           <thead className="bg-gradient-to-r from-gray-800 to-gray-900 sticky top-0 z-20">
                             <tr>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Department</th>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Category</th>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Expectations</th>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Actions</th>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Instructions</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Departments</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Categories</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">ICSQ Feedbacks</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Action Plan</th>
+                              {/* <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Individual Plans</th> */}
+                              {/* <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Instructions</th> */}
                               <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Assigned To</th>
                               <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Target Date</th>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Status</th>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Update</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Update Overall Status</th>
                               <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900">Actions</th>
                             </tr>
                           </thead>
@@ -2478,53 +2655,120 @@ function ActionPlansPage() {
                               .map((plan, idx) => (
                               <tr key={plan._id} className={`${idx % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-900/40'} hover:bg-blue-600/20 transition-all duration-200 border-b border-gray-700/30`}>
                                 <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <div className="flex flex-col gap-1">
+                                    {Array.isArray(plan.departments) ? 
+                                      plan.departments.slice(0, 2).map((dept, idx) => (
+                                        <span key={idx} className="text-white font-medium text-xs bg-blue-600/20 px-2 py-1 rounded">
+                                          {capitalizeFirstLetter(dept?.name || dept)}
+                                        </span>
+                                      )) :
                                   <span className="text-white font-medium text-sm">{capitalizeFirstLetter(plan.department?.name)}</span>
+                                    }
+                                    {Array.isArray(plan.departments) && plan.departments.length > 2 && (
+                                      <span className="text-slate-400 text-xs">
+                                        +{plan.departments.length - 2} more
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <div className="flex flex-col gap-1">
+                                    {Array.isArray(plan.categories) ? 
+                                      plan.categories.slice(0, 2).map((cat, idx) => (
+                                        <span key={idx} className="text-white font-medium text-xs bg-green-600/20 px-2 py-1 rounded">
+                                          {capitalizeFirstLetter(cat?.name || cat)}
+                                        </span>
+                                      )) :
                                   <span className="text-white font-medium text-sm">{capitalizeFirstLetter(plan.category?.name)}</span>
+                                    }
+                                    {Array.isArray(plan.categories) && plan.categories.length > 2 && (
+                                      <span className="text-slate-400 text-xs">
+                                        +{plan.categories.length - 2} more
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="px-4 py-4 border-r border-gray-700/30" title={plan.expectations}>
                                   <div className="text-slate-200 text-sm leading-relaxed max-w-[200px] overflow-hidden">
                                     <span className="line-clamp-2">{plan.expectations}</span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-4 border-r border-gray-700/30" title={plan.actions}>
+                                <td className="px-4 py-4 border-r border-gray-700/30" title={plan.actionplan}>
                                   <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
-                                    <span className="line-clamp-2">{plan.actions || "No actions yet"}</span>
+                                    <span className="line-clamp-2">{plan.actionplan || "No action plan yet"}</span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-4 border-r border-gray-700/30" title={plan.instructions}>
+                                {/* <td className="px-4 py-4 border-r border-gray-700/30" title={plan.individualActionPlans && Object.keys(plan.individualActionPlans).length > 0 ? Object.entries(plan.individualActionPlans).map(([userId, individualPlan]) => {
+                                  return `${individualPlan.userName}: ${individualPlan.actionPlan}`;
+                                }).join('\n') : "No individual plans"}>
+                                  <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
+                                    {plan.individualActionPlans && Object.keys(plan.individualActionPlans).length > 0 ? (
+                                      <div className="space-y-1">
+                                        {Object.entries(plan.individualActionPlans).slice(0, 2).map(([userId, individualPlan], idx) => {
+                                          return (
+                                            <div key={idx} className="bg-blue-500/20 px-2 py-1 rounded text-xs">
+                                              <div className="font-medium text-blue-300">
+                                                {individualPlan.userName}
+                                              </div>
+                                              <div className="text-slate-300 line-clamp-1">
+                                                {individualPlan.actionPlan}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                        {Object.keys(plan.individualActionPlans).length > 2 && (
+                                          <div className="text-slate-400 text-xs">
+                                            +{Object.keys(plan.individualActionPlans).length - 2} more
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-500">No individual plans</span>
+                                    )}
+                                  </div>
+                                </td> */}
+                                {/* <td className="px-4 py-4 border-r border-gray-700/30" title={plan.instructions}>
                                   <div className="text-slate-300 text-sm leading-relaxed max-w-[180px] overflow-hidden">
                                     <span className="line-clamp-2">{plan.instructions || "No instructions"}</span>
                                   </div>
-                                </td>
+                                </td> */}
                                 <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <div className="flex flex-col gap-1">
+                                    {Array.isArray(plan.assignedTo) ? 
+                                      plan.assignedTo.slice(0, 2).map((user, idx) => (
+                                        <span key={idx} className="text-white font-medium text-xs">
+                                          {user?.name || user}
+                                        </span>
+                                      )) :
                                   <span className="text-white font-medium text-sm">{plan.assignedTo?.name}</span>
+                                    }
+                                    {Array.isArray(plan.assignedTo) && plan.assignedTo.length > 2 && (
+                                      <span className="text-slate-400 text-xs">
+                                        +{plan.assignedTo.length - 2} more
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="px-4 py-4 text-center border-r border-gray-700/30">
                                   <span className="text-white font-medium text-sm">{new Date(plan.targetDate).toLocaleDateString('en-GB')}</span>
                                 </td>
-                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
-                                  <div className="flex justify-center">
-                                    {getStatusBadge(plan.status)}
-                                  </div>
-                                </td>
                                 <td className="px-4 py-4 border-r border-gray-700/30">
                                   <div className="flex justify-center">
                                     <Select
-                                      value={plan.status}
+                                      value={plan.finalStatus || "pending"}
                                       onValueChange={async (value) => {
                                         setUpdatingStatusId(plan._id);
                                         try {
+                                          // HOD updates overallStatus only
                                           await axios.put(
                                             `${Server}/action-plans/${plan._id}`,
-                                            { status: value },
+                                            { finalStatus: value },
                                             { withCredentials: true }
                                           );
                                           fetchData();
-                                          toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                                          toast({ title: "Success", description: "Overall status updated successfully", variant: "success" });
                                         } catch (e) {
-                                          toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                                          toast({ title: "Error", description: "Failed to update overall status", variant: "destructive" });
                                         } finally {
                                           setUpdatingStatusId(null);
                                         }
@@ -2538,22 +2782,23 @@ function ActionPlansPage() {
                                 <td className="px-4 py-4">
                                   <div className="flex gap-2 justify-center">
                                     <Button
-                                      size="sm"
+                                      size="icon"
                                       variant="outline"
                                       onClick={() => openExpandedView(plan)}
-                                      className="bg-slate-700 hover:bg-slate-600 border-slate-600 text-white font-medium text-xs px-3 py-2"
+                                      className="bg-slate-700 hover:bg-slate-600 border-slate-600 text-white h-8 w-8"
+                                      title="View Action Plan"
                                     >
-                                      View
+                                      <Eye className="h-4 w-4" />
                                     </Button>
                                     <Button 
-                                      size="sm" 
+                                      size="icon"
                                       variant="destructive" 
                                       onClick={() => handleDeleteActionPlan(plan)}
                                       disabled={isSubmitting}
-                                      className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-2"
+                                      className="bg-red-600 hover:bg-red-700 text-white h-8 w-8"
                                       title="Delete Action Plan"
                                     >
-                                      Delete
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </div>
                                 </td>
@@ -2834,7 +3079,7 @@ function ActionPlansPage() {
                   <CardHeader className="flex gap-2 justify-between border-b border-gray-700">
                     <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
                       <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full"></div>
-                      <span>All Expectations ({getCurrentDepartment()?.name || 'Current Department'})</span>
+                      <span>All Feedbacks ({getCurrentDepartment()?.name || 'Current Department'})</span>
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button 
@@ -2877,7 +3122,7 @@ function ActionPlansPage() {
                         <div className="flex items-center justify-center p-8">
                           <div className="flex items-center gap-3">
                             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-slate-300">Loading all expectations...</span>
+                            <span className="text-slate-300">Loading all ICSQ Feedbacks...</span>
                                   </div>
                                   </div>
                       ) : (
@@ -2893,7 +3138,8 @@ function ActionPlansPage() {
                                 ...f,
                                 department: expObj.department || "",
                                 expectations: expObj.expectation,
-                                assignedTo: expObj.userId || '',
+                                actionplan: '',
+                                assignedTo: [], // Start with empty array - user will manually select
                                 originalSurveyRespondents: expObj.users || [],
                               }));
                             }}
@@ -2901,9 +3147,9 @@ function ActionPlansPage() {
                                                     {expectationData.length === 0 && (
                             <div className="text-center py-8 text-slate-300">
                               <div className="text-4xl mb-4">📊</div>
-                              <h3 className="text-lg font-semibold mb-2">No Expectations Available</h3>
+                              <h3 className="text-lg font-semibold mb-2">No Feedbacks Available</h3>
                               <p className="text-sm text-slate-400">
-                                No expectations data found for {getCurrentDepartment()?.name || 'your department'}. Please check if surveys have been completed or contact your administrator.
+                                No ICSQ Feedbacks data found for {getCurrentDepartment()?.name || 'your department'}. Please check if surveys have been completed or contact your administrator.
                               </p>
                         </div>
                           )}
@@ -2921,7 +3167,7 @@ function ActionPlansPage() {
                   <CardTitle className="text-xl font-semibold text-white flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-2 h-8 bg-gradient-to-b from-[goldenrod] to-amber-500 rounded-full"></div>
-                                              <span>Expectations for {capitalizeFirstLetter(selectedCategory)} ({getCurrentDepartment()?.name || 'Current Department'})</span>
+                                              <span>ICSQ Feedbacks for {capitalizeFirstLetter(selectedCategory)} ({getCurrentDepartment()?.name || 'Current Department'})</span>
                     </div>
                       <div className="flex gap-2">
                         <Button
@@ -2981,7 +3227,8 @@ function ActionPlansPage() {
                           ...f,
                           department: expObj.department || "",
                           expectations: expObj.expectation,
-                          assignedTo: expObj.userId || '',
+                          actionplan: '',
+                          assignedTo: [], // Start with empty array - user will manually select
                           originalSurveyRespondents: expObj.users || [],
                         }));
                       }}
@@ -3071,7 +3318,8 @@ function ActionPlansPage() {
                             ...f,
                             department: expObj.department || "",
                             expectations: expObj.expectation,
-                            assignedTo: expObj.userId || '',
+                            actionplan: '',
+                            assignedTo: [], // Start with empty array - user will manually select
                             originalSurveyRespondents: expObj.users || [],
                           }));
                         }}
@@ -3086,8 +3334,10 @@ function ActionPlansPage() {
               setCreateModalOpen(open);
               if (!open) {
                 // Reset form when modal is closed
-                setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending', originalSurveyRespondents: [] });
+                setCreateForm({ expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', originalSurveyRespondents: [], individualActionPlans: [] });
                 setSelectedCategoryForForm("");
+                setSelectedDepartments([getCurrentDepartment()?._id].filter(Boolean));
+                setSelectedCategories([]);
               }
             }}>
               <DialogContent className="bg-[#29252c] backdrop-blur-sm border border-white/10 shadow-2xl max-w-2xl max-h-[90vh] flex flex-col">
@@ -3131,36 +3381,151 @@ function ActionPlansPage() {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Multi-Department Selection */}
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-200">Expectations</label>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Additional Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <div className="space-y-2">
+                      <Select
+                        value=""
+                        onValueChange={(deptId) => {
+                          if (deptId && !selectedDepartments.includes(deptId)) {
+                            setSelectedDepartments([...selectedDepartments, deptId]);
+                          }
+                        }}
+                        options={allDepartments
+                          .filter(dept => dept._id !== getCurrentDepartment()?._id)
+                          .map((dept) => ({ value: dept._id, label: dept.name }))}
+                        placeholder="Select departments to be impacted..."
+                        className="bg-white/5 border-white/20 text-white"
+                      />
+                      {selectedDepartments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedDepartments.map((deptId) => {
+                            const dept = allDepartments.find(d => d._id === deptId);
+                            return (
+                              <div
+                                key={deptId}
+                                className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-lg text-blue-300 text-sm"
+                              >
+                                <span>{dept?.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (deptId !== getCurrentDepartment()?._id) {
+                                      setSelectedDepartments(selectedDepartments.filter(id => id !== deptId));
+                                    }
+                                  }}
+                                  className="text-blue-400 hover:text-blue-300 text-xs"
+                                  disabled={deptId === getCurrentDepartment()?._id}
+                                >
+                                  {deptId === getCurrentDepartment()?._id ? "Primary" : "×"}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Current department is automatically included. Select additional departments if this action plan applies to multiple departments.
+                    </div>
+                  </div>
+                  
+                  {/* Multi-Category Selection */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Additional Categories <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <div className="space-y-2">
+                      <Select
+                        value=""
+                        onValueChange={(catId) => {
+                          if (catId && !selectedCategories.includes(catId)) {
+                            setSelectedCategories([...selectedCategories, catId]);
+                          }
+                        }}
+                        options={allCategories
+                          .filter(cat => !selectedCategories.includes(cat._id))
+                          .map((cat) => ({ value: cat._id, label: cat.name }))}
+                        placeholder="Select additional categories..."
+                        className="bg-white/5 border-white/20 text-white"
+                      />
+                      {selectedCategories.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedCategories.map((catId) => {
+                            const cat = allCategories.find(c => c._id === catId);
+                            return (
+                              <div
+                                key={catId}
+                                className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-lg text-green-300 text-sm"
+                              >
+                                <span>{cat?.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCategories(selectedCategories.filter(id => id !== catId));
+                                  }}
+                                  className="text-green-400 hover:text-green-300 text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Select additional categories if this action plan applies to multiple categories.
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">ISCQ Feedback</label>
                     <Textarea
                       value={createForm.expectations}
                       onChange={e => handleCreateFormChange('expectations', e.target.value)}
                       placeholder="What is expected to be achieved or delivered"
+                      className="bg-gray-700/50 border-gray-600 text-gray-300 placeholder-slate-500 min-h-[120px] cursor-not-allowed"
+                      rows={4}
+                      disabled
+                      required
+                    />
+                    <div className="text-xs text-slate-400 mt-1">
+                      Expectations are automatically populated from survey data - cannot be edited
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Action Plan</label>
+                    <Textarea
+                      value={createForm.actionplan}
+                      onChange={e => handleCreateFormChange('actionplan', e.target.value)}
+                      placeholder="Describe the specific action plan to be implemented"
                       className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
                       rows={4}
                       required
                     />
                     <div className="text-xs text-slate-400 mt-1">
-                      Define the specific outcomes, goals, or deliverables expected from this action plan
+                      Define the specific steps, processes, or actions that need to be taken to meet the expectations
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Instructions <span className="text-slate-400 font-normal">(Optional)</span></label>
                     <Textarea
                       value={createForm.instructions}
                       onChange={e => handleCreateFormChange('instructions', e.target.value)}
-                      placeholder="Instructions for this action plan"
+                      placeholder="Optional instructions for this action plan"
                       className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
                       rows={5}
-                      required
                     />
                     <div className="text-xs text-slate-400 mt-1">
-                      Provide step-by-step guidance, resources, or additional context for completing the action plan
+                      Provide step-by-step guidance, resources, or additional context for completing the action plan (optional)
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-200">Assign To (Multiple Users)</label>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Assign To (Common Action Plan)</label>
+                    <div className="text-xs text-slate-400 mb-3">
+                      Users who will receive the common action plan that applies to all selected users
+                    </div>
                     <div className="space-y-3">
                       {/* Multiple User Selection */}
                       <div className="flex items-center gap-3">
@@ -3265,6 +3630,102 @@ function ActionPlansPage() {
                       required
                     />
                   </div>
+                  
+                  {/* Individual Action Plans Section */}
+                  <div className="border-t border-white/10 pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white">Individual Action Plans</h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newIndividualPlan = {
+                            userId: '',
+                            actionPlan: ''
+                          };
+                          setCreateForm({
+                            ...createForm,
+                            individualActionPlans: [...(createForm.individualActionPlans || []), newIndividualPlan]
+                          });
+                        }}
+                        className="bg-green-500/10 border-green-400/30 text-green-300 hover:bg-green-500/20"
+                      >
+                        + Add Individual Plan
+                      </Button>
+                    </div>
+                    <div className="text-xs text-slate-400 mb-4">
+                      Assign specific action plans to individual users. These plans will only be visible to the assigned user.
+                    </div>
+                    
+                    {createForm.individualActionPlans && createForm.individualActionPlans.length > 0 && (
+                      <div className="space-y-4">
+                        {createForm.individualActionPlans.map((plan, index) => (
+                          <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-medium text-white">Individual Plan #{index + 1}</h4>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedPlans = createForm.individualActionPlans.filter((_, i) => i !== index);
+                                  setCreateForm({
+                                    ...createForm,
+                                    individualActionPlans: updatedPlans
+                                  });
+                                }}
+                                className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/20"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-slate-200">Select User</label>
+                                <Select
+                                  value={plan.userId}
+                                  onValueChange={(val) => {
+                                    const updatedPlans = [...createForm.individualActionPlans];
+                                    updatedPlans[index].userId = val;
+                                    setCreateForm({
+                                      ...createForm,
+                                      individualActionPlans: updatedPlans
+                                    });
+                                  }}
+                                  options={departmentUsers.map((user) => ({ value: user._id, label: user.name }))}
+                                  className="bg-white/5 border-white/20 text-white"
+                                  placeholder="Select user"
+                                  required
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <label className="block text-sm font-medium mb-2 text-slate-200">Action Plan</label>
+                              <Textarea
+                                value={plan.actionPlan}
+                                onChange={(e) => {
+                                  const updatedPlans = [...createForm.individualActionPlans];
+                                  updatedPlans[index].actionPlan = e.target.value;
+                                  setCreateForm({
+                                    ...createForm,
+                                    individualActionPlans: updatedPlans
+                                  });
+                                }}
+                                placeholder="Describe the specific action plan for this user"
+                                className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[100px]"
+                                rows={4}
+                                required
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
                   <DialogFooter className="border-t border-white/10 pt-6">
                     <Button 
                       type="submit" 
@@ -3693,16 +4154,43 @@ function ActionPlansPage() {
                   {/* Basic Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Department</h3>
-                      <p className="text-white font-medium">{capitalizeFirstLetter(selectedPlanForExpandedView.department?.name)}</p>
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Departments</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(selectedPlanForExpandedView.departments) ? 
+                          selectedPlanForExpandedView.departments.map((dept, idx) => (
+                            <span key={idx} className="text-white font-medium text-sm bg-blue-600/20 px-2 py-1 rounded">
+                              {capitalizeFirstLetter(dept?.name || dept)}
+                            </span>
+                          )) :
+                          <span className="text-white font-medium">{capitalizeFirstLetter(selectedPlanForExpandedView.department?.name)}</span>
+                        }
+                      </div>
                     </div>
                     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Category</h3>
-                      <p className="text-white font-medium">{capitalizeFirstLetter(selectedPlanForExpandedView.category?.name)}</p>
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Categories</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(selectedPlanForExpandedView.categories) ? 
+                          selectedPlanForExpandedView.categories.map((cat, idx) => (
+                            <span key={idx} className="text-white font-medium text-sm bg-green-600/20 px-2 py-1 rounded">
+                              {capitalizeFirstLetter(cat?.name || cat)}
+                            </span>
+                          )) :
+                          <span className="text-white font-medium">{capitalizeFirstLetter(selectedPlanForExpandedView.category?.name)}</span>
+                        }
+                      </div>
                     </div>
                     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
                       <h3 className="text-sm font-semibold text-gray-400 mb-2">Assigned To</h3>
-                      <p className="text-white font-medium">{selectedPlanForExpandedView.assignedTo?.name}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(selectedPlanForExpandedView.assignedTo) ? 
+                          selectedPlanForExpandedView.assignedTo.map((user, idx) => (
+                            <span key={idx} className="text-white font-medium text-sm bg-purple-600/20 px-2 py-1 rounded">
+                              {user?.name || user}
+                            </span>
+                          )) :
+                          <span className="text-white font-medium">{selectedPlanForExpandedView.assignedTo?.name}</span>
+                        }
+                      </div>
                     </div>
                     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
                       <h3 className="text-sm font-semibold text-gray-400 mb-2">Target Date</h3>
@@ -3710,26 +4198,26 @@ function ActionPlansPage() {
                     </div>
                   </div>
 
-                  {/* Status */}
+                  {/* Overall Status */}
                   <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Status</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Overall Status</h3>
                     <div className="flex items-center gap-3">
-                      {getStatusBadge(selectedPlanForExpandedView.status)}
+                      {getStatusBadge(selectedPlanForExpandedView.finalStatus || "pending")}
                       <Select
-                        value={selectedPlanForExpandedView.status}
+                        value={selectedPlanForExpandedView.finalStatus || "pending"}
                         onValueChange={async (value) => {
                           setUpdatingStatusId(selectedPlanForExpandedView._id);
                           try {
                             await axios.put(
                               `${Server}/action-plans/${selectedPlanForExpandedView._id}`,
-                              { status: value },
+                              { finalStatus: value },
                               { withCredentials: true }
                             );
                             fetchData();
-                            setSelectedPlanForExpandedView(prev => ({ ...prev, status: value }));
-                            toast({ title: "Success", description: "Status updated successfully", variant: "success" });
+                            setSelectedPlanForExpandedView(prev => ({ ...prev, finalStatus: value }));
+                            toast({ title: "Success", description: "Overall status updated successfully", variant: "success" });
                           } catch (e) {
-                            toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+                            toast({ title: "Error", description: "Failed to update overall status", variant: "destructive" });
                           } finally {
                             setUpdatingStatusId(null);
                           }
@@ -3741,17 +4229,88 @@ function ActionPlansPage() {
                     </div>
                   </div>
 
+                  {/* Individual User Statuses and Actions */}
+                  {Array.isArray(selectedPlanForExpandedView.assignedTo) && selectedPlanForExpandedView.assignedTo.length > 0 && (
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-4">Individual User Progress</h3>
+                      <div className="space-y-4">
+                        {selectedPlanForExpandedView.assignedTo.map((user, idx) => {
+                          const userId = user._id || user;
+                          const userStatus = selectedPlanForExpandedView.status?.get?.(userId) || selectedPlanForExpandedView.status?.[userId] || "pending";
+                          const userActions = selectedPlanForExpandedView.actions_taken?.get?.(userId) || selectedPlanForExpandedView.actions_taken?.[userId] || "";
+                          return (
+                            <div key={idx} className="p-3 bg-gray-700/30 rounded-lg border border-gray-600/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-white font-medium text-sm">{user?.name || user}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-400">Status:</span>
+                                  {getStatusBadge(userStatus)}
+                                </div>
+                              </div>
+                              <div className="mt-2">
+                                <span className="text-xs text-gray-400">Actions Taken:</span>
+                                <p className="text-white text-sm mt-1 whitespace-pre-wrap">{userActions || "No actions taken yet"}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Expectations */}
                   <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Expectations</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">ICSQ Feedbacks</h3>
                     <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.expectations}</p>
                   </div>
 
-                  {/* Actions */}
+                  {/* Action Plan */}
                   <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Actions</h3>
-                    <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.actions || "No actions taken yet"}</p>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Action Plan</h3>
+                    <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.actionplan || "No action plan yet"}</p>
                   </div>
+
+                  {/* Individual Action Plans */}
+                  {(() => {
+                    const individualPlans = selectedPlanForExpandedView.individualActionPlans;
+                    const hasIndividualPlans = individualPlans && Object.keys(individualPlans).length > 0;
+                    
+                    if (!hasIndividualPlans) return null;
+                    
+                    const plansArray = Object.entries(individualPlans);
+                    const filteredPlans = currentUser.role === 'hod' || currentUser.role === 'admin' 
+                      ? plansArray 
+                      : plansArray.filter(([userId]) => userId === currentUser._id);
+                    
+                    return filteredPlans.length > 0 && (
+                      <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                        <h3 className="text-sm font-semibold text-gray-400 mb-4">
+                          {currentUser.role === 'hod' || currentUser.role === 'admin' 
+                            ? 'User Specific Action Plan' 
+                            : 'Your Individual Action Plan'
+                          }
+                        </h3>
+                        <div className="space-y-4">
+                          {filteredPlans.map(([userId, individualPlan], idx) => (
+                            <div key={userId} className="p-4 bg-blue-500/10 rounded-lg border border-blue-400/30">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-blue-300 font-medium text-sm">👤 {individualPlan.userName}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <div>
+                                  <span className="text-xs text-gray-400">Action Plan:</span>
+                                  <p className="text-white text-sm mt-1 whitespace-pre-wrap">{individualPlan.actionPlan}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Instructions */}
                   <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
@@ -3804,30 +4363,29 @@ function ActionPlansPage() {
           <div className="px-6 py-6">
             <div className="max-w-7xl mx-auto">
               <div className="mb-8">
-                                        <h2 className="text-2xl font-bold text-white mb-2">🤖 AI Expectations Summarizer</h2>
+                        <h2 className="text-2xl font-bold text-white mb-2">🤖 AI Feedback Analysis</h2>
+                                        {/* AI Accuracy Disclaimer */}
                         <p className="text-slate-300 text-sm mt-2">
-                          AI will analyze all survey responses from your current department to generate simple, point-wise expectations based on priority focus.
-                        </p>
-                        <p className="text-slate-400 text-xs mt-1">
-                          Expected format: One expectation per line (e.g., "Improve communication", "Reduce response time", etc.)
+                          Our AI system analyzes survey responses for your department and generates prioritized, actionable expectations.
                         </p>
                         
-                        {/* AI Accuracy Disclaimer */}
-                        <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-0.5">
-                              <div className="w-5 h-5 rounded-full bg-amber-400/20 flex items-center justify-center">
-                                <span className="text-amber-400 text-xs">⚠️</span>
+                        <div className="mt-4 relative group">
+                          <div className="w-8 h-8 rounded-full bg-amber-400/20 flex items-center justify-center cursor-help">
+                            <span className="text-amber-400 text-base">⚠️</span>
+                          </div>
+                          
+                          <div className="absolute left-0 w-full p-4 bg-gradient-to-r from-amber-900 to-orange-900 border border-amber-800 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1">
+                                <h4 className="text-amber-400 font-medium text-sm mb-1">AI Analysis Disclaimer</h4>
+                                <p className="text-slate-300 text-xs leading-relaxed">
+                                  While we strive for accuracies around +90%, please note that automated sentiment analysis may not fully capture nuances in language, tone, or context. The results should be used as a guide rather than an absolute metric, and we recommend reviewing individual responses for a more comprehensive analysis.
+                                </p>
                               </div>
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-amber-400 font-medium text-sm mb-1">AI Analysis Disclaimer</h4>
-                              <p className="text-slate-300 text-xs leading-relaxed">
-                                While we strive for accuracies around +90%, please note that automated sentiment analysis may not fully capture nuances in language, tone, or context. The results should be used as a guide rather than an absolute metric, and we recommend reviewing individual responses for a more comprehensive analysis.
-                              </p>
                             </div>
                           </div>
                         </div>
+                        
               </div>
 
                                      {/* AI Analysis Controls */}
@@ -3843,11 +4401,11 @@ function ActionPlansPage() {
                                  {isGeneratingAI ? (
                                    <>
                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                     Analyzing Survey Data...
+                                     Analyzing ICSQ Survey Responses...
                                    </>
                                  ) : (
                                    <>
-                                     🚀 Generate AI Summaries
+                                     🚀 Generate AI Summaries and Plans
                                    </>
                                  )}
                                </Button>
@@ -3890,7 +4448,7 @@ function ActionPlansPage() {
                   <CardContent className="p-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {aiGeneratedPlans && aiGeneratedPlans.map((plan, index) => (
-                        <div key={index} className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-600/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-blue-400/40 hover:scale-[1.02] backdrop-blur-sm overflow-hidden">
+                        <div key={index} className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-600/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-blue-400/40 backdrop-blur-sm overflow-hidden">
                           {/* Header with Category and Priority */}
                           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-600/50 px-6 py-4">
                             <div className="flex items-center justify-between">
@@ -3961,6 +4519,8 @@ function ActionPlansPage() {
                                 </div>
                               </div>
                             )}
+
+                          
 
 
                               
@@ -4036,9 +4596,9 @@ function ActionPlansPage() {
                       <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full flex items-center justify-center border border-yellow-400/30">
                         <span className="text-4xl">📭</span>
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-4">No Expectations Found</h3>
+                      <h3 className="text-2xl font-bold text-white mb-4">No Feedbacks Found</h3>
                       <p className="text-slate-300 text-lg leading-relaxed max-w-2xl mx-auto mb-6">
-                        No expectations were found in the survey data for the selected priority focus. 
+                        No ICSQ Feedbacks were found in the survey data for the selected priority focus. 
                         This might be because there are no survey responses yet or the priority filter is too restrictive.
                       </p>
                       <div className="bg-yellow-600/10 border border-yellow-400/20 rounded-lg p-4 max-w-xl mx-auto">
@@ -4083,6 +4643,7 @@ function ActionPlansPage() {
                 if (!open) {
                   setAiPlanEditModalOpen(false);
                   setEditingPlan(null);
+                  setEditingPlanIndex(null);
                 }
               }}>
                 <DialogContent className="bg-[#29252c]/95 backdrop-blur-sm border border-white/10 shadow-2xl max-w-4xl max-h-[90vh] flex flex-col">
@@ -4207,9 +4768,10 @@ function ActionPlansPage() {
               <Dialog open={aiCreateModalOpen} onOpenChange={(open) => {
                 if (!open) {
                   setAiCreateModalOpen(false);
-                  // Clear form data when modal is closed
-                  setCreateForm({ expectations: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending', originalSurveyRespondents: [] });
+                  setCreateForm({ expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', originalSurveyRespondents: [], individualActionPlans: [] });
                   setSelectedCategoryForForm('');
+                  setSelectedDepartments([getCurrentDepartment()?._id].filter(Boolean));
+                  setSelectedCategories([]);
                 }
               }}>
                 <DialogContent className="bg-[#29252c] backdrop-blur-sm border border-white/10 shadow-2xl max-w-4xl max-h-[90vh] flex flex-col">
@@ -4221,36 +4783,180 @@ function ActionPlansPage() {
                   </DialogHeader>
                   <form onSubmit={handleCreateActionPlan} className="flex-1 overflow-y-auto p-6 space-y-6">
                     <div className="space-y-6">
-                      {/* Row 1: Category (full width) */}
+                      {/* Row 1: Department and Category */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Department */}
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Category</label>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Department</label>
                         <div className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-md text-slate-200">
-                          {allCategories.find(cat => cat._id === selectedCategoryForForm)?.name || 'Quality of Work'}
+                            {getCurrentDepartment()?.name || "Current Department"}
                           <div className="text-xs text-slate-400 mt-1">
-                            {/* Category determined by AI based on survey responses */}
+                              Current department (automatically included)
                           </div>
                         </div>
                       </div>
                       
-                      {/* Row 2: Instructions (full width) */}
+                        {/* Category */}
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-200">Instructions</label>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Primary Category</label>
+                          <div className="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-md text-slate-200">
+                            {allCategories.find(cat => cat._id === selectedCategoryForForm)?.name || 'AI Generated Category'}
+                            <div className="text-xs text-slate-400 mt-1">
+                              Category determined by AI based on survey responses
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Multi-Department Selection */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Additional Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
+                        <div className="space-y-2">
+                          <Select
+                            value=""
+                            onValueChange={(deptId) => {
+                              if (deptId && !selectedDepartments.includes(deptId)) {
+                                setSelectedDepartments([...selectedDepartments, deptId]);
+                              }
+                            }}
+                            options={allDepartments
+                              .filter(dept => dept._id !== getCurrentDepartment()?._id)
+                              .map((dept) => ({ value: dept._id, label: dept.name }))}
+                            placeholder="Select departments to be impacted..."
+                            className="bg-white/5 border-white/20 text-white"
+                          />
+                          {selectedDepartments.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedDepartments.map((deptId) => {
+                                const dept = allDepartments.find(d => d._id === deptId);
+                                return (
+                                  <div
+                                    key={deptId}
+                                    className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-lg text-blue-300 text-sm"
+                                  >
+                                    <span>{dept?.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (deptId !== getCurrentDepartment()?._id) {
+                                          setSelectedDepartments(selectedDepartments.filter(id => id !== deptId));
+                                        }
+                                      }}
+                                      className="text-blue-400 hover:text-blue-300 text-xs"
+                                      disabled={deptId === getCurrentDepartment()?._id}
+                                    >
+                                      {deptId === getCurrentDepartment()?._id ? "Primary" : "×"}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Current department is automatically included. Select additional departments if this action plan applies to multiple departments.
+                        </div>
+                      </div>
+                      
+                      {/* Multi-Category Selection */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Additional Categories <span className="text-slate-400 font-normal">(Optional)</span></label>
+                        <div className="space-y-2">
+                          <Select
+                            value=""
+                            onValueChange={(catId) => {
+                              if (catId && !selectedCategories.includes(catId)) {
+                                setSelectedCategories([...selectedCategories, catId]);
+                              }
+                            }}
+                            options={allCategories
+                              .filter(cat => !selectedCategories.includes(cat._id) && cat._id !== selectedCategoryForForm)
+                              .map((cat) => ({ value: cat._id, label: cat.name }))}
+                            placeholder="Select additional categories..."
+                            className="bg-white/5 border-white/20 text-white"
+                          />
+                          {selectedCategories.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedCategories.map((catId) => {
+                                const cat = allCategories.find(c => c._id === catId);
+                                return (
+                                  <div
+                                    key={catId}
+                                    className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-lg text-green-300 text-sm"
+                                  >
+                                    <span>{cat?.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedCategories(selectedCategories.filter(id => id !== catId));
+                                      }}
+                                      className="text-green-400 hover:text-green-300 text-xs"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Select additional categories if this action plan applies to multiple categories.
+                        </div>
+                      </div>
+                      
+                      {/* Expectations Field */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">ICSQ Feedback</label>
+                        <Textarea
+                          value={createForm.expectations}
+                          onChange={e => setCreateForm({...createForm, expectations: e.target.value})}
+                          placeholder="AI-generated expectations from survey data"
+                          className="bg-gray-700/50 border-gray-600 text-gray-300 placeholder-slate-500 min-h-[120px] cursor-not-allowed"
+                          rows={4}
+                          disabled
+                          required
+                        />
+                        <div className="text-xs text-slate-400 mt-1">
+                          Expectations are automatically populated from AI analysis of survey data - cannot be edited
+                        </div>
+                      </div>
+                      
+                      {/* Row 2: Action Plan (full width) */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Action Plan</label>
+                        <Textarea
+                          value={createForm.actionplan}
+                          onChange={(e) => setCreateForm({...createForm, actionplan: e.target.value})}
+                          placeholder="Describe the specific action plan to be implemented"
+                          className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[140px]"
+                          rows={6}
+                          required
+                        />
+                        <div className="text-xs text-slate-400 mt-1">
+                          Define the specific steps, processes, or actions that need to be taken to meet the expectations
+                        </div>
+                      </div>
+                      
+                      {/* Row 3: Instructions (full width) */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Instructions <span className="text-slate-400 font-normal">(Optional)</span></label>
                         <Textarea
                           value={createForm.instructions}
                           onChange={(e) => setCreateForm({...createForm, instructions: e.target.value})}
-                          placeholder="Additional instructions or context"
+                          placeholder="Optional additional instructions or context"
                           className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[140px]"
                           rows={6}
                         />
                         <div className="text-xs text-slate-400 mt-1">
-                          Provide step-by-step guidance, resources, or additional context for completing the action plan
+                          Provide step-by-step guidance, resources, or additional context for completing the action plan (optional)
                         </div>
                       </div>
                       
-                      {/* Row 3: Assigned To and Target Date (side by side) */}
+                      {/* Row 4: Assigned To and Target Date (side by side) */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-slate-200">Assigned To</label>
+                          <label className="block text-sm font-medium mb-2 text-slate-200">Assigned To (Common Action Plan)</label>
                           <div className="space-y-3">
                             {/* Multiple User Selection */}
                             <div className="flex items-center gap-3">
@@ -4343,6 +5049,9 @@ function ActionPlansPage() {
                               </div>
                             )}
                           </div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            Users who will receive the common action plan
+                          </div>
                         </div>
                         
                         <div>
@@ -4351,10 +5060,106 @@ function ActionPlansPage() {
                             type="date"
                             value={createForm.targetDate}
                             onChange={(e) => setCreateForm({...createForm, targetDate: e.target.value})}
+                            min={new Date().toISOString().split('T')[0]}
                             className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
                             required
                           />
                         </div>
+                      </div>
+                      
+                      {/* Individual Action Plans Section */}
+                      <div className="border-t border-white/10 pt-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-white">Individual Action Plans</h3>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newIndividualPlan = {
+                                userId: '',
+                                actionPlan: ''
+                              };
+                              setCreateForm({
+                                ...createForm,
+                                individualActionPlans: [...(createForm.individualActionPlans || []), newIndividualPlan]
+                              });
+                            }}
+                            className="bg-green-500/10 border-green-400/30 text-green-300 hover:bg-green-500/20"
+                          >
+                            + Add Individual Plan
+                          </Button>
+                        </div>
+                        <div className="text-xs text-slate-400 mb-4">
+                          Assign specific action plans to individual users. These plans will only be visible to the assigned user.
+                        </div>
+                        
+                        {createForm.individualActionPlans && createForm.individualActionPlans.length > 0 && (
+                          <div className="space-y-4">
+                            {createForm.individualActionPlans.map((plan, index) => (
+                              <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-sm font-medium text-white">Individual Plan #{index + 1}</h4>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const updatedPlans = createForm.individualActionPlans.filter((_, i) => i !== index);
+                                      setCreateForm({
+                                        ...createForm,
+                                        individualActionPlans: updatedPlans
+                                      });
+                                    }}
+                                    className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/20"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium mb-2 text-slate-200">Select User</label>
+                                    <Select
+                                      value={plan.userId}
+                                      onValueChange={(val) => {
+                                        const updatedPlans = [...createForm.individualActionPlans];
+                                        updatedPlans[index].userId = val;
+                                        setCreateForm({
+                                          ...createForm,
+                                          individualActionPlans: updatedPlans
+                                        });
+                                      }}
+                                      options={departmentUsers.map((user) => ({ value: user._id, label: user.name }))}
+                                      className="bg-white/5 border-white/20 text-white"
+                                      placeholder="Select user"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-4">
+                                  <label className="block text-sm font-medium mb-2 text-slate-200">Action Plan</label>
+                                  <Textarea
+                                    value={plan.actionPlan}
+                                    onChange={(e) => {
+                                      const updatedPlans = [...createForm.individualActionPlans];
+                                      updatedPlans[index].actionPlan = e.target.value;
+                                      setCreateForm({
+                                        ...createForm,
+                                        individualActionPlans: updatedPlans
+                                      });
+                                    }}
+                                    placeholder="Describe the specific action plan for this user"
+                                    className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[100px]"
+                                    rows={4}
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                       

@@ -6,11 +6,11 @@ import {
   getActionPlansForUser,
   getActionPlansForSurveyRespondent,
   createActionPlan,
-  createMultipleActionPlans,
   updateActionPlan,
   updateActionPlanStatus,
   deleteActionPlan,
   testEmailConfig,
+  getIndividualActionPlansForUser,
 } from "../controllers/actionPlan.controller.js"
 import { requireAdmin, requireAuth, requireHOD } from "../middleware/auth.js"
 
@@ -25,11 +25,11 @@ router.get("/hod", requireHOD, getActionPlansForHOD)
 router.get("/user", getActionPlansForUser)
 // User: get action plans where they are original survey respondents
 router.get("/survey-respondent", getActionPlansForSurveyRespondent)
+// User: get individual action plans assigned to them
+router.get("/individual", getIndividualActionPlansForUser)
 
-// Create a new action plan (HOD or admin)
+// Create a new action plan (HOD or admin) - supports multiple users and individual action plans
 router.post("/", requireHOD, createActionPlan)
-// Create multiple action plans for batch assignment (HOD or admin)
-router.post("/batch", requireHOD, createMultipleActionPlans)
 // Update an action plan (HOD or admin)
 router.put("/:id", updateActionPlan)
 // User updates status of their assigned action plan

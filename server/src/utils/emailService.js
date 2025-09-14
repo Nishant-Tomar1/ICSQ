@@ -69,7 +69,7 @@ export const sendActionPlanAssignmentEmail = async (assignedUser, actionPlan, as
     }
     
     // Email template
-    const emailSubject = `New Action Plan Assigned - ${actionPlan.expectations.substring(0, 50)}...`;
+    const emailSubject = `New Action Plan Assigned`;
     
     const emailHtml = `
       <!DOCTYPE html>
@@ -101,9 +101,10 @@ export const sendActionPlanAssignmentEmail = async (assignedUser, actionPlan, as
             <div class="action-plan">
               <h3>Action Plan Details:</h3>
               <p><strong>Expectations:</strong> ${actionPlan.expectations}</p>
+              ${actionPlan.actionplan ? `<p><strong>Action Plan:</strong> ${actionPlan.actionplan}</p>` : ''}
               ${actionPlan.instructions ? `<p><strong>Instructions:</strong> ${actionPlan.instructions}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
-              <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">${actionPlan.status}</span></p>
+              <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">${actionPlan.finalStatus || actionPlan.status}</span></p>
             </div>
             
             <div class="highlight">
@@ -137,8 +138,8 @@ You have been assigned a new action plan by ${assignedByUser.name}.
 
 Action Plan Details:
 - Expectations: ${actionPlan.expectations}
-${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
-- Status: ${actionPlan.status}
+${actionPlan.actionplan ? `- Action Plan: ${actionPlan.actionplan}\n` : ''}${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
+- Status: ${actionPlan.finalStatus || actionPlan.status}
 
 Please review this action plan and update the status as you progress.
 
@@ -182,7 +183,7 @@ export const sendActionPlanCreatedNotification = async (respondentUser, actionPl
     }
     
     // Email template
-    const emailSubject = `Action Plan Created for Your Expectation - ${categoryName}`;
+    const emailSubject = `Action Plan Created for Your Expectation`;
     
     const emailHtml = `
       <!DOCTYPE html>
@@ -210,7 +211,7 @@ export const sendActionPlanCreatedNotification = async (respondentUser, actionPl
           </div>
           
           <div class="content">
-            <p>Great news! <strong>${departmentName}</strong> has started working on your expectation and has created an action plan to address it.</p>
+            <p>Great news! <strong>${departmentName.split(",")[0]}</strong> has started working on your feedback and has created an action plan to address it.</p>
             
             <div class="expectation">
               <h4>Your Expectation:</h4>
@@ -219,11 +220,11 @@ export const sendActionPlanCreatedNotification = async (respondentUser, actionPl
             
             <div class="action-plan">
               <h3>Action Plan Details:</h3>
-              <p><strong>Category:</strong> ${categoryName}</p>
-              <p><strong>Department:</strong> ${departmentName}</p>
+              <p><strong>Categories :</strong> ${categoryName}</p>
+              <p><strong>Concerned Departments:</strong> ${departmentName}</p>
               ${actionPlan.expectations ? `<p><strong>Expectations:</strong> ${actionPlan.expectations}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
-              <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">${actionPlan.status}</span></p>
+              <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">${actionPlan.finalStatus || actionPlan.status}</span></p>
             </div>
             
             <div class="highlight">
@@ -259,10 +260,10 @@ Your Original Expectation:
 "${actionPlan.expectations}"
 
 Action Plan Details:
-- Category: ${categoryName}
-- Department: ${departmentName}
+- Categories: ${categoryName}
+- Concerned Departments: ${departmentName}
 ${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
-- Status: ${actionPlan.status}
+- Status: ${actionPlan.finalStatus || actionPlan.status}
 
 What this means: The department has acknowledged your feedback and is taking concrete steps to address your expectation. You'll be notified when the status changes.
 
@@ -296,12 +297,13 @@ This is an automated notification from the ICSQ Action Plan System.
   }
 };
 
-// Send action plan status update notification to original survey respondents
-export const sendActionPlanStatusUpdateNotification = async (respondentUser, actionPlan, departmentName, categoryName, oldStatus, newStatus) => {
+
+// Send final status change notification to original survey respondents
+export const sendFinalStatusChangeNotification = async (respondentUser, actionPlan, departmentName, categoryName, oldFinalStatus, newFinalStatus) => {
   try {
     const transporter = createTransporter();
     if (!transporter) {
-      console.log('SMTP not configured - skipping action plan status update notification');
+      console.log('SMTP not configured - skipping final status change notification');
       return { success: false, error: 'SMTP not configured' };
     }
     
@@ -324,60 +326,66 @@ export const sendActionPlanStatusUpdateNotification = async (respondentUser, act
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #007bff 0%, #6610f2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
           .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
-          .action-plan { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #007bff; }
-          .button { display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+          .action-plan { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #28a745; }
+          .button { display: inline-block; background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
           .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-          .highlight { background: #cce7ff; padding: 10px; border-radius: 5px; border-left: 4px solid #007bff; }
+          .highlight { background: #d4edda; padding: 10px; border-radius: 5px; border-left: 4px solid #28a745; }
           .status-change { background: #e9ecef; padding: 10px; border-radius: 5px; text-align: center; }
           .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; }
+          .final-status { background: #fff3cd; padding: 10px; border-radius: 5px; border-left: 4px solid #ffc107; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>📊 Action Plan Status Update</h1>
+            <h1>🎯 Action Plan Status Update</h1>
             <p>Hello ${respondentUser.name},</p>
           </div>
           
           <div class="content">
-            <p>The status of the action plan created for your expectation has been updated.</p>
+            <p>The <strong>status</strong> of the action plan created for your expectation has been updated by the department head.</p>
             
             <div class="status-change">
               <p><strong>Status Change:</strong></p>
               <p>
-                <span class="status-badge" style="background-color: ${statusColors[oldStatus] || '#6c757d'};">${oldStatus.toUpperCase()}</span>
+                <span class="status-badge" style="background-color: ${statusColors[oldFinalStatus] || '#6c757d'};">${oldFinalStatus ? oldFinalStatus.toUpperCase() : 'PENDING'}</span>
                 <span style="margin: 0 10px;">→</span>
-                <span class="status-badge" style="background-color: ${statusColors[newStatus] || '#6c757d'};">${newStatus.toUpperCase()}</span>
+                <span class="status-badge" style="background-color: ${statusColors[newFinalStatus] || '#6c757d'};">${newFinalStatus.toUpperCase()}</span>
               </p>
+            </div>
+            
+            <div class="overall-status">
+              <p><strong>🏆 Status:</strong> This is the official completion status determined by the department head. When marked as completed, it means the action plan has been fully implemented and your expectation has been addressed.</p>
             </div>
             
             <div class="action-plan">
               <h3>Action Plan Details:</h3>
               <p><strong>Your Expectation:</strong> "${actionPlan.expectations}"</p>
               <p><strong>Category:</strong> ${categoryName}</p>
-              <p><strong>Department:</strong> ${departmentName}</p>
+              <p><strong>Concerned Departments:</strong> ${departmentName}</p>
+              ${actionPlan.actionplan ? `<p><strong>Action Plan:</strong> ${actionPlan.actionplan}</p>` : ''}
               ${actionPlan.instructions ? `<p><strong>Instructions:</strong> ${actionPlan.instructions}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
-              <p><strong>Current Status:</strong> <span style="color: ${statusColors[newStatus] || '#6c757d'}; font-weight: bold;">${newStatus}</span></p>
+              <p><strong>Status:</strong> <span style="color: ${statusColors[newFinalStatus] || '#6c757d'}; font-weight: bold;">${newFinalStatus.toUpperCase()}</span></p>
             </div>
             
             <div class="highlight">
-              <p><strong>📈 Progress Update:</strong> 
-              ${newStatus === 'in-progress' ? 'The department has started working on your expectation.' : 
-                newStatus === 'completed' ? 'Great news! The action plan for your expectation has been completed.' :
-                'The action plan is being reviewed and prepared.'}
+              <p><strong>📈 What this means:</strong> 
+              ${newFinalStatus === 'in-progress' ? 'The department has officially started working on your expectation and progress is being made.' : 
+                newFinalStatus === 'completed' ? '🎉 Excellent! The action plan for your expectation has been officially completed by the department. Your feedback has been successfully addressed!' :
+                'The action plan is being reviewed and prepared by the department.'}
               </p>
             </div>
             
             <p style="text-align: center;">
               <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/action-plans" class="button">
-                View
+                View Action Plans
               </a>
             </p>
             
-            <p>Thank you for your patience and valuable feedback.</p>
+            <p>Thank you for your valuable feedback. We appreciate your input in helping us improve our services.</p>
           </div>
           
           <div class="footer">
@@ -394,25 +402,27 @@ Action Plan Status Update
 
 Hello ${respondentUser.name},
 
-The status of the action plan created for your expectation has been updated.
+The status of the action plan created for your expectation has been updated by the department head.
 
-Status Change: ${oldStatus.toUpperCase()} → ${newStatus.toUpperCase()}
+Status Change: ${oldFinalStatus ? oldFinalStatus.toUpperCase() : 'PENDING'} → ${newFinalStatus.toUpperCase()}
+
+Status: This is the official completion status determined by the department head. When marked as completed, it means the action plan has been fully implemented and your expectation has been addressed.
 
 Action Plan Details:
 - Your Expectation: "${actionPlan.expectations}"
 - Category: ${categoryName}
 - Department: ${departmentName}
-${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
-- Current Status: ${newStatus}
+${actionPlan.actionplan ? `- Action Plan: ${actionPlan.actionplan}\n` : ''}${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
+- Status: ${newFinalStatus.toUpperCase()}
 
-Progress Update: 
-${newStatus === 'in-progress' ? 'The department has started working on your expectation.' : 
-  newStatus === 'completed' ? 'Great news! The action plan for your expectation has been completed.' :
-  'The action plan is being reviewed and prepared.'}
+What this means: 
+${newFinalStatus === 'in-progress' ? 'The department has officially started working on your expectation and progress is being made.' : 
+  newFinalStatus === 'completed' ? 'Excellent! The action plan for your expectation has been officially completed by the department. Your feedback has been successfully addressed!' :
+  'The action plan is being reviewed and prepared by the department.'}
 
 View Action Plans at: ${process.env.CLIENT_URL || 'http://localhost:5173'}/action-plans
 
-Thank you for your patience and valuable feedback.
+Thank you for your valuable feedback. We appreciate your input in helping us improve our services.
 
 This is an automated notification from the ICSQ Action Plan System.
     `;
@@ -429,7 +439,7 @@ This is an automated notification from the ICSQ Action Plan System.
     return await sendEmailWithRetry(transporter, mailOptions);
     
   } catch (error) {
-    console.error('Error sending action plan status update notification:', error);
+    console.error('Error sending final status change notification:', error);
     console.error('Error details:', {
       code: error.code,
       command: error.command,
@@ -471,6 +481,103 @@ export const testEmailConfiguration = async () => {
       command: error.command,
       response: error.response,
       responseCode: error.responseCode
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+// Send action plan creation confirmation email to HOD
+export const sendActionPlanCreationConfirmationEmail = async (hodUser, actionPlan, assignedUsers, departmentNames, categoryNames) => {
+  try {
+    const transporter = createTransporter();
+    if (!transporter) {
+      console.log('SMTP not configured - skipping action plan creation confirmation notification');
+      return { success: false, error: 'SMTP not configured' };
+    }
+    
+    // Email template
+    const emailSubject = `Action Plan Created Successfully.`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Action Plan Creation Confirmation</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+          .action-plan { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #28a745; }
+          .assigned-users { background: #e3f2fd; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #2196f3; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+          .highlight { background: #d4edda; padding: 10px; border-radius: 5px; border-left: 4px solid #28a745; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Action Plan Created Successfully</h1>
+            <p>Hello ${hodUser.name},</p>
+          </div>
+          
+          <div class="content">
+            <p>Your action plan has been created and assigned successfully!</p>
+            
+            <div class="action-plan">
+              <h3>Action Plan Details:</h3>
+              <p><strong>Expectations:</strong> ${actionPlan.expectations}</p>
+              <p><strong>Action Plan:</strong> ${actionPlan.actionplan}</p>
+              ${actionPlan.instructions ? `<p><strong>Instructions:</strong> ${actionPlan.instructions}</p>` : ''}
+              <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
+              <p><strong>Concerned Departments:</strong> ${departmentNames.join(', ')}</p>
+              <p><strong>Categories:</strong> ${categoryNames.join(', ')}</p>
+            </div>
+            
+            <div class="assigned-users">
+              <h3>Assigned Users (${assignedUsers.length}):</h3>
+              <ul>
+                ${assignedUsers.map(user => `<li>${user.name} (${user.email})</li>`).join('')}
+              </ul>
+            </div>
+            
+            
+            <div class="highlight">
+              <p><strong>Next Steps:</strong></p>
+              <ul>
+                <li>All assigned users have been notified via email</li>
+                <li>You can monitor progress through ICSQ dashboard</li>
+                <li>Users can update their status and actions taken</li>
+              </ul>
+            </div>
+            
+            <p>Thank you for using the ICSQ Action Plan system!</p>
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated notification from the ICSQ Action Plan System.</p>
+            <p>Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const mailOptions = {
+      from: `"ICSQ Action Plan System" <${process.env.SMTP_MAIL}>`,
+      to: hodUser.email,
+      subject: emailSubject,
+      html: emailHtml
+    };
+    
+    return await sendEmailWithRetry(transporter, mailOptions);
+  } catch (error) {
+    console.error('Error sending action plan creation confirmation email:', {
+      error: error.message,
+      stack: error.stack,
+      hodUser: hodUser?.email,
+      actionPlanId: actionPlan?._id
     });
     return { success: false, error: error.message };
   }
