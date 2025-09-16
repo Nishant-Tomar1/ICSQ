@@ -51,6 +51,7 @@ export async function getActionPlansForAdmin(req, res) {
     
     const plans = await ActionPlan.find(filters)
       .populate('departments')
+      .populate('impactedDepartments')
       .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
@@ -86,6 +87,7 @@ export async function getActionPlansForHOD(req, res) {
     // Find action plans that include the HOD's department
     const plans = await ActionPlan.find()
       .populate('departments')
+      .populate('impactedDepartments')
       .populate('categories') 
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
@@ -122,6 +124,7 @@ export async function getActionPlansForUser(req, res) {
     const userId = req.user._id
     const plans = await ActionPlan.find({ assignedTo: userId })
       .populate('departments')
+      .populate('impactedDepartments')
       .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
@@ -141,15 +144,15 @@ export async function getActionPlansForUser(req, res) {
       return planObj
     })
     
-    serializedPlans.forEach((plan, index) => {
-      console.log(`Plan ${index + 1}:`, {
-        id: plan._id,
-        status: plan.status,
-        actions_taken: plan.actions_taken,
-        assignedTo: plan.assignedTo,
-        individualActionPlans: plan.individualActionPlans
-      });
-    });
+    // serializedPlans.forEach((plan, index) => {
+    //   console.log(`Plan ${index + 1}:`, {
+    //     id: plan._id,
+    //     status: plan.status,
+    //     actions_taken: plan.actions_taken,
+    //     assignedTo: plan.assignedTo,
+    //     individualActionPlans: plan.individualActionPlans
+    //   });
+    // });
     
     return res.json(serializedPlans)
   } catch (error) {
@@ -166,6 +169,7 @@ export async function getActionPlansForSurveyRespondent(req, res) {
       'originalSurveyRespondents.userId': userId 
     })
       .populate('departments')
+      .populate('impactedDepartments')
       .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')
@@ -206,6 +210,7 @@ export async function createActionPlan(req, res) {
   try {
     const { 
       departmentIds, 
+      impactedDepartmentIds,
       categoryIds, 
       expectations, 
       actionplan, 
@@ -223,6 +228,7 @@ export async function createActionPlan(req, res) {
     
     // Ensure arrays
     const departments = Array.isArray(departmentIds) ? departmentIds : [departmentIds]
+    const impactedDepartments = Array.isArray(impactedDepartmentIds) ? impactedDepartmentIds : (impactedDepartmentIds ? [impactedDepartmentIds] : [])
     const categories = Array.isArray(categoryIds) ? categoryIds : [categoryIds]
     const assignedTo = Array.isArray(assignedToUsers) ? assignedToUsers : [assignedToUsers]
     
@@ -258,6 +264,7 @@ export async function createActionPlan(req, res) {
 
     const plan = new ActionPlan({
       departments: departments.map(id => new mongoose.Types.ObjectId(id)),
+      impactedDepartments: impactedDepartments.map(id => new mongoose.Types.ObjectId(id)),
       categories: categories.map(id => new mongoose.Types.ObjectId(id)),
       expectations,
       actionplan,
@@ -277,13 +284,27 @@ export async function createActionPlan(req, res) {
     // Send email notifications to all assigned users in background
     const assignedByUser = await User.findById(req.user._id).select('name email')
     
+    // Get department names for email
+    const departmentNames = []
+    const impactedDepartmentNames = []
+    
+    for (const deptId of departments) {
+      const dept = await Department.findById(deptId).select('name')
+      if (dept) departmentNames.push(dept.name)
+    }
+    
+    for (const deptId of impactedDepartments) {
+      const dept = await Department.findById(deptId).select('name')
+      if (dept) impactedDepartmentNames.push(dept.name)
+    }
+    
     sendEmailInBackground(async () => {
       try {
         for (const userId of assignedTo) {
           try {
             const assignedUser = await User.findById(userId).select('name email')
             if (assignedUser && assignedByUser) {
-              await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser)
+              await sendActionPlanAssignmentEmail(assignedUser, plan, assignedByUser, departmentNames, impactedDepartmentNames)
               console.log(`Action plan assignment email sent to: ${assignedUser.email}`)
             }
           } catch (emailError) {
@@ -321,7 +342,8 @@ export async function createActionPlan(req, res) {
             plan, 
             assignedUsers, 
             departmentNames, 
-            categoryNames
+            categoryNames,
+            impactedDepartmentNames
           )
           console.log(`Action plan creation confirmation email sent to HOD: ${assignedByUser.email}`)
         }
@@ -357,7 +379,8 @@ export async function createActionPlan(req, res) {
                     respondentUser, 
                     plan, 
                     departmentNames.join(", "), 
-                    categoryNames.join(", ")
+                    categoryNames.join(", "),
+                    impactedDepartmentNames
                   )
                   console.log(`Notification sent to survey respondent: ${respondentUser.email}`)
                 }
@@ -385,6 +408,7 @@ export async function updateActionPlan(req, res) {
   try {
     const { 
       departments, 
+      impactedDepartments,
       categories, 
       expectations, 
       actionplan, 
@@ -422,7 +446,7 @@ export async function updateActionPlan(req, res) {
     // Only allow assigned user to update their own 'actions_taken' and 'status'
     if (isAssignedUser && !isAdmin && !isHOD) {
       if (isAfterTargetDate) {
-        return res.status(403).json({ message: "Target date has passed. Only HOD can update this action plan now." })
+        return res.status(403).json({ message: "Target date has passed. Contact hod to extend the target date." })
       }
       
       if (actions_taken !== undefined) {
@@ -435,6 +459,7 @@ export async function updateActionPlan(req, res) {
     } else {
       // HOD and Admin can update all fields
       if (departments) plan.departments = departments.map(id => new mongoose.Types.ObjectId(id))
+      if (impactedDepartments) plan.impactedDepartments = impactedDepartments.map(id => new mongoose.Types.ObjectId(id))
       if (categories) plan.categories = categories.map(id => new mongoose.Types.ObjectId(id))
       if (expectations) plan.expectations = expectations
       if (actionplan !== undefined) plan.actionplan = actionplan
@@ -532,6 +557,13 @@ export async function updateActionPlan(req, res) {
             if (cat) categoryNames.push(cat.name)
           }
           
+          // Get impacted department names for notifications
+          const impactedDepartmentNames = []
+          for (const deptId of plan.impactedDepartments) {
+            const dept = await Department.findById(deptId).select('name')
+            if (dept) impactedDepartmentNames.push(dept.name)
+          }
+          
           if (departmentNames.length > 0 && categoryNames.length > 0) {
             for (const respondentData of plan.originalSurveyRespondents) {
               try {
@@ -543,7 +575,8 @@ export async function updateActionPlan(req, res) {
                     departmentNames.join(", "),
                     categoryNames.join(", "),
                     originalFinalStatus,
-                    finalStatus
+                    finalStatus,
+                    impactedDepartmentNames
                   )
                   console.log(`Final status change notification sent to survey respondent: ${respondentUser.email}`)
                 }
@@ -589,7 +622,7 @@ export async function updateActionPlanStatus(req, res) {
     
     if (isAfterTargetDate && !isHOD) {
       return res.status(403).json({ 
-        message: "Target date has passed. Only HOD can update this action plan now.",
+        message: "Target date has passed. Contact HOD to extend target date.",
         targetDate: plan.targetDate,
         currentDate: now
       })
@@ -682,6 +715,7 @@ export async function deleteActionPlan(req, res) {
     const archivedPlan = new ArchivedActionPlan({
       // Copy all original fields
       departments: plan.departments,
+      impactedDepartments: plan.impactedDepartments,
       categories: plan.categories,
       assignedBy: plan.assignedBy,
       assignedTo: plan.assignedTo,
@@ -731,6 +765,7 @@ export async function getIndividualActionPlansForUser(req, res) {
       [`individualActionPlans.${userId}`]: { $exists: true }
     })
       .populate('departments')
+      .populate('impactedDepartments')
       .populate('categories')
       .populate('assignedBy', 'name email role currentDepartment')
       .populate('assignedTo', 'name email role currentDepartment')

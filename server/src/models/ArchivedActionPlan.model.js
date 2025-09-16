@@ -6,6 +6,10 @@ const ArchivedActionPlanSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department'
   }],
+  impactedDepartments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department'
+  }],
   categories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'

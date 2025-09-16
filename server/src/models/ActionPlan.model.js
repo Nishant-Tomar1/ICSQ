@@ -7,6 +7,11 @@ const ActionPlanSchema = new Schema(
       ref : 'Department',
       required: true,
     }],
+    impactedDepartments: [{
+      type: Schema.Types.ObjectId,
+      ref : 'Department',
+      required: false,
+    }],
     categories: [{
       type: Schema.Types.ObjectId,
       ref : 'Category',

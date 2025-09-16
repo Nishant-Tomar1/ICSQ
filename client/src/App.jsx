@@ -23,6 +23,7 @@ import bgImage from "./assets/bg-image.jpg"
 import {useState, useEffect} from 'react'
 import Terms from "./pages/Terms"
 import DepartmentSurveyDetailsPage from "./pages/admin/DepartmentSurveyDetailsPage"
+import NotFoundPage from "./pages/NotFoundPage"
 
 function App() {
   const { loading } = useAuth()
@@ -62,6 +63,12 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/*"
+          element={
+              <NotFoundPage/>
+          }
+        />
 
         {/* Protected routes for all users */}
         <Route

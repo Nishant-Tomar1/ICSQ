@@ -243,42 +243,70 @@ export async function summarizeExpectationsAI(req, res) {
     }
 
     // Enhanced prompt for structured AI response with category-specific data
-    const prompt = `Analyze these department expectations and provide structured responses with category assignments and priority analysis.
+    const prompt = `You are an expert organizational development consultant analyzing ICSQ (Internal Customer Service Quality) survey responses. Your task is to create meaningful, specific action plans based on actual survey feedback.
 
-CATEGORY-SPECIFIC EXPECTATIONS DATA:
+SURVEY DATA ANALYSIS:
 ${Object.entries(categoryExpectations).map(([catKey, catExpectations]) => {
   const catRatings = categoryRatings[catKey] || [];
   const avgCatRating = catRatings.length > 0 ? (catRatings.reduce((a, b) => a + b, 0) / catRatings.length).toFixed(1) : 'N/A';
-  // Limit to max 8 responses per category and truncate long responses to reduce token usage
-  const limitedResponses = catExpectations.slice(0, 8).map(exp => 
-    exp.length > 150 ? exp.substring(0, 150) + '...' : exp
+  // Include more responses for better analysis (up to 12 instead of 8)
+  const limitedResponses = catExpectations.slice(0, 12).map(exp => 
+    exp.length > 200 ? exp.substring(0, 200) + '...' : exp
   );
   
   // Include user/survey mapping data for this category
   const userData = categoryUserData[catKey] || [];
   const userMappingText = userData.length > 0 ? 
     `\nUser/Survey Mapping:\n${userData.map((user, idx) => 
-      `${idx + 1}. User: ${user.userId}, Survey: ${user.surveyId}, Expectation: "${user.originalExpectation.substring(0, 100)}${user.originalExpectation.length > 100 ? '...' : ''}"`
+      `${idx + 1}. User: ${user.userId}, Survey: ${user.surveyId}, Expectation: "${user.originalExpectation.substring(0, 150)}${user.originalExpectation.length > 150 ? '...' : ''}"`
     ).join('\n')}` : 
     '\nNo user/survey data available';
   
-  return `\n=== ${catKey.toUpperCase()} ===\nAvg Rating: ${avgCatRating}/5 (${catRatings.length} total)\nResponses:\n${limitedResponses.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}${userMappingText}`;
+  return `\n=== ${catKey.toUpperCase()} ===\nAvg Rating: ${avgCatRating}/5 (${catRatings.length} total responses)\nDetailed Responses:\n${limitedResponses.map((exp, idx) => `${idx + 1}. "${exp}"`).join('\n')}${userMappingText}`;
 }).join('\n\n')}
 
-OVERALL AVERAGE RATING: ${avgRating ? avgRating.toFixed(1) + '/5' : 'Not available'}
+OVERALL DEPARTMENT PERFORMANCE: ${avgRating ? avgRating.toFixed(1) + '/5 average rating' : 'No ratings available'}
 
 ELIGIBLE CATEGORIES (use these exact names and IDs):
 ${eligibleCategories.map(cat => `${cat.name} (ID: ${cat._id})`).join('\n')}
 
 PRIORITY FOCUS: ${priority || 'all'}
 
-CRITICAL REQUIREMENT: You MUST generate exactly 1 response for each of the ${eligibleCategories.length} eligible categories listed above. Do not skip any category.
+CRITICAL REQUIREMENT: Generate exactly 1 detailed action plan for each of the ${eligibleCategories.length} eligible categories.
+
+ANALYSIS INSTRUCTIONS:
+1. **DEEP ANALYSIS**: For each category, carefully read through ALL the survey responses provided
+2. **IDENTIFY PATTERNS**: Look for common themes, specific issues, and recurring concerns mentioned by respondents
+3. **PRIORITIZE BY IMPACT**: Focus on issues that appear most frequently or are mentioned with the most urgency
+4. **CREATE SPECIFIC SUMMARIES**: Write 20-30 word summaries that capture the ESSENCE of what respondents are asking for, not generic statements
+
+SUMMARY CREATION RULES - CRITICAL:
+- ABSOLUTELY FORBIDDEN: "General improvement needed", "Need to improve", "Improvement required", "General improvement in {category}", "Need to improve in {category}", "Better {category} needed"
+- MANDATORY: Every summary MUST be 20-30 words and based on SPECIFIC survey responses provided above
+- REQUIRED: Extract the EXACT issues, concerns, or requests mentioned by respondents
+- REQUIRED: Use specific numbers, timeframes, or concrete details from the survey responses
+- REQUIRED: Include what respondents specifically asked for, not generic improvement statements
+- REQUIRED: Make summaries actionable and specific enough that someone reading it knows exactly what to do
+
+EXAMPLES OF FORBIDDEN GENERIC SUMMARIES (DO NOT USE):
+❌ "General improvement needed in communication"
+❌ "Need to improve response time"  
+❌ "Better customer service required"
+❌ "General improvement in {category}"
+❌ "Need to improve in {category}"
+❌ "Improvement needed in {category}"
+
+EXAMPLES OF REQUIRED SPECIFIC SUMMARIES (MUST USE THIS STYLE):
+✅ "Implement daily standup meetings and weekly project updates to address communication gaps mentioned by 8 respondents who reported confusion about project status"
+✅ "Reduce response time to customer queries from current 2-3 days to same-day response as specifically requested by 5 teams who cited delays affecting their work"
+✅ "Create standardized documentation templates and provide training sessions as requested by 6 respondents who mentioned inconsistent information delivery"
+✅ "Establish clear escalation procedures and response timeframes as mentioned by 4 teams who reported delays in getting urgent issues resolved"
 
 CRITICAL INSTRUCTIONS FOR SOURCE_RESPONSES:
 - SOURCE_RESPONSES must contain ONLY the actual survey quotes listed above under each category
-- NEVER use generic text like "Need to improve in this area" 
 - COPY the exact survey responses verbatim from the category-specific data provided
-- Use JSON array format: ["quote1", "quote2", "quote3"]
+- Use JSON array format: ["exact quote 1", "exact quote 2", "exact quote 3"]
+- Include 3-5 most representative quotes that support your summary
 - If a category has no survey data, use an empty array: []
 
 CRITICAL INSTRUCTIONS FOR ORIGINAL_SURVEY_RESPONDENTS:
@@ -288,24 +316,21 @@ CRITICAL INSTRUCTIONS FOR ORIGINAL_SURVEY_RESPONDENTS:
 - Match each expectation response with its corresponding user data from the mapping
 - Use JSON array format: [{"userId": "exact_user_id_from_mapping", "surveyId": "exact_survey_id_from_mapping", "originalExpectation": "exact quote from responses", "category": "category_name"}]
 - If a category has no survey data, use an empty array: []
-- This data is CRITICAL for email notifications - users must be notified about action plans created from their expectations
-- EXAMPLE: If you see "User: 507f1f77bcf86cd799439012, Survey: 507f1f77bcf86cd799439013, Expectation: 'Need better communication'" in the mapping, use {"userId": "507f1f77bcf86cd799439012", "surveyId": "507f1f77bcf86cd799439013", "originalExpectation": "Need better communication", "category": "communication"}
 
-INSTRUCTIONS:
-- Analyze the survey responses and identify the most important expectations for each category
-- ${priority === 'high' ? 'Focus on URGENT issues that need immediate attention (low ratings, critical problems)' : 
-    priority === 'medium' ? 'Focus on MODERATE issues that need attention but are not critical' :
-    priority === 'low' ? 'Focus on areas of GOOD performance that could be improved further' :
-    'Focus on areas that need improvement (low ratings) and common themes'}
-- For each of the ${eligibleCategories.length} eligible categories, generate exactly 1 expectation
+DETAILED INSTRUCTIONS:
+- ${priority === 'high' ? 'Focus on URGENT issues that need immediate attention (low ratings, critical problems mentioned by multiple respondents)' : 
+    priority === 'medium' ? 'Focus on MODERATE issues that need attention but are not critical (mentioned by several respondents)' :
+    priority === 'low' ? 'Focus on areas of GOOD performance that could be improved further (high ratings but with suggestions)' :
+    'Focus on areas that need improvement (low ratings) and common themes across all responses'}
+- For each category, analyze the provided responses and create a specific, actionable summary
 - Assign each expectation to its corresponding category from the eligible categories list
-- Determine priority level (High/Medium/Low) based on rating analysis
+- Determine priority level (High/Medium/Low) based on rating analysis and frequency of mentions
 - Generate 3-5 specific, actionable recommendations in RECOMMENDED_ACTIONS for each category
-- If a category has no specific survey data, create a general expectation based on the category's purpose
+- If a category has no specific survey data, create a general expectation based on the category's purpose and common organizational needs
 
 FORMAT: Return exactly ${eligibleCategories.length} expectations, one for each category:
 
-SUMMARY: [Clear, actionable expectation for Category 1]
+SUMMARY: [20-30 word specific, actionable expectation based on actual survey responses - NO generic statements]
 CATEGORY: [Category 1 Name] (ID: [Category 1 ID])
 PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data - e.g., "Based on 15 responses with avg rating 2.8/5"]
@@ -315,7 +340,7 @@ ORIGINAL_SURVEY_RESPONDENTS: [{"userId": "user_id_1", "surveyId": "survey_id_1",
 
 ---
 
-SUMMARY: [Clear, actionable expectation for Category 2]
+SUMMARY: [20-30 word specific, actionable expectation based on actual survey responses - NO generic statements]
 CATEGORY: [Category 2 Name] (ID: [Category 2 ID])
 PRIORITY: [High/Medium/Low]
 ORIGINAL_DATA: [Brief reference to survey data]
@@ -327,7 +352,14 @@ ORIGINAL_SURVEY_RESPONDENTS: [{"userId": "user_id_3", "surveyId": "survey_id_3",
 
 [Continue for all ${eligibleCategories.length} categories...]
 
-IMPORTANT: You must return exactly ${eligibleCategories.length} expectations, one for each eligible category. Do not skip any category.`;
+FINAL VALIDATION CHECK:
+Before submitting your response, verify that:
+1. NO summary contains "General improvement", "Need to improve", "Improvement needed", or similar generic phrases
+2. EVERY summary is 20-30 words long and mentions specific details from survey responses
+3. EVERY summary includes concrete numbers, timeframes, or specific requests from respondents
+4. EVERY summary is actionable and tells someone exactly what needs to be done
+
+REMEMBER: Your summaries must be specific, actionable, and based on the actual survey responses provided. Avoid generic statements at all costs. If you cannot create a specific summary based on the survey data, do not generate a generic one.`;
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";

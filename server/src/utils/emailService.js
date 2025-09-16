@@ -60,7 +60,7 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
 };
 
 // Send action plan assignment email
-export const sendActionPlanAssignmentEmail = async (assignedUser, actionPlan, assignedByUser) => {
+export const sendActionPlanAssignmentEmail = async (assignedUser, actionPlan, assignedByUser, departmentNames = [], impactedDepartmentNames = []) => {
   try {
     const transporter = createTransporter();
     if (!transporter) {
@@ -104,6 +104,8 @@ export const sendActionPlanAssignmentEmail = async (assignedUser, actionPlan, as
               ${actionPlan.actionplan ? `<p><strong>Action Plan:</strong> ${actionPlan.actionplan}</p>` : ''}
               ${actionPlan.instructions ? `<p><strong>Instructions:</strong> ${actionPlan.instructions}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
+              ${departmentNames.length > 0 ? `<p><strong>Department:</strong> ${departmentNames.join(', ')}</p>` : ''}
+              ${impactedDepartmentNames.length > 0 ? `<p><strong>Impacted Departments:</strong> ${impactedDepartmentNames.join(', ')}</p>` : ''}
               <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">${actionPlan.finalStatus || actionPlan.status}</span></p>
             </div>
             
@@ -139,7 +141,7 @@ You have been assigned a new action plan by ${assignedByUser.name}.
 Action Plan Details:
 - Expectations: ${actionPlan.expectations}
 ${actionPlan.actionplan ? `- Action Plan: ${actionPlan.actionplan}\n` : ''}${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
-- Status: ${actionPlan.finalStatus || actionPlan.status}
+${departmentNames.length > 0 ? `- Department: ${departmentNames.join(', ')}\n` : ''}${impactedDepartmentNames.length > 0 ? `- Impacted Departments: ${impactedDepartmentNames.join(', ')}\n` : ''}- Status: ${actionPlan.finalStatus || actionPlan.status}
 
 Please review this action plan and update the status as you progress.
 
@@ -174,7 +176,7 @@ This is an automated notification from the ICSQ Action Plan System.
 };
 
 // Send action plan creation notification to original survey respondents
-export const sendActionPlanCreatedNotification = async (respondentUser, actionPlan, departmentName, categoryName) => {
+export const sendActionPlanCreatedNotification = async (respondentUser, actionPlan, departmentName, categoryName, impactedDepartmentNames = []) => {
   try {
     const transporter = createTransporter();
     if (!transporter) {
@@ -220,8 +222,9 @@ export const sendActionPlanCreatedNotification = async (respondentUser, actionPl
             
             <div class="action-plan">
               <h3>Action Plan Details:</h3>
-              <p><strong>Categories :</strong> ${categoryName}</p>
-              <p><strong>Concerned Departments:</strong> ${departmentName}</p>
+              <p><strong>Categories:</strong> ${categoryName}</p>
+              <p><strong>Department:</strong> ${departmentName}</p>
+              ${impactedDepartmentNames.length > 0 ? `<p><strong>Impacted Departments:</strong> ${impactedDepartmentNames.join(', ')}</p>` : ''}
               ${actionPlan.expectations ? `<p><strong>Expectations:</strong> ${actionPlan.expectations}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
               <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">${actionPlan.finalStatus || actionPlan.status}</span></p>
@@ -261,8 +264,8 @@ Your Original Expectation:
 
 Action Plan Details:
 - Categories: ${categoryName}
-- Concerned Departments: ${departmentName}
-${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
+- Department: ${departmentName}
+${impactedDepartmentNames.length > 0 ? `- Impacted Departments: ${impactedDepartmentNames.join(', ')}\n` : ''}${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
 - Status: ${actionPlan.finalStatus || actionPlan.status}
 
 What this means: The department has acknowledged your feedback and is taking concrete steps to address your expectation. You'll be notified when the status changes.
@@ -299,7 +302,7 @@ This is an automated notification from the ICSQ Action Plan System.
 
 
 // Send final status change notification to original survey respondents
-export const sendFinalStatusChangeNotification = async (respondentUser, actionPlan, departmentName, categoryName, oldFinalStatus, newFinalStatus) => {
+export const sendFinalStatusChangeNotification = async (respondentUser, actionPlan, departmentName, categoryName, oldFinalStatus, newFinalStatus, impactedDepartmentNames = []) => {
   try {
     const transporter = createTransporter();
     if (!transporter) {
@@ -364,7 +367,8 @@ export const sendFinalStatusChangeNotification = async (respondentUser, actionPl
               <h3>Action Plan Details:</h3>
               <p><strong>Your Expectation:</strong> "${actionPlan.expectations}"</p>
               <p><strong>Category:</strong> ${categoryName}</p>
-              <p><strong>Concerned Departments:</strong> ${departmentName}</p>
+              <p><strong>Department:</strong> ${departmentName}</p>
+              ${impactedDepartmentNames.length > 0 ? `<p><strong>Impacted Departments:</strong> ${impactedDepartmentNames.join(', ')}</p>` : ''}
               ${actionPlan.actionplan ? `<p><strong>Action Plan:</strong> ${actionPlan.actionplan}</p>` : ''}
               ${actionPlan.instructions ? `<p><strong>Instructions:</strong> ${actionPlan.instructions}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
@@ -412,7 +416,7 @@ Action Plan Details:
 - Your Expectation: "${actionPlan.expectations}"
 - Category: ${categoryName}
 - Department: ${departmentName}
-${actionPlan.actionplan ? `- Action Plan: ${actionPlan.actionplan}\n` : ''}${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
+${impactedDepartmentNames.length > 0 ? `- Impacted Departments: ${impactedDepartmentNames.join(', ')}\n` : ''}${actionPlan.actionplan ? `- Action Plan: ${actionPlan.actionplan}\n` : ''}${actionPlan.instructions ? `- Instructions: ${actionPlan.instructions}\n` : ''}- Target Date: ${new Date(actionPlan.targetDate).toLocaleDateString()}
 - Status: ${newFinalStatus.toUpperCase()}
 
 What this means: 
@@ -487,7 +491,7 @@ export const testEmailConfiguration = async () => {
 };
 
 // Send action plan creation confirmation email to HOD
-export const sendActionPlanCreationConfirmationEmail = async (hodUser, actionPlan, assignedUsers, departmentNames, categoryNames) => {
+export const sendActionPlanCreationConfirmationEmail = async (hodUser, actionPlan, assignedUsers, departmentNames, categoryNames, impactedDepartmentNames = []) => {
   try {
     const transporter = createTransporter();
     if (!transporter) {
@@ -531,7 +535,8 @@ export const sendActionPlanCreationConfirmationEmail = async (hodUser, actionPla
               <p><strong>Action Plan:</strong> ${actionPlan.actionplan}</p>
               ${actionPlan.instructions ? `<p><strong>Instructions:</strong> ${actionPlan.instructions}</p>` : ''}
               <p><strong>Target Date:</strong> ${new Date(actionPlan.targetDate).toLocaleDateString()}</p>
-              <p><strong>Concerned Departments:</strong> ${departmentNames.join(', ')}</p>
+              <p><strong>Department:</strong> ${departmentNames.join(', ')}</p>
+              ${impactedDepartmentNames.length > 0 ? `<p><strong>Impacted Departments:</strong> ${impactedDepartmentNames.join(', ')}</p>` : ''}
               <p><strong>Categories:</strong> ${categoryNames.join(', ')}</p>
             </div>
             

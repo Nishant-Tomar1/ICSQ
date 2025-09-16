@@ -36,7 +36,7 @@ import {
   DialogDescription,
 } from "../components/ui/Dialog";
 import Textarea from "../components/ui/Textarea";
-import { AlertCircle, CheckCircle, ClipboardList, Eye, Timer, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle, ClipboardList, Edit, Eye, Timer, Trash2 } from "lucide-react";
 
 // Helper component for showing expectations in a table
 function ExpectationsTable({ data, categoryName }) {
@@ -552,13 +552,15 @@ function ActionPlansPage() {
     targetDate: "",
     originalSurveyRespondents: [],
     individualActionPlans: [],
+    impactedDepartments: [],
   });
   
   // State for multi-department and multi-category selection
   const [selectedDepartments, setSelectedDepartments] = useState([getCurrentDepartment()?._id].filter(Boolean));
+  const [selectedImpactedDepartments, setSelectedImpactedDepartments] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ _id: '', expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+  const [editForm, setEditForm] = useState({ _id: '', expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', status: 'pending', impactedDepartments: [] });
   const [ratingFilter, setRatingFilter] = useState("");
   // --- Fix: Add missing states for all-summary selection and modal ---
   const [selectedAllSummary, setSelectedAllSummary] = useState({});
@@ -579,7 +581,8 @@ function ActionPlansPage() {
     assignedTo: '',
     targetDate: '',
     categoryId: '',
-    originalSurveyRespondents: []
+    originalSurveyRespondents: [],
+    impactedDepartments: []
   });
   // Add these hooks at the top level
   const [actionModalOpen, setActionModalOpen] = useState(false);
@@ -640,6 +643,7 @@ function ActionPlansPage() {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
   const [aiGeneratedPlans, setAiGeneratedPlans] = useState([]);
+  const [assignedAiPlanIndices, setAssignedAiPlanIndices] = useState(new Set()); // Track which AI plans have been assigned
   const [aiAnalysisScope, setAiAnalysisScope] = useState("all");
   const [aiPriorityFocus, setAiPriorityFocus] = useState("all");
   const [aiEmptyReason, setAiEmptyReason] = useState(null); // "no_expectations" | "all_assigned" | null
@@ -647,6 +651,7 @@ function ActionPlansPage() {
   // AI Plan Editing state variables
   const [editingPlan, setEditingPlan] = useState(null);
   const [editingPlanIndex, setEditingPlanIndex] = useState(null);
+  const [currentAssigningPlanIndex, setCurrentAssigningPlanIndex] = useState(null); // Track which AI plan is being assigned
   const [aiPlanEditModalOpen, setAiPlanEditModalOpen] = useState(false);
   const [aiCreateModalOpen, setAiCreateModalOpen] = useState(false);
 
@@ -658,9 +663,10 @@ function ActionPlansPage() {
       expectations: plan.expectations || '',
       actionplan: plan.actionplan || '',
       instructions: plan.instructions || '',
-      assignedTo: plan.assignedTo?._id || '',
+      assignedTo: Array.isArray(plan.assignedTo) ? plan.assignedTo.map(user => user._id || user) : [plan.assignedTo?._id || plan.assignedTo].filter(Boolean),
       targetDate: plan.targetDate ? new Date(plan.targetDate).toISOString().split('T')[0] : '',
       status: plan.status || 'pending',
+      impactedDepartments: plan.impactedDepartments ? plan.impactedDepartments.map(dept => dept._id || dept) : [],
     });
     setEditModalOpen(true); // open immediately
     
@@ -668,7 +674,7 @@ function ActionPlansPage() {
     // if (plan.department?._id !== getCurrentDepartment()?._id) {
       setUsersLoading(true);
       try {
-        const res = await axios.get(`${Server}/users/by-department/${plan.department?._id}`, { withCredentials: true });
+        const res = await axios.get(`${Server}/users/by-department/${plan.departments[0]?._id}`, { withCredentials: true });
         setDepartmentUsers(res.data || []);
       } catch (error) {
         console.error("Error fetching users for edit modal:", error);
@@ -685,16 +691,8 @@ function ActionPlansPage() {
   // Handle edit action plan submit
   const handleEditActionPlan = async (e) => {
     e.preventDefault();
-    if (!editForm.expectations.trim()) {
-      toast({ title: 'Error', description: 'Expectations are required.', variant: 'destructive' });
-      return;
-    }
     if (!editForm.actionplan.trim()) {
       toast({ title: 'Error', description: 'Action plan is required.', variant: 'destructive' });
-      return;
-    }
-    if (!editForm.assignedTo) {
-      toast({ title: 'Error', description: 'Please select a user to assign.', variant: 'destructive' });
       return;
     }
     if (!editForm.targetDate) {
@@ -706,17 +704,14 @@ function ActionPlansPage() {
       await axios.put(
         `${Server}/action-plans/${editForm._id}`,
         {
-          expectations: editForm.expectations,
           actionplan: editForm.actionplan,
-          instructions: editForm.instructions,
-          assignedTo: editForm.assignedTo,
           targetDate: editForm.targetDate,
-          status: editForm.status,
+          impactedDepartments: editForm.impactedDepartments,
         },
         { withCredentials: true }
       );
       setEditModalOpen(false);
-      setEditForm({ _id: '', expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', status: 'pending' });
+      setEditForm({ _id: '', expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', status: 'pending', impactedDepartments: [] });
       fetchData();
       toast({ title: 'Success', description: 'Action plan updated!' });
     } catch (err) {
@@ -783,6 +778,7 @@ function ActionPlansPage() {
   // Clear AI generated data when department changes
   const clearAIGeneratedData = () => {
     setAiGeneratedPlans([]);
+    setAssignedAiPlanIndices(new Set());
     setAiCreateModalOpen(false);
     setAiPlanEditModalOpen(false);
     setEditingPlan(null);
@@ -945,6 +941,7 @@ function ActionPlansPage() {
       
       // Prepare department and category IDs
       const departmentIds = selectedDepartments.length > 0 ? selectedDepartments : [getCurrentDepartment()?._id];
+      const impactedDepartmentIds = selectedImpactedDepartments.length > 0 ? selectedImpactedDepartments : [];
       const categoryIds = selectedCategories.length > 0 ? selectedCategories : [existingCategory?._id || selectedCategoryForForm];
       
       // Use the unified endpoint for all cases (single or multiple users)
@@ -952,6 +949,7 @@ function ActionPlansPage() {
         `${Server}/action-plans`,
           {
           departmentIds: departmentIds,
+          impactedDepartmentIds: impactedDepartmentIds,
           categoryIds: categoryIds,
             expectations: createForm.expectations,
           actionplan: createForm.actionplan,
@@ -972,9 +970,17 @@ function ActionPlansPage() {
       // Close both modals if they're open
       setCreateModalOpen(false);
       setAiCreateModalOpen(false);
-      setCreateForm({ expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', originalSurveyRespondents: [], individualActionPlans: [] });
+      
+      // If this was assigned from an AI plan, mark it as assigned
+      if (currentAssigningPlanIndex !== null) {
+        setAssignedAiPlanIndices(prev => new Set([...prev, currentAssigningPlanIndex]));
+        setCurrentAssigningPlanIndex(null);
+      }
+      
+      setCreateForm({ expectations: '', actionplan: '', instructions: '', assignedTo: [], targetDate: '', originalSurveyRespondents: [], individualActionPlans: [], impactedDepartments: [] });
       setSelectedCategoryForForm("");
       setSelectedDepartments([getCurrentDepartment()?._id].filter(Boolean));
+      setSelectedImpactedDepartments([]);
       setSelectedCategories([]);
       fetchData();
       
@@ -1014,6 +1020,7 @@ function ActionPlansPage() {
         `${Server}/action-plans`,
         {
           departmentIds: [getCurrentDepartment()?._id],
+          impactedDepartmentIds: assignAllSummaryForm.impactedDepartments || [],
           categoryIds: [assignAllSummaryForm.categoryId],
           expectations: assignAllSummaryForm.expectations,
           actionplan: assignAllSummaryForm.actionplan || '',
@@ -1025,7 +1032,7 @@ function ActionPlansPage() {
         { withCredentials: true }
       );
       setAssignAllSummaryModal(false);
-      setAssignAllSummaryForm({ expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', originalSurveyRespondents: [] });
+      setAssignAllSummaryForm({ expectations: '', actionplan: '', instructions: '', assignedTo: '', targetDate: '', categoryId: '', originalSurveyRespondents: [], impactedDepartments: [] });
       setAssignAllSummaryData([]);
       fetchData();
       toast({ title: "Success", description: "Action plan created!" });
@@ -1471,8 +1478,8 @@ function ActionPlansPage() {
         setActionModalOpen(false);
         fetchData();
         toast({ title: 'Success', description: 'Actions updated!' });
-      } catch {
-        toast({ title: 'Error', description: 'Failed to update actions.', variant: 'destructive' });
+      } catch(e) {
+        toast({ title: 'Error', description: e?.response?.data?.message ||  'Failed to update actions.', variant: 'destructive' });
       } finally {
         setIsSubmitting(false);
       }
@@ -1691,7 +1698,7 @@ function ActionPlansPage() {
                                     fetchData();
                                     toast({ title: "Success", description: "Your status updated successfully", variant: "success" });
                                   } catch (e) {
-                                    toast({ title: "Error", description: "Failed to update your status", variant: "destructive" });
+                                    toast({ title: "Error", description: e?.response?.data?.message || "Failed to update your status", variant: "destructive" });
                                   } finally {
                                     setUpdatingStatusId(null);
                                   }
@@ -1747,7 +1754,7 @@ function ActionPlansPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 <form onSubmit={handleActionSave} className="space-y-6">
                   {/* Basic Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
                       <h3 className="text-sm font-semibold text-gray-400 mb-2">Departments</h3>
                       <div className="flex flex-wrap gap-2">
@@ -1758,6 +1765,19 @@ function ActionPlansPage() {
                             </span>
                           )) :
                           <span className="text-white font-medium">{capitalizeFirstLetter(actionModalPlan.department?.name)}</span>
+                        }
+                </div>
+                </div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                      <h3 className="text-sm font-semibold text-gray-400 mb-2">Impacted Departments</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(actionModalPlan.impactedDepartments) && actionModalPlan.impactedDepartments.length > 0 ? 
+                          actionModalPlan.impactedDepartments.map((dept, idx) => (
+                            <span key={idx} className="text-white font-medium text-sm bg-orange-600/20 px-2 py-1 rounded">
+                              {capitalizeFirstLetter(dept?.name || dept)}
+                            </span>
+                          )) :
+                          <span className="text-slate-400 text-sm">None</span>
                         }
                 </div>
                 </div>
@@ -1813,13 +1833,13 @@ function ActionPlansPage() {
                     );
                   })()}
 
-                  {/* Instructions */}
+                  {/* Instructions
                   {actionModalPlan.instructions && (
                     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
                       <h3 className="text-sm font-semibold text-gray-400 mb-2">Instructions</h3>
                       <p className="text-white whitespace-pre-wrap">{actionModalPlan.instructions}</p>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Actions Taken Input */}
                   <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
@@ -2137,7 +2157,13 @@ function ActionPlansPage() {
         const trimmedLine = line.trim();
         const cleanLine = trimmedLine.replace(/^[\d\-*•]+\.?\s*/, '');
         
-        if (cleanLine && cleanLine.length > 5) { 
+        // Filter out generic statements and ensure meaningful content
+        if (cleanLine && 
+            cleanLine.length > 20 && 
+            !cleanLine.toLowerCase().includes('general improvement') &&
+            !cleanLine.toLowerCase().includes('need to improve') &&
+            !cleanLine.toLowerCase().includes('improvement needed') &&
+            !cleanLine.toLowerCase().includes('general improvement needed')) { 
           expectations.push({
             id: `exp_${index}`,
             summary: cleanLine,
@@ -2164,6 +2190,33 @@ function ActionPlansPage() {
   const generateFallbackSummaries = (aiSummary) => {
     if (!aiSummary) return [];
     
+    // Try to extract meaningful content from AI summary
+    const lines = aiSummary.split('\n').filter(line => line.trim().length > 10);
+    const meaningfulLines = lines.filter(line => 
+      !line.toLowerCase().includes('general improvement') && 
+      !line.toLowerCase().includes('need to improve') &&
+      !line.toLowerCase().includes('improvement needed') &&
+      !cleanLine.toLowerCase().includes('general betterment') &&
+          !cleanLine.toLowerCase().includes('general enhancement') &&
+            !cleanLine.toLowerCase().includes('general better') &&
+            !cleanLine.toLowerCase().includes('general need') &&
+            !cleanLine.toLowerCase().includes('need general') &&
+      line.length > 20
+    );
+    
+    if (meaningfulLines.length > 0) {
+      return meaningfulLines.slice(0, 3).map((line, index) => ({
+        id: `fallback_${index + 1}`,
+        summary: line.trim().substring(0, 100) + (line.length > 100 ? '...' : ''),
+        category: 'General',
+        categoryId: '',
+        priority: 'Medium',
+        originalData: 'Based on survey responses',
+        recommendedActions: [],
+        sourceResponses: []
+      }));
+    }
+    
     return [{
       id: 'fallback_1',
       summary: aiSummary.substring(0, 200) + (aiSummary.length > 200 ? '...' : ''),
@@ -2178,9 +2231,12 @@ function ActionPlansPage() {
 
 
 
-  const handleAssignFromAI = async (aiPlan) => {
+  const handleAssignFromAI = async (aiPlan, planIndex) => {
     
     try {
+      // Store the current plan index being assigned
+      setCurrentAssigningPlanIndex(planIndex);
+      
       // Build instructions with recommended actions only
       let instructions = '';
       
@@ -2211,7 +2267,8 @@ function ActionPlansPage() {
         instructions: '', // Keep instructions blank as it's optional
         assignedTo: [], // Initialize as empty array for multiple user selection
         targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        originalSurveyRespondents: aiPlan.originalSurveyRespondents || []
+        originalSurveyRespondents: aiPlan.originalSurveyRespondents || [],
+        impactedDepartments: []
       });
 
       // Pre-fill category if available from AI
@@ -2615,7 +2672,7 @@ function ActionPlansPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-3 text-sm text-orange-300">
-                    <span>If multiple department entries are present, first one is the department which created the Action Plan and others are the departments which are being impacted by this action plan.</span>
+                    {/* <span>If multiple department entries are present, first one is the department which created the Action Plan and others are the departments which are being impacted by this action plan.</span> */}
                     
                   </div>
                 </CardHeader>
@@ -2630,10 +2687,11 @@ function ActionPlansPage() {
                       </div>
                       
                       <div className="overflow-x-auto max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                        <table className="w-full min-w-[1600px] border-separate border-spacing-0">
+                        <table className="w-full min-w-[1800px] border-separate border-spacing-0">
                           <thead className="bg-gradient-to-r from-gray-800 to-gray-900 sticky top-0 z-20">
                             <tr>
-                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Departments</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Department(s)</th>
+                              <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Impacted Departments</th>
                               <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Categories</th>
                               <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">ICSQ Feedbacks</th>
                               <th className="px-4 py-4 text-center font-bold text-white bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-700">Action Plan</th>
@@ -2667,6 +2725,23 @@ function ActionPlansPage() {
                                     {Array.isArray(plan.departments) && plan.departments.length > 2 && (
                                       <span className="text-slate-400 text-xs">
                                         +{plan.departments.length - 2} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 text-center border-r border-gray-700/30">
+                                  <div className="flex flex-col gap-1">
+                                    {Array.isArray(plan.impactedDepartments) && plan.impactedDepartments.length > 0 ? 
+                                      plan.impactedDepartments.slice(0, 2).map((dept, idx) => (
+                                        <span key={idx} className="text-white font-medium text-xs bg-orange-600/20 px-2 py-1 rounded">
+                                          {capitalizeFirstLetter(dept?.name || dept)}
+                                        </span>
+                                      )) :
+                                      <span className="text-slate-400 text-xs">None</span>
+                                    }
+                                    {Array.isArray(plan.impactedDepartments) && plan.impactedDepartments.length > 2 && (
+                                      <span className="text-slate-400 text-xs">
+                                        +{plan.impactedDepartments.length - 2} more
                                       </span>
                                     )}
                                   </div>
@@ -2789,6 +2864,15 @@ function ActionPlansPage() {
                                       title="View Action Plan"
                                     >
                                       <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => openEditModal(plan)}
+                                      className="bg-green-600 hover:bg-green-700 border-green-600 text-white h-8 w-8"
+                                      title="Edit Action Plan"
+                                    >
+                                      <Edit className="h-4 w-4" />
                                     </Button>
                                     <Button 
                                       size="icon"
@@ -3382,8 +3466,8 @@ function ActionPlansPage() {
                     )}
                   </div>
                   
-                  {/* Multi-Department Selection */}
-                  <div>
+                  {/* Multi-Department Selection - COMMENTED OUT */}
+                  {/* <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Additional Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
                     <div className="space-y-2">
                       <Select
@@ -3430,10 +3514,10 @@ function ActionPlansPage() {
                     <div className="text-xs text-slate-400 mt-1">
                       Current department is automatically included. Select additional departments if this action plan applies to multiple departments.
                     </div>
-                  </div>
+                  </div> */}
                   
-                  {/* Multi-Category Selection */}
-                  <div>
+                  {/* Multi-Category Selection - COMMENTED OUT */}
+                  {/* <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Additional Categories <span className="text-slate-400 font-normal">(Optional)</span></label>
                     <div className="space-y-2">
                       <Select
@@ -3477,6 +3561,53 @@ function ActionPlansPage() {
                     <div className="text-xs text-slate-400 mt-1">
                       Select additional categories if this action plan applies to multiple categories.
                     </div>
+                  </div> */}
+                  
+                  {/* Impacted Departments Selection */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-200">Impacted Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <div className="space-y-2">
+                      <Select
+                        value=""
+                        onValueChange={(deptId) => {
+                          if (deptId && !selectedImpactedDepartments.includes(deptId)) {
+                            setSelectedImpactedDepartments([...selectedImpactedDepartments, deptId]);
+                          }
+                        }}
+                        options={allDepartments
+                          .filter(dept => dept._id !== getCurrentDepartment()?._id && !selectedImpactedDepartments.includes(dept._id))
+                          .map((dept) => ({ value: dept._id, label: dept.name }))}
+                        placeholder="Select departments that will be impacted..."
+                        className="bg-white/5 border-white/20 text-white"
+                      />
+                      {selectedImpactedDepartments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedImpactedDepartments.map((deptId) => {
+                            const dept = allDepartments.find(d => d._id === deptId);
+                            return (
+                              <div
+                                key={deptId}
+                                className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 border border-orange-400/30 rounded-lg text-orange-300 text-sm"
+                              >
+                                <span>{dept?.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedImpactedDepartments(selectedImpactedDepartments.filter(id => id !== deptId));
+                                  }}
+                                  className="text-orange-400 hover:text-orange-300 text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Select departments that will be affected by this action plan implementation.
+                    </div>
                   </div>
                   
                   <div>
@@ -3508,7 +3639,7 @@ function ActionPlansPage() {
                       Define the specific steps, processes, or actions that need to be taken to meet the expectations
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Instructions <span className="text-slate-400 font-normal">(Optional)</span></label>
                     <Textarea
                       value={createForm.instructions}
@@ -3517,10 +3648,7 @@ function ActionPlansPage() {
                       className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[120px]"
                       rows={5}
                     />
-                    <div className="text-xs text-slate-400 mt-1">
-                      Provide step-by-step guidance, resources, or additional context for completing the action plan (optional)
-                    </div>
-                  </div>
+                  </div> */}
                   <div>
                     <label className="block text-sm font-medium mb-2 text-slate-200">Assign To (Common Action Plan)</label>
                     <div className="text-xs text-slate-400 mb-3">
@@ -4092,7 +4220,7 @@ function ActionPlansPage() {
                         />
                       </div>
 
-                      <div>
+                      {/* <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Instructions (optional)</label>
                         <Textarea
                           value={detailedPlanAssignForm.instructions}
@@ -4101,7 +4229,7 @@ function ActionPlansPage() {
                           className="bg-white/5 border-white/20 text-white focus:border-blue-400"
                           rows={4}
                         />
-                      </div>
+                      </div> */}
                       
                       <DialogFooter className="border-t border-white/10 pt-6">
                         <Button 
@@ -4313,10 +4441,10 @@ function ActionPlansPage() {
                   })()}
 
                   {/* Instructions */}
-                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                  {/* <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
                     <h3 className="text-sm font-semibold text-gray-400 mb-2">Instructions</h3>
                     <p className="text-white whitespace-pre-wrap">{selectedPlanForExpandedView.instructions || "No additional instructions"}</p>
-                  </div>
+                  </div> */}
 
                   {/* Created/Updated Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4433,7 +4561,7 @@ function ActionPlansPage() {
                        </Card>
 
               {/* AI Generated Action Plans */}
-              {aiGeneratedPlans && aiGeneratedPlans.length > 0 && (
+              {aiGeneratedPlans && aiGeneratedPlans.length > 0 && aiGeneratedPlans.filter((plan, index) => !assignedAiPlanIndices.has(index)).length > 0 && (
                 <>
                   <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl ">
                   <CardHeader className="border-b border-gray-700 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
@@ -4447,7 +4575,12 @@ function ActionPlansPage() {
                   </CardHeader>
                   <CardContent className="p-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {aiGeneratedPlans && aiGeneratedPlans.map((plan, index) => (
+                      {aiGeneratedPlans && aiGeneratedPlans
+                        .filter((plan, index) => !assignedAiPlanIndices.has(index))
+                        .map((plan, index) => {
+                          // Get the original index from the unfiltered array
+                          const originalIndex = aiGeneratedPlans.findIndex(p => p === plan);
+                          return (
                         <div key={index} className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-600/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-blue-400/40 backdrop-blur-sm overflow-hidden">
                           {/* Header with Category and Priority */}
                           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-600/50 px-6 py-4">
@@ -4531,7 +4664,7 @@ function ActionPlansPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  handleEditAI(plan, index);
+                                  handleEditAI(plan, originalIndex);
                                 }}
                                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl border border-blue-500 hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 cursor-pointer px-4 py-3 transition-all duration-200 shadow-lg hover:shadow-xl"
                               >
@@ -4546,7 +4679,7 @@ function ActionPlansPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  handleAssignFromAI(plan);
+                                  handleAssignFromAI(plan, originalIndex);
                                 }}
                                 className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-xl border border-green-500 hover:from-green-700 hover:to-green-800 active:from-green-800 active:to-green-900 cursor-pointer px-4 py-3 transition-all duration-200 shadow-lg hover:shadow-xl"
                               >
@@ -4558,11 +4691,35 @@ function ActionPlansPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                          );
+                        })}
                     </div>
                   </CardContent>
                 </Card>
                 </>
+              )}
+
+              {/* Empty State Message - all AI plans have been assigned */}
+              {!isGeneratingAI && aiGeneratedPlans && aiGeneratedPlans.length > 0 && aiGeneratedPlans.filter((plan, index) => !assignedAiPlanIndices.has(index)).length === 0 && (
+                <Card className="bg-gradient-to-br from-[#29252c]/80 to-[#1f1a23]/90 backdrop-blur-sm border border-gray-700/60 shadow-2xl">
+                  <CardContent className="p-8">
+                    <div className="text-center py-12">
+                      <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center border border-green-400/30">
+                        <span className="text-4xl">🎉</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-4">All AI Plans Assigned!</h3>
+                      <p className="text-slate-300 text-lg leading-relaxed max-w-2xl mx-auto mb-6">
+                        Excellent work! All AI-generated action plans have been successfully assigned to team members. 
+                        You can view the assigned plans in the "Overview" tab.
+                      </p>
+                      <div className="bg-green-600/10 border border-green-400/20 rounded-lg p-4 max-w-xl mx-auto">
+                        <p className="text-green-300 text-sm">
+                          💡 <strong>Tip:</strong> You can generate new AI plans by clicking the "Generate AI Action Plans" button above, or check the assigned plans in the Overview tab.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Empty State Message - differentiate between no expectations vs all assigned */}
@@ -4808,8 +4965,8 @@ function ActionPlansPage() {
                         </div>
                       </div>
                       
-                      {/* Multi-Department Selection */}
-                      <div>
+                      {/* Multi-Department Selection - COMMENTED OUT */}
+                      {/* <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Additional Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
                         <div className="space-y-2">
                           <Select
@@ -4856,10 +5013,10 @@ function ActionPlansPage() {
                         <div className="text-xs text-slate-400 mt-1">
                           Current department is automatically included. Select additional departments if this action plan applies to multiple departments.
                         </div>
-                      </div>
+                      </div> */}
                       
-                      {/* Multi-Category Selection */}
-                      <div>
+                      {/* Multi-Category Selection - COMMENTED OUT */}
+                      {/* <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Additional Categories <span className="text-slate-400 font-normal">(Optional)</span></label>
                         <div className="space-y-2">
                           <Select
@@ -4903,6 +5060,53 @@ function ActionPlansPage() {
                         <div className="text-xs text-slate-400 mt-1">
                           Select additional categories if this action plan applies to multiple categories.
                         </div>
+                      </div> */}
+                      
+                      {/* Impacted Departments Selection */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2 text-slate-200">Impacted Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
+                        <div className="space-y-2">
+                          <Select
+                            value=""
+                            onValueChange={(deptId) => {
+                              if (deptId && !selectedImpactedDepartments.includes(deptId)) {
+                                setSelectedImpactedDepartments([...selectedImpactedDepartments, deptId]);
+                              }
+                            }}
+                            options={allDepartments
+                              .filter(dept => dept._id !== getCurrentDepartment()?._id && !selectedImpactedDepartments.includes(dept._id))
+                              .map((dept) => ({ value: dept._id, label: dept.name }))}
+                            placeholder="Select departments that will be impacted..."
+                            className="bg-white/5 border-white/20 text-white"
+                          />
+                          {selectedImpactedDepartments.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedImpactedDepartments.map((deptId) => {
+                                const dept = allDepartments.find(d => d._id === deptId);
+                                return (
+                                  <div
+                                    key={deptId}
+                                    className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 border border-orange-400/30 rounded-lg text-orange-300 text-sm"
+                                  >
+                                    <span>{dept?.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedImpactedDepartments(selectedImpactedDepartments.filter(id => id !== deptId));
+                                      }}
+                                      className="text-orange-400 hover:text-orange-300 text-xs"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Select departments that will be affected by this action plan implementation.
+                        </div>
                       </div>
                       
                       {/* Expectations Field */}
@@ -4939,7 +5143,7 @@ function ActionPlansPage() {
                       </div>
                       
                       {/* Row 3: Instructions (full width) */}
-                      <div>
+                      {/* <div>
                         <label className="block text-sm font-medium mb-2 text-slate-200">Instructions <span className="text-slate-400 font-normal">(Optional)</span></label>
                         <Textarea
                           value={createForm.instructions}
@@ -4948,10 +5152,7 @@ function ActionPlansPage() {
                           className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400 min-h-[140px]"
                           rows={6}
                         />
-                        <div className="text-xs text-slate-400 mt-1">
-                          Provide step-by-step guidance, resources, or additional context for completing the action plan (optional)
-                        </div>
-                      </div>
+                      </div> */}
                       
                       {/* Row 4: Assigned To and Target Date (side by side) */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -5201,6 +5402,115 @@ function ActionPlansPage() {
               <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
               <p className="text-slate-300 text-center text-sm">Please wait while we update the action plan status...</p>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Modal */}
+        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+          <DialogContent className="bg-[#29252c]/95 backdrop-blur-sm border border-white/10 shadow-2xl max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader className="border-b border-white/10 flex-shrink-0">
+              <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="w-2 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+                Edit Action Plan
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditActionPlan} className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-200">Action Plan</label>
+                <Textarea
+                  value={editForm.actionplan}
+                  onChange={(e) => handleEditFormChange('actionplan', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white placeholder-slate-400 focus:border-blue-400"
+                  rows={4}
+                  required
+                  placeholder="Enter the action plan details..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-200">Target Date</label>
+                <Input
+                  type="date"
+                  value={editForm.targetDate}
+                  onChange={(e) => handleEditFormChange('targetDate', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white focus:border-blue-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-200">Impacted Departments <span className="text-slate-400 font-normal">(Optional)</span></label>
+                <div className="space-y-2">
+                  <Select
+                    value=""
+                    onValueChange={(deptId) => {
+                      if (deptId && !editForm.impactedDepartments.includes(deptId)) {
+                        handleEditFormChange('impactedDepartments', [...editForm.impactedDepartments, deptId]);
+                      }
+                    }}
+                    options={allDepartments
+                      .filter(dept => dept._id !== getCurrentDepartment()?._id && !editForm.impactedDepartments.includes(dept._id))
+                      .map((dept) => ({ value: dept._id, label: dept.name }))}
+                    placeholder="Select departments that will be impacted..."
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                  {editForm.impactedDepartments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {editForm.impactedDepartments.map((deptId) => {
+                        const dept = allDepartments.find(d => d._id === deptId);
+                        return (
+                          <div
+                            key={deptId}
+                            className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 border border-orange-400/30 rounded-lg text-orange-300 text-sm"
+                          >
+                            <span>{dept?.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleEditFormChange('impactedDepartments', editForm.impactedDepartments.filter(id => id !== deptId));
+                              }}
+                              className="text-orange-400 hover:text-orange-300 text-xs"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Select departments that will be affected by this action plan implementation.
+                </div>
+              </div>
+
+              
+
+              <DialogFooter className="border-t border-white/10 pt-4 flex-shrink-0">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border-0 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Updating...
+                    </div>
+                  ) : (
+                    <>
+                      <span className="mr-2">💾</span>
+                      Update Action Plan
+                    </>
+                  )}
+                </Button>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" className="bg-white/5 border-white/20 text-slate-200 hover:bg-white/10">
+                    Cancel
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
         
