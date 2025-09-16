@@ -345,7 +345,7 @@ export async function createActionPlan(req, res) {
             categoryNames,
             impactedDepartmentNames
           )
-          console.log(`Action plan creation confirmation email sent to HOD: ${assignedByUser.email}`)
+         console.log(`Action plan creation confirmation email sent to HOD: ${assignedByUser.email}`)
         }
       } catch (error) {
         console.error("Error sending HOD confirmation email:", error)
@@ -353,47 +353,49 @@ export async function createActionPlan(req, res) {
     })
     
     // Send notifications to original survey respondents in background
-    if (originalSurveyRespondents && originalSurveyRespondents.length > 0) {
-      sendEmailInBackground(async () => {
-        try {
-          // Get department and category names for notifications
-          const departmentNames = []
-          const categoryNames = []
+    
+     //commenting out creation notification to the user for whose survey this plan is created
+    // if (originalSurveyRespondents && originalSurveyRespondents.length > 0) {
+    //   sendEmailInBackground(async () => {
+    //     try {
+    //       // Get department and category names for notifications
+    //       const departmentNames = []
+    //       const categoryNames = []
           
-          for (const deptId of departments) {
-            const dept = await Department.findById(deptId).select('name')
-            if (dept) departmentNames.push(dept.name)
-          }
+    //       for (const deptId of departments) {
+    //         const dept = await Department.findById(deptId).select('name')
+    //         if (dept) departmentNames.push(dept.name)
+    //       }
           
-          for (const catId of categories) {
-            const cat = await Category.findById(catId).select('name')
-            if (cat) categoryNames.push(cat.name)
-          }
+    //       for (const catId of categories) {
+    //         const cat = await Category.findById(catId).select('name')
+    //         if (cat) categoryNames.push(cat.name)
+    //       }
           
-          if (departmentNames.length > 0 && categoryNames.length > 0) {
-            for (const respondentData of originalSurveyRespondents) {
-              try {
-                const respondentUser = await User.findById(respondentData.userId).select('name email')
-                if (respondentUser) {
-                  await sendActionPlanCreatedNotification(
-                    respondentUser, 
-                    plan, 
-                    departmentNames.join(", "), 
-                    categoryNames.join(", "),
-                    impactedDepartmentNames
-                  )
-                  console.log(`Notification sent to survey respondent: ${respondentUser.email}`)
-                }
-              } catch (notificationError) {
-                console.error(`Error sending notification to ${respondentData.userId}:`, notificationError)
-              }
-            }
-          }
-        } catch (notificationError) {
-          console.error("Error sending notifications to survey respondents:", notificationError)
-        }
-      })
-    }
+    //       if (departmentNames.length > 0 && categoryNames.length > 0) {
+    //         for (const respondentData of originalSurveyRespondents) {
+    //           try {
+    //             const respondentUser = await User.findById(respondentData.userId).select('name email')
+    //             if (respondentUser) {
+    //               await sendActionPlanCreatedNotification(
+    //                 respondentUser, 
+    //                 plan, 
+    //                 departmentNames.join(", "), 
+    //                 categoryNames.join(", "),
+    //                 impactedDepartmentNames
+    //               )
+    //               console.log(`Notification sent to survey respondent: ${respondentUser.email}`)
+    //             }
+    //           } catch (notificationError) {
+    //             console.error(`Error sending notification to ${respondentData.userId}:`, notificationError)
+    //           }
+    //         }
+    //       }
+    //     } catch (notificationError) {
+    //       console.error("Error sending notifications to survey respondents:", notificationError)
+    //     }
+    //   })
+    // }
     
     return res.status(201).json(plan)
   } catch (error) {
@@ -539,57 +541,59 @@ export async function updateActionPlan(req, res) {
     // Regular status updates by assigned users don't trigger notifications
     // Only finalStatus changes by HOD trigger notifications (handled below)
     
-    // Send final status change notifications to original survey respondents (in background)
-    if (finalStatus !== undefined && finalStatus !== originalFinalStatus && plan.originalSurveyRespondents.length > 0) {
-      sendEmailInBackground(async () => {
-        try {
-          // Get department and category names for notifications
-          const departmentNames = []
-          const categoryNames = []
+    // Send final status change notifications to original survey respondents (in background)\
+    //commenting out the feature to send status update notification to the user whose survey was used to create the acdtion plan
+    // if (finalStatus !== undefined && finalStatus !== originalFinalStatus && plan.originalSurveyRespondents.length > 0) {
+    //   sendEmailInBackground(async () => {
+    //     try {
+    //       // Get department and category names for notifications
+    //       const departmentNames = []
+    //       const categoryNames = []
           
-          for (const deptId of plan.departments) {
-            const dept = await Department.findById(deptId).select('name')
-            if (dept) departmentNames.push(dept.name)
-          }
+    //       for (const deptId of plan.departments) {
+    //         const dept = await Department.findById(deptId).select('name')
+    //         if (dept) departmentNames.push(dept.name)
+    //       }
           
-          for (const catId of plan.categories) {
-            const cat = await Category.findById(catId).select('name')
-            if (cat) categoryNames.push(cat.name)
-          }
+    //       for (const catId of plan.categories) {
+    //         const cat = await Category.findById(catId).select('name')
+    //         if (cat) categoryNames.push(cat.name)
+    //       }
           
-          // Get impacted department names for notifications
-          const impactedDepartmentNames = []
-          for (const deptId of plan.impactedDepartments) {
-            const dept = await Department.findById(deptId).select('name')
-            if (dept) impactedDepartmentNames.push(dept.name)
-          }
-          
-          if (departmentNames.length > 0 && categoryNames.length > 0) {
-            for (const respondentData of plan.originalSurveyRespondents) {
-              try {
-                const respondentUser = await User.findById(respondentData.userId).select('name email')
-                if (respondentUser) {
-                  await sendFinalStatusChangeNotification(
-                    respondentUser,
-                    plan,
-                    departmentNames.join(", "),
-                    categoryNames.join(", "),
-                    originalFinalStatus,
-                    finalStatus,
-                    impactedDepartmentNames
-                  )
-                  console.log(`Final status change notification sent to survey respondent: ${respondentUser.email}`)
-                }
-              } catch (notificationError) {
-                console.error(`Error sending final status change notification to ${respondentData.userId}:`, notificationError)
-              }
-            }
-          }
-        } catch (notificationError) {
-          console.error("Error sending final status change notifications to survey respondents:", notificationError)
-        }
-      })
-    }
+    //       // Get impacted department names for notifications
+    //       const impactedDepartmentNames = []
+    //       for (const deptId of plan.impactedDepartments) {
+    //         const dept = await Department.findById(deptId).select('name')
+    //         if (dept) impactedDepartmentNames.push(dept.name)
+    //       }
+
+
+    //       if (departmentNames.length > 0 && categoryNames.length > 0) {
+    //         for (const respondentData of plan.originalSurveyRespondents) {
+    //           try {
+    //             const respondentUser = await User.findById(respondentData.userId).select('name email')
+    //             if (respondentUser) {
+    //               await sendFinalStatusChangeNotification(
+    //                 respondentUser,
+    //                 plan,
+    //                 departmentNames.join(", "),
+    //                 categoryNames.join(", "),
+    //                 originalFinalStatus,
+    //                 finalStatus,
+    //                 impactedDepartmentNames
+    //               )
+    //               console.log(`Final status change notification sent to survey respondent: ${respondentUser.email}`)
+    //             }
+    //           } catch (notificationError) {
+    //             console.error(`Error sending final status change notification to ${respondentData.userId}:`, notificationError)
+    //           }
+    //         }
+    //       }
+    //     } catch (notificationError) {
+    //       console.error("Error sending final status change notifications to survey respondents:", notificationError)
+    //     }
+    //   })
+    // }
     
     return res.json(planObj)
   } catch (error) {
