@@ -2163,7 +2163,10 @@ function ActionPlansPage() {
             !cleanLine.toLowerCase().includes('general improvement') &&
             !cleanLine.toLowerCase().includes('need to improve') &&
             !cleanLine.toLowerCase().includes('improvement needed') &&
-            !cleanLine.toLowerCase().includes('general improvement needed')) { 
+            !cleanLine.toLowerCase().includes('general improvement needed') &&
+            !cleanLine.match(/[a-f0-9]{24}/) && // Filter out MongoDB ObjectIds
+            !cleanLine.match(/user\s+[a-f0-9]{24}/i) && // Filter out "user 68555a80c39039763729c025"
+            !cleanLine.match(/users?\s+[a-f0-9]{24}/i)) { // Filter out "users 68555a80c39039763729c025" 
           expectations.push({
             id: `exp_${index}`,
             summary: cleanLine,
@@ -2196,11 +2199,14 @@ function ActionPlansPage() {
       !line.toLowerCase().includes('general improvement') && 
       !line.toLowerCase().includes('need to improve') &&
       !line.toLowerCase().includes('improvement needed') &&
-      !cleanLine.toLowerCase().includes('general betterment') &&
-          !cleanLine.toLowerCase().includes('general enhancement') &&
-            !cleanLine.toLowerCase().includes('general better') &&
-            !cleanLine.toLowerCase().includes('general need') &&
-            !cleanLine.toLowerCase().includes('need general') &&
+      !line.toLowerCase().includes('general betterment') &&
+      !line.toLowerCase().includes('general enhancement') &&
+      !line.toLowerCase().includes('general better') &&
+      !line.toLowerCase().includes('general need') &&
+      !line.toLowerCase().includes('need general') &&
+      !line.match(/[a-f0-9]{24}/) && // Filter out MongoDB ObjectIds
+      !line.match(/user\s+[a-f0-9]{24}/i) && // Filter out "user 68555a80c39039763729c025"
+      !line.match(/users?\s+[a-f0-9]{24}/i) && // Filter out "users 68555a80c39039763729c025"
       line.length > 20
     );
     

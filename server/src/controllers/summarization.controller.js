@@ -282,11 +282,13 @@ ANALYSIS INSTRUCTIONS:
 
 SUMMARY CREATION RULES - CRITICAL:
 - ABSOLUTELY FORBIDDEN: "General improvement needed", "Need to improve", "Improvement required", "General improvement in {category}", "Need to improve in {category}", "Better {category} needed"
+- ABSOLUTELY FORBIDDEN: Including user IDs, survey IDs, or any technical identifiers in the summary text
 - MANDATORY: Every summary MUST be 20-30 words and based on SPECIFIC survey responses provided above
 - REQUIRED: Extract the EXACT issues, concerns, or requests mentioned by respondents
 - REQUIRED: Use specific numbers, timeframes, or concrete details from the survey responses
 - REQUIRED: Include what respondents specifically asked for, not generic improvement statements
 - REQUIRED: Make summaries actionable and specific enough that someone reading it knows exactly what to do
+- REQUIRED: Write summaries in professional, clean language without any technical identifiers
 
 EXAMPLES OF FORBIDDEN GENERIC SUMMARIES (DO NOT USE):
 ❌ "General improvement needed in communication"
@@ -296,11 +298,17 @@ EXAMPLES OF FORBIDDEN GENERIC SUMMARIES (DO NOT USE):
 ❌ "Need to improve in {category}"
 ❌ "Improvement needed in {category}"
 
+EXAMPLES OF FORBIDDEN SUMMARIES WITH USER IDs (DO NOT USE):
+❌ "Implement timestamps in customer-facing processes and prioritize MD-approved DOA implementation tasks to address delays reported by users 68555a80c39039763729c025 and 685a443e54cab538ef0381e2"
+❌ "Address communication issues mentioned by user 12345 and survey 67890"
+❌ "Fix response time problems reported by users abc123 and def456"
+
 EXAMPLES OF REQUIRED SPECIFIC SUMMARIES (MUST USE THIS STYLE):
 ✅ "Implement daily standup meetings and weekly project updates to address communication gaps mentioned by 8 respondents who reported confusion about project status"
 ✅ "Reduce response time to customer queries from current 2-3 days to same-day response as specifically requested by 5 teams who cited delays affecting their work"
 ✅ "Create standardized documentation templates and provide training sessions as requested by 6 respondents who mentioned inconsistent information delivery"
 ✅ "Establish clear escalation procedures and response timeframes as mentioned by 4 teams who reported delays in getting urgent issues resolved"
+✅ "Implement timestamps in customer-facing processes and prioritize MD-approved DOA implementation tasks to address delays reported by multiple users"
 
 CRITICAL INSTRUCTIONS FOR SOURCE_RESPONSES:
 - SOURCE_RESPONSES must contain ONLY the actual survey quotes listed above under each category
@@ -355,9 +363,11 @@ ORIGINAL_SURVEY_RESPONDENTS: [{"userId": "user_id_3", "surveyId": "survey_id_3",
 FINAL VALIDATION CHECK:
 Before submitting your response, verify that:
 1. NO summary contains "General improvement", "Need to improve", "Improvement needed", or similar generic phrases
-2. EVERY summary is 20-30 words long and mentions specific details from survey responses
-3. EVERY summary includes concrete numbers, timeframes, or specific requests from respondents
-4. EVERY summary is actionable and tells someone exactly what needs to be done
+2. NO summary contains user IDs, survey IDs, or any technical identifiers (like 68555a80c39039763729c025)
+3. EVERY summary is 20-30 words long and mentions specific details from survey responses
+4. EVERY summary includes concrete numbers, timeframes, or specific requests from respondents
+5. EVERY summary is actionable and tells someone exactly what needs to be done
+6. EVERY summary uses professional language without technical identifiers
 
 REMEMBER: Your summaries must be specific, actionable, and based on the actual survey responses provided. Avoid generic statements at all costs. If you cannot create a specific summary based on the survey data, do not generate a generic one.`;
 
