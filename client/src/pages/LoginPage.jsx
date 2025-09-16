@@ -22,7 +22,7 @@ function LoginPage() {
   const location = useLocation()
   const { login, currentUser, getMicrosoftLoginUrl } = useAuth()
   const { toast } = useToast()
-  const onlyMicrosoftLogin = 0;
+  const onlyMicrosoftLogin = 1;
 
   useEffect(() => {
     if (currentUser) {
